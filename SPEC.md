@@ -1401,7 +1401,14 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   4. Write a minimal compose file that builds both images.
 - **Done when:** `docker compose up --build` starts both containers; `docker compose exec backend pam --version` prints `0.1.0`; the frontend shows the Vite page at :5173.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `backend/pyproject.toml` (hand-written, not `uv init`; it locks to `backend/uv.lock`): Python 3.12, entry point `pam = pam.cli.main:app`, every library named in §8 M0–M13 (pydantic, python-frontmatter, pyyaml, tomli-w, tiktoken, filelock, typer, rich, python-dateutil, beautifulsoup4, ijson, spacy, jinja2, sqlite-vec, fastembed, numpy, scikit-learn, mcp, litellm, fastapi, uvicorn[standard], sse-starlette, python-multipart). Dev group: pytest and httpx, because `docker compose exec backend pytest -q` and the FastAPI TestClient need them.
+  - `pam/__init__.py`: `__version__ = "0.1.0"`. `cli/main.py`: Typer app with an eager `--version` option (T01 adds auto-discovery).
+  - `backend/Dockerfile`: python:3.12-slim + git + uv 0.11.18; `uv sync --frozen`; `PAM_VAULT=/vault`, `FASTEMBED_CACHE_PATH=/models`; ENTRYPOINT/CMD as in M15 (`pam api serve …`).
+  - `frontend/`: create-vite react-ts template + Tailwind v3 (`tailwind.config.ts`, `postcss.config.js`, `@tailwind` layers in `index.css`). M15 multi-stage `Dockerfile` (node:20-alpine → nginx:alpine), `nginx.conf` proxying `/api` and `/mcp` with `proxy_buffering off`, `.dockerignore`.
+  - `docker-compose.yml`: backend (`pam-backend`, 8000, `./vault:/vault`, `./demo:/demo`, `pam-models:/models`, optional `env_file: .env`), frontend (5173→80), and `ollama` behind `profiles: [local]`.
+  - Risk: `pam api serve` doesn't exist until T14, and T14 can't edit compose. The compose file therefore runs `pam api serve … || exec sleep infinity`, so the container idles now and starts serving automatically once T14 lands. T16 removes the fallback.
+  - Deferred to T16 (decided by Yogesh): spaCy/fastembed model baking and the `/api/health` healthcheck.
+- **Result (➕):** 2026-10-17 · PASS · `docker compose up --build -d` starts `pam-backend` and `pam-frontend-1`; `docker compose exec backend pam --version` → `0.1.0`; http://localhost:5173 → 200 (Vite page); `/api/*` → 502 as expected until T14; all §8 libraries import in the container; `pytest -q` → no tests yet. Note: this checkout is on `C:\` rather than inside WSL2 (SETUP §1).
 
 #### T01 · Contracts & core (≈ 1.5 h)
 - **Module:** M0
