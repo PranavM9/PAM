@@ -10,11 +10,28 @@ from rich.console import Console
 from pam.contracts.common import Source
 from pam.contracts.raw import RawConversation
 from pam.core.vault import Vault
-from pam.importers.detect import extract
+from pam.importers.detect import detect, extract
 from pam.normalize.writer import write_episodes
 
 import_app = typer.Typer(help="Import conversations from provider exports.", no_args_is_help=True)
 err = Console(stderr=True)
+
+
+@import_app.command("detect")
+def detect_cmd(
+    path: Path = typer.Argument(..., exists=True, readable=True, help="Provider export ZIP or JSON file."),
+) -> None:
+    """Report the provider detected for an export.
+
+    Behavior:
+        Selects the importer with the highest positive detection score and prints its source.
+    Exceptions:
+        PamError: No importer recognizes the export.
+    Parameters:
+        path: Provider export ZIP or JSON file.
+    """
+    importer = detect(path)
+    typer.echo(importer.source)
 
 
 @import_app.command("extract")

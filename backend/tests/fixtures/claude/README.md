@@ -63,18 +63,18 @@ The key is always present and empty means `""`, never `null`. Summaries look lik
 
 ## Fixture contents
 
-| # | created_at | name | topic | msgs | summary | notes |
-|---|---|---|---|---|---|---|
-| 0 | 2026-08-17 | Setting up Tailscale VPN on Ubuntu server | tailscale | 8 | — | **plant: "I study at WSU"**; contains an edit branch (msg 6 repeats msg 4) |
-| 1 | 2026-08-17 | Setting up Immich on Ubuntu 26.x | immich | 4 | — | |
-| 2 | 2026-08-29 | Backing up Immich photos without metadata | immich | 2 | — | **plant: "no bullet points" #1** |
-| 3 | 2026-08-30 | Immich server job queue configuration | immich | 2 | — | attachment + file (`HANDOFF.md`) |
-| 4 | 2026-08-31 | Tailscale access over eduroam network | tailscale | 4 | — | **plant: "I go to UW"** |
-| 5 | 2026-09-03 | Local LLM gateway setup with Ollama and Tailscale | tailscale | 48 | ✓ | longest; attachments; edit branch (msg 4 repeats msg 0) |
-| 6 | 2026-09-05 | *(empty name)* | empty | 2 | — | both messages have `text=""` and `content=[]` → importer must **skip and count** it |
-| 7 | 2026-09-14 | F1 visa check-in and service record requirements | university | 2 | ✓ | |
-| 8 | 2026-09-15 | Intensive 15-day course prep for UW CS | university | 6 | ✓ | **plant: "no bullet points" #2** (human msg 4) |
-| 9 | 2026-09-18 | Finding on-campus winter break jobs | university | 22 | ✓ | heaviest anonymization (names, emails, employer) |
+| # | source conversation ID | created_at | name | topic | msgs | summary | notes |
+|---|---|---|---|---|---:|---|---|
+| 0 | `325b93ae-19e5-5eb6-9182-5f18dd183ba9` | 2026-08-17 | Setting up Tailscale VPN on Ubuntu server | tailscale | 8 | — | **plant: "I study at WSU"**; contains an edit branch (msg 6 repeats msg 4) |
+| 1 | `d79bba5a-c834-5868-bd64-1b4fc82be99a` | 2026-08-17 | Setting up Immich on Ubuntu 26.x | immich | 4 | — | |
+| 2 | `499775ee-9595-579c-b265-63f22eb3b443` | 2026-08-29 | Backing up Immich photos without metadata | immich | 2 | — | **plant: "no bullet points" #1** |
+| 3 | `dd7781b0-7bdf-5081-b7f5-e53282a37cd9` | 2026-08-30 | Immich server job queue configuration | immich | 2 | — | attachment + file (`HANDOFF.md`) |
+| 4 | `0e68503d-5b7f-5a44-94fc-9a7f65c1ee4b` | 2026-08-31 | Tailscale access over eduroam network | tailscale | 4 | — | **plant: "I go to UW"** |
+| 5 | `75e2abf0-4211-5d0e-852b-f3aa0c1d6351` | 2026-09-03 | Local LLM gateway setup with Ollama and Tailscale | tailscale | 48 | ✓ | longest; attachments; edit branch (msg 4 repeats msg 0) |
+| 6 | `97f99720-6f3a-5848-a8cb-42f8acc658a1` | 2026-09-05 | *(empty name)* | empty | 2 | — | both messages have `text=""` and `content=[]` → importer must **skip and count** it |
+| 7 | `748b3def-a970-5f86-87f9-34d4af0053b8` | 2026-09-14 | F1 visa check-in and service record requirements | university | 2 | ✓ | |
+| 8 | `df1cf6f3-50cc-52a2-a823-bdcd391c49e0` | 2026-09-15 | Intensive 15-day course prep for UW CS | university | 6 | ✓ | **plant: "no bullet points" #2** (human msg 4) |
+| 9 | `6091bc64-f534-5240-88ce-b11ce9c2f2f6` | 2026-09-18 | Finding on-campus winter break jobs | university | 22 | ✓ | heaviest anonymization (names, emails, employer) |
 
 Expected importer output: **9 `RawConversation`s, 1 skipped empty**. The importer drops messages whose text is empty and that have no attachments.
 
