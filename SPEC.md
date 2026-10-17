@@ -1465,7 +1465,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Done when:** `pam import extract tests/fixtures/<src>/… --out /tmp/raw.jsonl` passes for all 3 sources, and every line validates as a `RawConversation`.
 - **Agent plan (➕):**
   - Follow-up: extend Gemini parsing coverage to both `Prompted …` and `details[]` Takeout layouts; rebuild the Gemini primary ZIP with LF JSON and retain the details layout as a separate variant; normalize ChatGPT fixture root/message IDs and hidden/image metadata; add `pam import detect`; add `test_m01_importers.py` for per-source counts, 29/31-minute grouping, ChatGPT selected branches, detection, invalid rows, and read-only parsing; update fixture READMEs with counts and IDs. `pam import run` stays unchanged.
-- **Result (➕):** 2026-10-17 · PASS · Supplied 20-conversation Claude JSON: `pam import extract` → 19 conversations, 1 skipped, 0 errors; `pytest -q tests/test_m01_importers.py` → 10 passed; full `pytest -q` → 222 passed, 2 skipped. `pam import run` behavior unchanged.
+- **Result (➕):** 2026-10-17 · PASS · Supplied 20-conversation export: `pam import extract` → 19 conversations, 1 skipped, 0 errors; `pytest -q tests/test_m01_importers.py` → 10 passed; full `pytest -q` → 222 passed, 2 skipped. `pam import run` behavior unchanged.
 
 #### T04 · Normalizer (≈ 1 h)
 - **Module:** M2
