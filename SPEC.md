@@ -1482,7 +1482,12 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** manifest load/save, persona section parsing, the `can_*` functions and `visible_doc_filter`, `pam agent create|list|show|set-scope`.
 - **Done when:** the M8 acceptance criteria pass (the search part is checked again in T07).
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `agents/manifest.py`: `load_manifest(name, vault=None)` (rejects an unknown major `schema_version`), `save_manifest(manifest, vault=None)` (no commit), `list_agents(vault=None)`, `create_agent(manifest, vault=None) -> sha` (lock → `agent.yaml` + 3 persona files from `PERSONA_TEMPLATE` + `memory/<name>/{episodes,facts,projects}`, `skills/<name>/` → 1 commit `pam: create agent <name>`), `set_scope(name, *, project_ids, include_shared_facts, write, tools, vault) -> (manifest, sha | None)` (1 commit; `None` when unchanged; refuses `default`). Persona: `split_sections(text) -> (derived, custom)` (text outside both headings counts as Custom), `replace_derived(text, derived)` (Custom kept byte-exact; for T08), `rule_id(text)`, `parse_rules(derived, custom)`, `format_rule(rule)` (for T08), `load_persona(name, vault=None)` (Derived + Custom, so Custom comes last). `rules.md` format per CHG-0002.
+  - `agents/permissions.py`: `visible_doc_filter(agent, vault=None, alias="documents") -> (sql, params)`, `can_read(agent, doc, vault=None)` (same rules; `doc` = anything with `doc_id`/`doc_type`/`scope`), `can_write(agent, target_scope)`, `can_call(agent, tool)` (write tools also need `write != "none"`), `doc_ref_from_path(rel)`, `can_write_path(agent, rel, vault=None)`, `project_episode_ids(agent, vault=None)` (episodes of `read.project_ids`, read from the project files). All return booleans; callers raise `PermissionDenied`.
+  - `cli/agent_cmd.py`: `pam agent create|list|show|set-scope|check` (SETUP §6; `check` added for debugging permission decisions). Default `--tools` = all, or only read tools with `--write none`. `set-scope --projects` replaces the list. Project ids without a file only warn (projects come from T10).
+  - Tests `tests/test_m08_agents.py`: CLI create/list/show/set-scope/check with commit counts and exit codes; persona sections, `replace_derived`, rule round-trip; `visible_doc_filter` matrix over an in-memory §7.8 `documents` table; `can_read` agrees with the filter for 50 random agents; `can_write`/`can_call`/`can_write_path` matrices; the M8 acceptance at function level.
+  - Risks: the `rules.md` format sits inside a §7.7 file and is logged as design (CHG-0002); `visible_doc_filter` reads project files on each call (T07 may cache); the CLI half of the acceptance needs T07 (`pam search`) and T09 (`pam fact add`).
+- **Result (➕):** 2026-10-17 · PASS · WSL2 checkout, both in the backend container and locally (`uv run --frozen`): `pytest -q tests/test_m08_agents.py` → 81 passed; full `pytest -q` → 183 passed, 1 skipped (T08's tests-first module), no regressions. Acceptance at function level: `research --projects P1` sees 0 documents from P2 through `visible_doc_filter`, and `can_write(research, "shared")` is False; `pam agent check research --path memory/shared/facts/x.md` reports write denied. T07 re-checks the search part through `pam search --agent`, and T09 the write part through `pam fact add --shared`.
 
 #### T06 · Indexer (≈ 2 h)
 - **Module:** M4
@@ -1680,6 +1685,21 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** Every later `*_cmd.py` defines `register(app)` (preferred) or a module-level `app`. No contract changes.
 - **Status log:**
   - 2026-10-17 13:45 · IMPLEMENTED · agent (T01)
+
+### CHG-0002 — M8 implementation choices: `rules.md` format, project-scoped episodes, persona fallbacks
+- **Type:** design
+- **Module(s):** M8 (affects M3/T08, which writes Derived persona sections, and M6/T07, which applies the read filter)
+- **Proposed by:** agent (task T05)
+- **Date:** 2026-10-17 22:20
+- **Motivation:** §7.7 fixes the two persona headings but not how `PersonaRule` fields are stored in `rules.md`. The §7.8 `documents` table has no project column, so "episodes in `project_ids`" cannot be filtered from the index alone. §8 M8 does not say what happens with persona files missing a heading.
+- **Proposal:**
+  1. `rules.md`: one `- ` bullet per rule. Derived rules carry their metadata in a trailing HTML comment: `- Don't use bullet points. <!-- r_1a2b3c4d evidence=3 episodes=<uuid>,<uuid> -->`. A plain bullet in Custom is `origin=manual`, `evidence_count=0`, id = `rule_id(text)` (`"r_"` + first 8 hex of sha256 of the lowercased, whitespace-collapsed text). T08 writes rules with `pam.agents.manifest.format_rule` and replaces the Derived section with `replace_derived`.
+  2. `visible_doc_filter(agent, vault=None, alias="documents")` takes the vault and reads `memory/*/projects/<id>.md` for each `read.project_ids` entry; their `episode_ids` become a `doc_id IN (...)` term. A project without a file adds nothing.
+  3. Persona text before `## Derived`, or in a file with no headings, counts as Custom. `replace_derived` on a file without a Derived heading inserts both headings and keeps the existing text under Custom.
+  4. `can_*` return booleans and callers raise `PermissionDenied`. `can_call` denies write tools when `write="none"`. `set_scope` refuses `default` to keep the §7.7 promise.
+- **Impact:** T08 uses `format_rule`/`replace_derived`; T07 passes the vault (and an alias) to `visible_doc_filter`. No contract changes.
+- **Status log:**
+  - 2026-10-17 22:20 · IMPLEMENTED · agent (T05)
 
 ---
 
