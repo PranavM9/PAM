@@ -1473,7 +1473,10 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** implement the renderer (the exact grammar), the writer (archive + idempotency + a single commit), `pam import run`, `pam episode list|show|verify`.
 - **Done when:** importing the fixture twice yields N episodes and then 0 new ones; `pam episode verify` reports all OK.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Files: `backend/pam/normalize/render.py` (`render(raw, imported_at, agent="default") -> (EpisodeFrontmatter, body)`, `render_body`), `backend/pam/normalize/writer.py` (`write_episodes(vault, raws, source, original_file, agent="default", update=False, dry_run=False) -> ImportReport`), `backend/pam/cli/episode_cmd.py` (`pam episode list|show|verify`), `pam import run` added to T03's `cli/import_cmd.py` (T03's `extract` untouched), `backend/tests/test_m02_normalize.py`.
+  - Tests: grammar golden, summary present/absent, attachments, unknown time, title fallback and newline collapse, created_at fallbacks, sha verify and tamper (exit 1), idempotent second run (0 written, 0 commits), `--update` chain, byte-identical archive, POSIX paths, dry-run, crash and failed commit leave nothing, untracked leftover recovery, CRLF text, fixtures for claude/chatgpt/gemini end to end.
+  - Risks: see CHG-0002 (archive when nothing is new, CRLF in bodies, large commits, `--all` deferred).
+- **Result (➕):** 2026-10-17 · PASS locally (macOS, Python 3.12 venv): `pam init` + `pam import run` writes 9 claude / 5 chatgpt / 3 gemini episodes in 1 commit each; re-run writes 0 and makes no commit; `pam episode verify` all OK; `pytest -q` 131 passed, 1 skipped. Not run in the backend container (no Docker daemon locally). `pam import run --all` is not implemented (needs derive, index, cluster). See CHG-0002.
 
 #### T05 · Agents & permissions (≈ 1 h)
 - **Module:** M8
@@ -1700,6 +1703,25 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** T08 uses `format_rule`/`replace_derived`; T07 passes the vault (and an alias) to `visible_doc_filter`. No contract changes.
 - **Status log:**
   - 2026-10-17 22:20 · IMPLEMENTED · agent (T05)
+
+### CHG-0002 — M2 implementation choices: lazy archive, update ids, LF bodies, folder commits
+- **Type:** design
+- **Module(s):** M2
+- **Proposed by:** agent (task T04)
+- **Date:** 2026-10-17 17:00
+- **Motivation:** §8 M2 leaves several cases open: an archive copy would be an uncommitted stray file when nothing is new; `mdio` stores LF while a message may contain CRLF; the `--update` id format and the commit size are unspecified.
+- **Proposal:**
+  1. The raw export is archived (and committed) only when at least one episode is written. A run with nothing new makes no archive and no commit, and `ImportReport.archived_path` is `""`. With `--dry-run`, it holds the path that would be used.
+  2. A same-second archive collision moves to the next free second, so an archived file is never overwritten.
+  3. `--update` id is `uuid5(PAM_NAMESPACE, "episode:<source>:<id>:<updated_at>")` with `updated_at` as ISO-8601 UTC `Z`. The `supersedes:<old_id>` tag points at the newest stored version of that conversation, so versions form a chain. A conversation without `updated_at` is never updated.
+  4. CRLF in message text becomes LF in the body before hashing, because `mdio` writes LF; otherwise `body_sha256` would not verify.
+  5. After a crash or failed commit the writer deletes the files it created. Episode files that are untracked in git (left by a killed process) count as not yet written and are rewritten.
+  6. With 1000 or more written files the commit passes the archive folder and the agent's `episodes/` folder instead of every file, to stay under the OS argument limit.
+  7. `ImportReport.errors` from `write_episodes` holds only writer warnings; `pam import run` prepends the importer's parse warnings.
+  8. `pam import run --all` (SETUP §4) is deferred until derive, index and cluster exist.
+- **Impact:** M2 only. No contract changes.
+- **Status log:**
+  - 2026-10-17 17:00 · IMPLEMENTED · agent (T04)
 
 ---
 
