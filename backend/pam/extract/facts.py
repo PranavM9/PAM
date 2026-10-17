@@ -205,10 +205,11 @@ class Merger:
     """Apply candidates to the `shared` fact slots (§8 M3 merging).
 
     Behavior:
-        New slot: create (`extractor=rule`). Same value: confidence +0.05, capped at 0.95. Different
-        value on a SINGLE slot: flag a conflict, unless the existing fact is rule-extracted and the
-        new evidence is from a newer episode, in which case overwrite and push the old value to
-        history. A slot already in conflict is never changed by rules.
+        New slot: create (`extractor=rule`). Same value: confidence +0.05, capped at 0.95, and the
+        episode becomes `updated_by_episode`. Different value on a SINGLE slot: flag a conflict,
+        unless the existing fact is rule-extracted and the new evidence is from a newer episode
+        (overwrite and push the old value to history) or an older one (keep the value and record
+        the older one in history). A slot already in conflict is never changed by rules.
     Parameters:
         vault: The vault whose facts are read.
         episode_times: `created_at` of every known episode, to decide which evidence is newer.
@@ -250,11 +251,15 @@ class Merger:
         known = self.times.get(fact.source_episode) if fact.source_episode else None
         return known is None or ep.created_at > known
 
+    def _older(self, fact: Fact, ep: EpisodeRef) -> bool:
+        known = self.times.get(fact.source_episode) if fact.source_episode else None
+        return ep.id is not None and known is not None and ep.created_at < known
+
     def add(self, ep: EpisodeRef, cand: Candidate) -> str:
         """Merge one candidate.
 
         Returns:
-            `created`, `bumped`, `overwritten`, `conflict`, or `unchanged`.
+            `created`, `bumped`, `overwritten`, `superseded`, `conflict`, or `unchanged`.
         Parameters:
             ep: The episode the candidate came from.
             cand: A non-skipped candidate.
@@ -271,7 +276,8 @@ class Merger:
             conf = min(pat.CONFIDENCE_CAP, round(existing.confidence + pat.CONFIDENCE_BUMP, 2))
             if conf == existing.confidence:
                 return "unchanged"
-            self._store(existing, confidence=conf)
+            # Recording the confirming episode lets `_seen` stop it from bumping twice.
+            self._store(existing, confidence=conf, updated_by_episode=ep.id or existing.updated_by_episode)
             self._mark_updated(fid)
             return "bumped"
         if existing.status is FactStatus.CONFLICT:
@@ -279,6 +285,9 @@ class Merger:
         if existing.extractor is Actor.RULE and self._newer(existing, ep):
             self._overwrite(existing, ep, cand)
             return "overwritten"
+        if existing.extractor is Actor.RULE and self._older(existing, ep):
+            self._record_older(existing, ep, cand)
+            return "superseded"
         conflict = FactConflict(
             candidate_value=cand.value, candidate_source_episode=ep.id,
             detected_at=self.now, detected_by=Actor.RULE,
@@ -310,6 +319,17 @@ class Merger:
         self._mark_updated(old.id)
         if old.source_episode is not None:
             self.result.backlinks.append((old.source_episode, old.id))
+
+    def _record_older(self, fact: Fact, ep: EpisodeRef, cand: Candidate) -> None:
+        # An older statement mined after a newer one: the current value stays, the old one becomes
+        # history, matching the state a chronological run would have produced.
+        entry = FactHistoryEntry(
+            value=cand.value, changed_at=self.now, changed_by=Actor.RULE,
+            episode_id=ep.id, reason=f"older than the current value from episode {fact.source_episode}",
+        )
+        self._store(fact, history=[*fact.history, entry][-HISTORY_LIMIT:])
+        self._mark_updated(fact.id)
+        self.result.backlinks.append((ep.id, fact.id))
 
     def _mark_updated(self, fid: UUID) -> None:
         if fid not in self.result.created:

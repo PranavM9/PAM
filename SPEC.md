@@ -1537,7 +1537,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - CLI: `pam derive [--episode ID] [--dry-run]` (one commit `derive: +c ~u !k`, none when nothing changed), `pam patterns list|test`, `pam persona show [--agent]`.
   - Tests: the existing `test_m03_extract.py` (64 sentence cases, 13 pattern ids, rules, fixture acceptance) runs unedited with no skips.
   - Risks: `en_core_web_sm` is not in the image, so the regex splitter and capitalization heuristic must pass the same table (the spaCy path is the one more likely to differ); a second `derive` must be a no-op, which needs processed episodes remembered outside the vault history (see CHG-0005); the fixture has no "I live in Seattle" sentence until the follow-up fixture PR, so one is planted here.
-- **Result (➕):**
+- **Result (➕):** 2026-10-17 · PASS · WSL2 checkout, locally (`uv run --frozen`) and in the backend container: `pytest -q tests/test_m03_extract.py` → 109 passed (104 tests-first + 5 review regressions, no skips); full `pytest -q` → 331 passed, 1 skipped (`test_m07_memory.py`, waits for T09), after merging main (T03 follow-up). On the Claude fixture: `pam derive` → `+3 ~0 !0; 1 rules`, one commit (school=UW with WSU in history and a backlink on the WSU episode, location=Seattle, role=international student; rule `Don't use bullet points.` with evidence=2); `--dry-run` writes nothing; a second run and `--episode <done id>` make no commit; `--episode zzzz` exits 1; a held lock exits 4; a `## Custom` rule survives a full re-run with `derive_state.json` deleted; `pam episode verify` → 9 OK. spaCy's `en_core_web_sm` is not installed (local or image), so only the regex/capitalization fallback was exercised. Review fixes logged as CHG-0006.
 
 #### T09 · Memory writer (≈ 1.5 h)
 - **Module:** M7
@@ -1751,6 +1751,20 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M3 only, plus the fixture sentence above. T09 replaces `write_fact` / `write_merge` with `pam.memory` calls. No contract changes.
 - **Status log:**
   - 2026-10-17 16:20 · IMPLEMENTED · agent (T08)
+
+### CHG-0006 — M3 review fixes: rule punctuation, bump evidence, older evidence after newer
+- **Type:** design
+- **Module(s):** M3
+- **Proposed by:** Yogesh (review of T08)
+- **Date:** 2026-10-17
+- **Motivation:** Manual testing of T08 found three cases where the result depended on wording, on re-processing, or on processing order.
+- **Proposal:**
+  1. Rules: trailing punctuation is stripped again after a polite tail (`thanks`, `please`, `pls`) is removed, so "Please don't use emojis, thanks" gives `Don't use emojis.` (was `Don't use emojis,.`) and counts as the same rule.
+  2. Same-value merge: the confirming episode becomes `updated_by_episode` (kept when the evidence has no episode). `_seen` then stops that episode from bumping confidence a second time when it is mined again (lost `derive_state.json`, repeated `write_candidates`). An older confirming episode can still bump again; that is bounded by the 0.95 cap, and a full evidence list would need a §7.4 contract change.
+  3. Different value on a SINGLE rule-extracted slot from an **older** episode than the current value's source (e.g. `pam derive --episode <newer>` first, then the rest): the current value stays, the older value is appended to `history` (`changed_by=rule`, `episode_id=<older episode>`), and the older episode gets the `superseded_facts` backlink. No conflict is flagged, so the end state matches one chronological run. Equal timestamps and non-rule facts still conflict. `Merger.add` returns `superseded` for this case.
+- **Impact:** M3 only (`extract/rules.py`, `extract/facts.py`), plus 5 tests appended to `tests/test_m03_extract.py`. No contract changes.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · Yogesh (T08 review)
 
 ---
 
