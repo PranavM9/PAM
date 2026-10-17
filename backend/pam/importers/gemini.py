@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from datetime import timedelta
 from hashlib import sha1
@@ -28,6 +29,20 @@ def _value(details: dict[str, str], *labels: str) -> str | None:
     return None
 
 
+def _prompt_from_title(title: str) -> str | None:
+    if not title.lower().startswith("prompted "):
+        return None
+    value = title[len("Prompted "):].strip()
+    if value.startswith('"'):
+        try:
+            decoded = json.loads(value)
+            if isinstance(decoded, str):
+                return decoded.strip() or None
+        except json.JSONDecodeError:
+            pass
+    return value.strip('"').strip() or None
+
+
 class GeminiImporter:
     source = "gemini"
 
@@ -35,9 +50,14 @@ class GeminiImporter:
         try:
             for name, data in json_documents(path):
                 lname = name.lower()
-                if "myactivity" in lname and isinstance(data, list) and data and isinstance(data[0], dict):
-                    if "details" in data[0] or "title" in data[0]:
-                        return 0.85
+                if "myactivity" in lname and isinstance(data, list):
+                    for row in data:
+                        if not isinstance(row, dict):
+                            continue
+                        title = str(row.get("title") or "").lower()
+                        details = _details(row)
+                        if title.startswith("prompted ") or _value(details, "request", "prompt"):
+                            return 0.85
         except Exception:
             pass
         return 0.0
@@ -56,8 +76,8 @@ class GeminiImporter:
                     response = _value(details, "response")
                     # The Takeout title commonly carries "Prompted ..." when details are absent.
                     title = str(entry.get("title") or "")
-                    if not prompt and title.lower().startswith("prompted "):
-                        prompt = title[len("Prompted "):].strip().strip('"')
+                    if not prompt:
+                        prompt = _prompt_from_title(title)
                     stamp = parse_datetime(entry.get("time")) or parse_datetime(entry.get("timestamp"))
                     if not prompt:
                         continue

@@ -18,7 +18,7 @@ class ClaudeImporter:
         try:
             for name, data in json_documents(path):
                 if (name.lower().endswith("conversations.json") and isinstance(data, list)
-                        and data and isinstance(data[0], dict) and "chat_messages" in data[0]):
+                        and any(isinstance(row, dict) and "chat_messages" in row for row in data)):
                     return 0.95
         except Exception:
             return 0.0

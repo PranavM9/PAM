@@ -15,9 +15,11 @@ class ChatGPTImporter:
 
     def detect(self, path: Path) -> float:
         try:
-            return 0.9 if any(n.lower().endswith("conversations.json") and isinstance(d, list)
-                              and d and isinstance(d[0], dict) and "mapping" in d[0]
-                              for n, d in json_documents(path)) else 0.0
+            return 0.9 if any(
+                n.lower().endswith("conversations.json") and isinstance(d, list)
+                and any(isinstance(row, dict) and "mapping" in row for row in d)
+                for n, d in json_documents(path)
+            ) else 0.0
         except Exception:
             return 0.0
 
@@ -47,7 +49,8 @@ class ChatGPTImporter:
                         if not isinstance(msg, dict):
                             continue
                         metadata = msg.get("metadata") or {}
-                        if metadata.get("is_hidden") or metadata.get("message_type") in {"system", "notification"}:
+                        if (metadata.get("is_hidden") or metadata.get("is_visually_hidden_from_conversation")
+                                or metadata.get("message_type") in {"system", "notification", "hidden"}):
                             continue
                         author = msg.get("author") or {}
                         role = author.get("role")
@@ -58,7 +61,10 @@ class ChatGPTImporter:
                         text = "\n\n".join(str(p) for p in parts if isinstance(p, str))
                         attachments: list[AttachmentRef] = []
                         for part in parts:
-                            if isinstance(part, dict) and any(k in part for k in ("image", "image_url", "asset_pointer")):
+                            if isinstance(part, dict) and (
+                                str(part.get("content_type", "")).startswith("image")
+                                or any(k in part for k in ("image", "image_url", "asset_pointer"))
+                            ):
                                 attachments.append(AttachmentRef(name="image", kind="image"))
                         raw_message = RawMessage(role=role, text=text,
                             created_at=parse_datetime(msg.get("create_time"), epoch=True), attachments=attachments)
