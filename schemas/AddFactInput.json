@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "Cardinality": {
+      "enum": [
+        "single",
+        "multi"
+      ],
+      "title": "Cardinality",
+      "type": "string"
+    },
+    "FactCategory": {
+      "enum": [
+        "identity",
+        "education",
+        "work",
+        "location",
+        "preference",
+        "tooling",
+        "project",
+        "relationship",
+        "other"
+      ],
+      "title": "FactCategory",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "subject": {
+      "default": "user",
+      "title": "Subject",
+      "type": "string"
+    },
+    "attribute": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Attribute",
+      "type": "string"
+    },
+    "value": {
+      "minLength": 1,
+      "title": "Value",
+      "type": "string"
+    },
+    "category": {
+      "$ref": "#/$defs/FactCategory"
+    },
+    "cardinality": {
+      "$ref": "#/$defs/Cardinality",
+      "default": "single"
+    },
+    "confidence": {
+      "default": 0.8,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "shared": {
+      "default": true,
+      "title": "Shared",
+      "type": "boolean"
+    },
+    "episode_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Episode Id"
+    }
+  },
+  "required": [
+    "attribute",
+    "value",
+    "category"
+  ],
+  "title": "AddFactInput",
+  "type": "object"
+}

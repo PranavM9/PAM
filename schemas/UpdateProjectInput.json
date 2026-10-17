@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "project_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Name"
+    },
+    "note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Note"
+    },
+    "add_episode_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Add Episode Ids",
+      "type": "array"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "pattern": "^(active|dormant)$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Status"
+    }
+  },
+  "title": "UpdateProjectInput",
+  "type": "object"
+}

@@ -1,0 +1,144 @@
+{
+  "$defs": {
+    "ImportReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "input_path": {
+          "title": "Input Path",
+          "type": "string"
+        },
+        "archived_path": {
+          "title": "Archived Path",
+          "type": "string"
+        },
+        "conversations_found": {
+          "title": "Conversations Found",
+          "type": "integer"
+        },
+        "episodes_written": {
+          "title": "Episodes Written",
+          "type": "integer"
+        },
+        "episodes_skipped_existing": {
+          "title": "Episodes Skipped Existing",
+          "type": "integer"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "commit_sha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Commit Sha"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source",
+        "input_path",
+        "archived_path",
+        "conversations_found",
+        "episodes_written",
+        "episodes_skipped_existing",
+        "commit_sha",
+        "duration_ms"
+      ],
+      "title": "ImportReport",
+      "type": "object"
+    },
+    "Source": {
+      "enum": [
+        "claude",
+        "chatgpt",
+        "gemini",
+        "pam",
+        "manual"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "stage": {
+      "enum": [
+        "queued",
+        "extract",
+        "normalize",
+        "derive",
+        "index",
+        "cluster",
+        "done",
+        "error"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "progress": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Progress",
+      "type": "number"
+    },
+    "report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImportReport"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    }
+  },
+  "required": [
+    "job_id",
+    "stage",
+    "progress"
+  ],
+  "title": "JobStatus",
+  "type": "object"
+}

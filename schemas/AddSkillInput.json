@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "steps_markdown": {
+      "title": "Steps Markdown",
+      "type": "string"
+    },
+    "trigger_keywords": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Trigger Keywords",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "steps_markdown"
+  ],
+  "title": "AddSkillInput",
+  "type": "object"
+}

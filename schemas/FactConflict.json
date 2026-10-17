@@ -1,0 +1,49 @@
+{
+  "$defs": {
+    "Actor": {
+      "enum": [
+        "rule",
+        "agent",
+        "manual",
+        "cluster"
+      ],
+      "title": "Actor",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_value": {
+      "title": "Candidate Value",
+      "type": "string"
+    },
+    "candidate_source_episode": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Source Episode"
+    },
+    "detected_at": {
+      "format": "date-time",
+      "title": "Detected At",
+      "type": "string"
+    },
+    "detected_by": {
+      "$ref": "#/$defs/Actor"
+    }
+  },
+  "required": [
+    "candidate_value",
+    "detected_at",
+    "detected_by"
+  ],
+  "title": "FactConflict",
+  "type": "object"
+}

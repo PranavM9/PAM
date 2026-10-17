@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "type": {
+      "const": "token",
+      "default": "token",
+      "title": "Type",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "title": "TokenEvent",
+  "type": "object"
+}

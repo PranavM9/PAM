@@ -1,0 +1,17 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "rule_min_evidence": {
+      "default": 2,
+      "title": "Rule Min Evidence",
+      "type": "integer"
+    },
+    "spacy_model": {
+      "default": "en_core_web_sm",
+      "title": "Spacy Model",
+      "type": "string"
+    }
+  },
+  "title": "ExtractCfg",
+  "type": "object"
+}

@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "candidate_k": {
+      "default": 50,
+      "title": "Candidate K",
+      "type": "integer"
+    },
+    "rrf_k": {
+      "default": 60,
+      "title": "Rrf K",
+      "type": "integer"
+    },
+    "recency_weight": {
+      "default": 0.2,
+      "title": "Recency Weight",
+      "type": "number"
+    },
+    "recency_half_life_days": {
+      "default": 30,
+      "title": "Recency Half Life Days",
+      "type": "number"
+    }
+  },
+  "title": "RetrievalCfg",
+  "type": "object"
+}

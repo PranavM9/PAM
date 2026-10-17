@@ -1,0 +1,48 @@
+{
+  "properties": {
+    "type": {
+      "const": "done",
+      "default": "done",
+      "title": "Type",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "prompt_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Prompt Tokens"
+    },
+    "completion_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Completion Tokens"
+    }
+  },
+  "required": [
+    "session_id",
+    "model",
+    "prompt_tokens",
+    "completion_tokens"
+  ],
+  "title": "DoneEvent",
+  "type": "object"
+}

@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "documents_indexed": {
+      "title": "Documents Indexed",
+      "type": "integer"
+    },
+    "documents_unchanged": {
+      "title": "Documents Unchanged",
+      "type": "integer"
+    },
+    "documents_removed_from_index": {
+      "title": "Documents Removed From Index",
+      "type": "integer"
+    },
+    "chunks_written": {
+      "title": "Chunks Written",
+      "type": "integer"
+    },
+    "embedding_model": {
+      "title": "Embedding Model",
+      "type": "string"
+    },
+    "duration_ms": {
+      "title": "Duration Ms",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "documents_indexed",
+    "documents_unchanged",
+    "documents_removed_from_index",
+    "chunks_written",
+    "embedding_model",
+    "duration_ms"
+  ],
+  "title": "IndexReport",
+  "type": "object"
+}

@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "PersonaRule": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "derived",
+            "manual"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "evidence_count": {
+          "minimum": 0,
+          "title": "Evidence Count",
+          "type": "integer"
+        },
+        "evidence_episodes": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "title": "Evidence Episodes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "origin",
+        "evidence_count"
+      ],
+      "title": "PersonaRule",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Agent",
+      "type": "string"
+    },
+    "identity": {
+      "title": "Identity",
+      "type": "string"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/PersonaRule"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "style": {
+      "title": "Style",
+      "type": "string"
+    }
+  },
+  "required": [
+    "agent",
+    "identity",
+    "rules",
+    "style"
+  ],
+  "title": "Persona",
+  "type": "object"
+}

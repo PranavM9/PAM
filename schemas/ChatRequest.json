@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    },
+    "agent": {
+      "default": "default",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Agent",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "mode": {
+      "default": "injection",
+      "enum": [
+        "injection",
+        "tool"
+      ],
+      "title": "Mode",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model",
+    "message"
+  ],
+  "title": "ChatRequest",
+  "type": "object"
+}

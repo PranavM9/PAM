@@ -1,0 +1,36 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "source": {
+      "title": "Source",
+      "type": "string"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "member",
+        "similar",
+        "derived_from"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "weight": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "source",
+    "target",
+    "kind",
+    "weight"
+  ],
+  "title": "GraphLink",
+  "type": "object"
+}

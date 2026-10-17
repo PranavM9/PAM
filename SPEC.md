@@ -1422,7 +1422,16 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   4. Write round-trip tests for every model.
 - **Done when:** `pam init --vault /tmp/v && git -C /tmp/v log --oneline` shows 1 commit; `pam schema export` writes `/schemas/*.json`; `pytest tests/test_m00_core.py` is green.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `contracts/*`: §7 verbatim, one file per heading; the §7.12 block is split into `reports.py` + `graph.py` (imports only). §7.8 SQL is T06's. `contracts/__init__.py` adds `all_models()` (every public model + `ChatEvent` as a `TypeAdapter`), used by schema export and the tests.
+  - `core/errors.py`: `PamError(msg, exit_code)` → `VaultNotFound` (1), `SchemaVersionError` (2), `PermissionDenied` (3), `VaultBusy` (4) — SETUP §5 exit codes.
+  - `core/time.py` `utcnow()`, `iso_z(dt)` · `core/ids.py` `sha256_text`, `new_uuid` · `core/tokens.py` `count(text)` (cached `cl100k_base`) · `core/lock.py` `vault_write_lock(vault=None, timeout=10.0)` (filelock; timeout → `VaultBusy`).
+  - `core/vault.py`: `resolve_vault(path=None)` (arg → global `--vault` → `PAM_VAULT`); `Vault` path helpers (`episode_path`, `fact_path`, `project_path`, `skill_path`, `working_path`, `manifest_path`, `persona_path`, `import_dir`, `rel` → POSIX); `init_vault(path) -> InitResult` (no-op + warning if `pam.toml` exists; refuses a non-empty non-vault dir; §6 tree on disk, `.gitattributes`, `.gitignore`, `pam.toml`, `agent/default/` manifest + 3 persona files; `git init -b main`, `core.autocrlf=false`, 1 commit by `PAM <pam@local>`).
+  - `core/config.py`: `load(vault=None) -> PamConfig` (defaults if no `pam.toml`; rejects unknown major), `dump_toml(cfg)`.
+  - `core/mdio.py`: `read(path) -> (dict, str)`, `write(path, model, body)`, `read_model(path, cls)` (major-version check), `write_text(path, text)`. Own `---` splitter + PyYAML, because `python-frontmatter` strips the body (breaks `body_sha256`). Atomic (temp + `os.replace`), UTF-8, LF, creates parents.
+  - `cli/main.py`: global `--vault/--json/-v`; auto-discovers `pam/cli/*_cmd.py` and calls each module's `register(app)` (fallback: a module-level `app` Typer is mounted as `pam <name>`); maps `PamError` → its exit code and `ValidationError` → 2. `cli/init_cmd.py`: `pam init`, `pam config show|path` (`config` isn't in allowed paths). `cli/schema_cmd.py`: `pam schema export [--out]` → one `<Model>.json` per model, default `<repo>/schemas`.
+  - Tests `tests/test_m00_core.py`: mdio round trip for every model in `all_models()` (+ guard that every model has a sample), byte-exact bodies, contract promises (extra forbid, `Z` datetimes, fact conflict validator, reserved `shared`, deterministic IDs, major/minor version handling), tokens, lock contention, config, POSIX paths, CLI init (1 commit, idempotent, refuses non-vault), schema export, `config show --json`.
+  - Risks/decisions: `safe.directory` is global git config → left to T02 (init-time git config). Empty dirs aren't committed (no `.gitkeep`); writers create parents. tiktoken downloads `cl100k_base` on first use → T16 should bake it (noted in research/TODO.md). Default manifest lives in `core/vault.py` until T05. `pam doctor` out of scope.
+- **Result (➕):** 2026-10-17 · PASS · `pam init --vault /tmp/v` → 1 commit (`PAM <pam@local>`, "pam: init vault"); re-running is a no-op with a warning; `pam schema export` writes 54 files (53 models + `ChatEvent`); `pytest -q` → 86 passed (T08's tests-first module skips until `pam.extract` exists), both on Windows (`uv run`) and in the backend container. Docstrings follow `commenting-guidelines.md`; `contracts/*` keep §7 verbatim. Design notes logged as CHG-0001. Note: typer 0.27 vendors click (`typer._click`), so `cli/main.py` raises that `ClickException` for exit codes.
 
 #### T02 · Git helper (≈ 0.5 h)
 - **Module:** M10 (commit part only; the watcher comes in T09b)
@@ -1645,6 +1654,20 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - 2026-10-17 12:36 · APPROVED · team (Pranav)
 
 <!-- Append new change entries below this line. Never edit above it. -->
+
+### CHG-0001 — M0 implementation choices: CLI auto-discovery, own frontmatter splitter, `pam config` placement
+- **Type:** design
+- **Module(s):** M0 (affects how every later task adds CLI commands)
+- **Proposed by:** agent (task T01)
+- **Date:** 2026-10-17 13:45
+- **Motivation:** Only T00/T01 may edit `cli/main.py`, but every later task adds commands. `python-frontmatter` strips the body, which breaks `body_sha256` (§7.3). `pam config` (SETUP §6) has no `config_cmd.py` in T01's allowed paths.
+- **Proposal:**
+  1. `cli/main.py` imports every `pam/cli/*_cmd.py` (alphabetically) and calls its `register(app: typer.Typer)`. That function adds top-level commands (`app.command("x")(fn)`) or groups (`app.add_typer(sub, name="x")`). If a module has no `register` but defines a module-level `app = typer.Typer()`, it is mounted as `pam <name>` (from `<name>_cmd.py`). Global options go into `ctx.obj` (`json`, `verbose`), and `--vault` goes into `pam.core.vault.set_vault_override`. Raising `pam.core.errors.PamError` (or a subclass) exits with its SETUP §5 code, and a pydantic `ValidationError` exits with 2. `*_cmd.py` modules must not import `pam.cli.main`, because that creates a circular import.
+  2. `pam.core.mdio` parses `---\n<yaml>---\n<body>` itself with PyYAML and returns the body byte-for-byte. `python-frontmatter` stays a dependency but is unused.
+  3. `pam config show|path` lives in `cli/init_cmd.py`.
+- **Impact:** Every later `*_cmd.py` defines `register(app)` (preferred) or a module-level `app`. No contract changes.
+- **Status log:**
+  - 2026-10-17 13:45 · IMPLEMENTED · agent (T01)
 
 ---
 

@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "Actor": {
+      "enum": [
+        "rule",
+        "agent",
+        "manual",
+        "cluster"
+      ],
+      "title": "Actor",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "scope": {
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Scope",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "trigger_keywords": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Trigger Keywords",
+      "type": "array"
+    },
+    "source_episodes": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Source Episodes",
+      "type": "array"
+    },
+    "created_by": {
+      "$ref": "#/$defs/Actor"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "scope",
+    "name",
+    "description",
+    "created_by",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "Skill",
+  "type": "object"
+}

@@ -112,12 +112,14 @@
 - [ ] Compose profiles, healthchecks, named volumes vs bind mounts.
 - [ ] `uv` in Docker (`uv sync --frozen`), layer caching.
 - **Done when:** the T00 scaffold builds and runs on one Windows and one Mac machine.
+- **Note (T01, 2026-10-17):** tiktoken downloads the `cl100k_base` BPE file on first `core.tokens.count()`. For offline runs, T16 should bake it into the image like the fastembed model (set `TIKTOKEN_CACHE_DIR` and call `tiktoken.get_encoding("cl100k_base")` at build time).
 
 ## R14 — Python tooling 🟢
 - [ ] Pydantic v2: `model_json_schema`, `AwareDatetime`, discriminated unions, validators.
 - [ ] Typer sub-apps and `rich` tables.
 - [ ] `python-frontmatter` round-trips; `uuid5`; `tiktoken`.
 - [ ] pytest fixtures and parametrized tables.
+- **Note (T01, 2026-10-17):** `python-frontmatter` strips the body (`'\n# T\n\nbody  \n\n'` → `'# T\n\nbody'`), which would break `body_sha256`. `pam.core.mdio` splits frontmatter itself and uses PyYAML. Typer 0.27 vendors click as `typer._click`; raise `typer._click.exceptions.ClickException` (not `click.ClickException`) if you need custom exit codes.
 
 ## R15 — Demo & pitch 🟡
 - [ ] Choose the real project history for the demo; make sure it contains nothing private you wouldn't show on a projector.

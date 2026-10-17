@@ -1,0 +1,276 @@
+{
+  "$defs": {
+    "Actor": {
+      "enum": [
+        "rule",
+        "agent",
+        "manual",
+        "cluster"
+      ],
+      "title": "Actor",
+      "type": "string"
+    },
+    "Cardinality": {
+      "enum": [
+        "single",
+        "multi"
+      ],
+      "title": "Cardinality",
+      "type": "string"
+    },
+    "FactCategory": {
+      "enum": [
+        "identity",
+        "education",
+        "work",
+        "location",
+        "preference",
+        "tooling",
+        "project",
+        "relationship",
+        "other"
+      ],
+      "title": "FactCategory",
+      "type": "string"
+    },
+    "FactConflict": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_value": {
+          "title": "Candidate Value",
+          "type": "string"
+        },
+        "candidate_source_episode": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Source Episode"
+        },
+        "detected_at": {
+          "format": "date-time",
+          "title": "Detected At",
+          "type": "string"
+        },
+        "detected_by": {
+          "$ref": "#/$defs/Actor"
+        }
+      },
+      "required": [
+        "candidate_value",
+        "detected_at",
+        "detected_by"
+      ],
+      "title": "FactConflict",
+      "type": "object"
+    },
+    "FactHistoryEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "changed_at": {
+          "format": "date-time",
+          "title": "Changed At",
+          "type": "string"
+        },
+        "changed_by": {
+          "$ref": "#/$defs/Actor"
+        },
+        "agent": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agent"
+        },
+        "episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Episode Id"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "value",
+        "changed_at",
+        "changed_by"
+      ],
+      "title": "FactHistoryEntry",
+      "type": "object"
+    },
+    "FactStatus": {
+      "enum": [
+        "active",
+        "conflict"
+      ],
+      "title": "FactStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "subject": {
+      "default": "user",
+      "title": "Subject",
+      "type": "string"
+    },
+    "attribute": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Attribute",
+      "type": "string"
+    },
+    "value": {
+      "minLength": 1,
+      "title": "Value",
+      "type": "string"
+    },
+    "cardinality": {
+      "$ref": "#/$defs/Cardinality"
+    },
+    "category": {
+      "$ref": "#/$defs/FactCategory"
+    },
+    "confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "status": {
+      "$ref": "#/$defs/FactStatus",
+      "default": "active"
+    },
+    "conflict": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FactConflict"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "source_episode": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Episode"
+    },
+    "updated_by_episode": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Updated By Episode"
+    },
+    "extractor": {
+      "$ref": "#/$defs/Actor"
+    },
+    "pattern_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pattern Id"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "history": {
+      "items": {
+        "$ref": "#/$defs/FactHistoryEntry"
+      },
+      "maxItems": 20,
+      "title": "History",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "scope",
+    "attribute",
+    "value",
+    "cardinality",
+    "category",
+    "confidence",
+    "extractor",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "Fact",
+  "type": "object"
+}

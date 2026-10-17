@@ -1,0 +1,56 @@
+{
+  "$defs": {
+    "Source": {
+      "enum": [
+        "claude",
+        "chatgpt",
+        "gemini",
+        "pam",
+        "manual"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "episode_id": {
+      "format": "uuid",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "chunk_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Chunk Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "episode_id",
+    "title",
+    "source",
+    "created_at",
+    "text",
+    "chunk_ids"
+  ],
+  "title": "EpisodeSnippet",
+  "type": "object"
+}

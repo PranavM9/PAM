@@ -1,0 +1,62 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "query": {
+      "minLength": 1,
+      "title": "Query",
+      "type": "string"
+    },
+    "agent": {
+      "default": "default",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Agent",
+      "type": "string"
+    },
+    "k": {
+      "default": 8,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "K",
+      "type": "integer"
+    },
+    "doc_types": {
+      "anyOf": [
+        {
+          "items": {
+            "enum": [
+              "episode",
+              "fact",
+              "project",
+              "skill"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Doc Types"
+    },
+    "since": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Since"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "SearchQuery",
+  "type": "object"
+}

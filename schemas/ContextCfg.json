@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "default_budget": {
+      "default": 2000,
+      "title": "Default Budget",
+      "type": "integer"
+    },
+    "persona_max_tokens": {
+      "default": 300,
+      "title": "Persona Max Tokens",
+      "type": "integer"
+    },
+    "max_facts": {
+      "default": 12,
+      "title": "Max Facts",
+      "type": "integer"
+    },
+    "max_projects": {
+      "default": 3,
+      "title": "Max Projects",
+      "type": "integer"
+    }
+  },
+  "title": "ContextCfg",
+  "type": "object"
+}

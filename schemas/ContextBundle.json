@@ -1,0 +1,784 @@
+{
+  "$defs": {
+    "Actor": {
+      "enum": [
+        "rule",
+        "agent",
+        "manual",
+        "cluster"
+      ],
+      "title": "Actor",
+      "type": "string"
+    },
+    "AttachmentRef": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "file",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "mime_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mime Type"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "AttachmentRef",
+      "type": "object"
+    },
+    "Cardinality": {
+      "enum": [
+        "single",
+        "multi"
+      ],
+      "title": "Cardinality",
+      "type": "string"
+    },
+    "EpisodeSnippet": {
+      "additionalProperties": false,
+      "properties": {
+        "episode_id": {
+          "format": "uuid",
+          "title": "Episode Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "chunk_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Chunk Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "episode_id",
+        "title",
+        "source",
+        "created_at",
+        "text",
+        "chunk_ids"
+      ],
+      "title": "EpisodeSnippet",
+      "type": "object"
+    },
+    "Fact": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "scope": {
+          "title": "Scope",
+          "type": "string"
+        },
+        "subject": {
+          "default": "user",
+          "title": "Subject",
+          "type": "string"
+        },
+        "attribute": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        },
+        "cardinality": {
+          "$ref": "#/$defs/Cardinality"
+        },
+        "category": {
+          "$ref": "#/$defs/FactCategory"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "status": {
+          "$ref": "#/$defs/FactStatus",
+          "default": "active"
+        },
+        "conflict": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FactConflict"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_episode": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Episode"
+        },
+        "updated_by_episode": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Updated By Episode"
+        },
+        "extractor": {
+          "$ref": "#/$defs/Actor"
+        },
+        "pattern_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern Id"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "history": {
+          "items": {
+            "$ref": "#/$defs/FactHistoryEntry"
+          },
+          "maxItems": 20,
+          "title": "History",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "attribute",
+        "value",
+        "cardinality",
+        "category",
+        "confidence",
+        "extractor",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "Fact",
+      "type": "object"
+    },
+    "FactCategory": {
+      "enum": [
+        "identity",
+        "education",
+        "work",
+        "location",
+        "preference",
+        "tooling",
+        "project",
+        "relationship",
+        "other"
+      ],
+      "title": "FactCategory",
+      "type": "string"
+    },
+    "FactConflict": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_value": {
+          "title": "Candidate Value",
+          "type": "string"
+        },
+        "candidate_source_episode": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Source Episode"
+        },
+        "detected_at": {
+          "format": "date-time",
+          "title": "Detected At",
+          "type": "string"
+        },
+        "detected_by": {
+          "$ref": "#/$defs/Actor"
+        }
+      },
+      "required": [
+        "candidate_value",
+        "detected_at",
+        "detected_by"
+      ],
+      "title": "FactConflict",
+      "type": "object"
+    },
+    "FactHistoryEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "changed_at": {
+          "format": "date-time",
+          "title": "Changed At",
+          "type": "string"
+        },
+        "changed_by": {
+          "$ref": "#/$defs/Actor"
+        },
+        "agent": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agent"
+        },
+        "episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Episode Id"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "value",
+        "changed_at",
+        "changed_by"
+      ],
+      "title": "FactHistoryEntry",
+      "type": "object"
+    },
+    "FactStatus": {
+      "enum": [
+        "active",
+        "conflict"
+      ],
+      "title": "FactStatus",
+      "type": "string"
+    },
+    "ModelSwitch": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "from_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "From Model"
+        },
+        "to_model": {
+          "title": "To Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "at",
+        "from_model",
+        "to_model"
+      ],
+      "title": "ModelSwitch",
+      "type": "object"
+    },
+    "Persona": {
+      "additionalProperties": false,
+      "properties": {
+        "agent": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+          "title": "Agent",
+          "type": "string"
+        },
+        "identity": {
+          "title": "Identity",
+          "type": "string"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/PersonaRule"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "style": {
+          "title": "Style",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent",
+        "identity",
+        "rules",
+        "style"
+      ],
+      "title": "Persona",
+      "type": "object"
+    },
+    "PersonaRule": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "derived",
+            "manual"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "evidence_count": {
+          "minimum": 0,
+          "title": "Evidence Count",
+          "type": "integer"
+        },
+        "evidence_episodes": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "title": "Evidence Episodes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "origin",
+        "evidence_count"
+      ],
+      "title": "PersonaRule",
+      "type": "object"
+    },
+    "ProjectBrief": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "dormant"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "last_activity_at": {
+          "format": "date-time",
+          "title": "Last Activity At",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "keywords",
+        "status",
+        "last_activity_at",
+        "summary"
+      ],
+      "title": "ProjectBrief",
+      "type": "object"
+    },
+    "RawMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "user",
+            "assistant",
+            "system",
+            "tool"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "attachments": {
+          "items": {
+            "$ref": "#/$defs/AttachmentRef"
+          },
+          "title": "Attachments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "role",
+        "text"
+      ],
+      "title": "RawMessage",
+      "type": "object"
+    },
+    "Source": {
+      "enum": [
+        "claude",
+        "chatgpt",
+        "gemini",
+        "pam",
+        "manual"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "WorkingMemory": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "default": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^s_[0-9a-z]{12}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "agent": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+          "title": "Agent",
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "active",
+            "ended"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "models_used": {
+          "items": {
+            "$ref": "#/$defs/ModelSwitch"
+          },
+          "title": "Models Used",
+          "type": "array"
+        },
+        "goal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Goal"
+        },
+        "decisions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Decisions",
+          "type": "array"
+        },
+        "open_questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Questions",
+          "type": "array"
+        },
+        "recent_turns": {
+          "items": {
+            "$ref": "#/$defs/RawMessage"
+          },
+          "maxItems": 8,
+          "title": "Recent Turns",
+          "type": "array"
+        },
+        "promoted_episode_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Promoted Episode Id"
+        }
+      },
+      "required": [
+        "session_id",
+        "agent",
+        "started_at",
+        "updated_at"
+      ],
+      "title": "WorkingMemory",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "agent": {
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Agent",
+      "type": "string"
+    },
+    "query": {
+      "title": "Query",
+      "type": "string"
+    },
+    "persona": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Persona"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/Fact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "conflicts": {
+      "items": {
+        "$ref": "#/$defs/Fact"
+      },
+      "title": "Conflicts",
+      "type": "array"
+    },
+    "projects": {
+      "items": {
+        "$ref": "#/$defs/ProjectBrief"
+      },
+      "title": "Projects",
+      "type": "array"
+    },
+    "episodes": {
+      "items": {
+        "$ref": "#/$defs/EpisodeSnippet"
+      },
+      "title": "Episodes",
+      "type": "array"
+    },
+    "working": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkingMemory"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rendered": {
+      "title": "Rendered",
+      "type": "string"
+    },
+    "tokens_used": {
+      "title": "Tokens Used",
+      "type": "integer"
+    },
+    "token_budget": {
+      "title": "Token Budget",
+      "type": "integer"
+    },
+    "baseline_tokens": {
+      "title": "Baseline Tokens",
+      "type": "integer"
+    },
+    "tokens_saved": {
+      "title": "Tokens Saved",
+      "type": "integer"
+    },
+    "tokenizer": {
+      "const": "cl100k_base",
+      "default": "cl100k_base",
+      "title": "Tokenizer",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "agent",
+    "query",
+    "persona",
+    "facts",
+    "conflicts",
+    "projects",
+    "episodes",
+    "working",
+    "rendered",
+    "tokens_used",
+    "token_budget",
+    "baseline_tokens",
+    "tokens_saved",
+    "generated_at"
+  ],
+  "title": "ContextBundle",
+  "type": "object"
+}

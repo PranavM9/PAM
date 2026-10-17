@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "ChunkCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "max_tokens": {
+          "default": 512,
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "overlap_tokens": {
+          "default": 64,
+          "title": "Overlap Tokens",
+          "type": "integer"
+        }
+      },
+      "title": "ChunkCfg",
+      "type": "object"
+    },
+    "ClusterCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "min_cluster_size": {
+          "default": 3,
+          "title": "Min Cluster Size",
+          "type": "integer"
+        },
+        "assign_threshold": {
+          "default": 0.6,
+          "title": "Assign Threshold",
+          "type": "number"
+        },
+        "similar_link_threshold": {
+          "default": 0.75,
+          "title": "Similar Link Threshold",
+          "type": "number"
+        },
+        "similar_links_per_node": {
+          "default": 3,
+          "title": "Similar Links Per Node",
+          "type": "integer"
+        },
+        "rebuild_match_jaccard": {
+          "default": 0.5,
+          "title": "Rebuild Match Jaccard",
+          "type": "number"
+        },
+        "dormant_after_days": {
+          "default": 30,
+          "title": "Dormant After Days",
+          "type": "integer"
+        }
+      },
+      "title": "ClusterCfg",
+      "type": "object"
+    },
+    "ContextCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "default_budget": {
+          "default": 2000,
+          "title": "Default Budget",
+          "type": "integer"
+        },
+        "persona_max_tokens": {
+          "default": 300,
+          "title": "Persona Max Tokens",
+          "type": "integer"
+        },
+        "max_facts": {
+          "default": 12,
+          "title": "Max Facts",
+          "type": "integer"
+        },
+        "max_projects": {
+          "default": 3,
+          "title": "Max Projects",
+          "type": "integer"
+        }
+      },
+      "title": "ContextCfg",
+      "type": "object"
+    },
+    "EmbeddingCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "default": "BAAI/bge-small-en-v1.5",
+          "title": "Model",
+          "type": "string"
+        },
+        "dim": {
+          "default": 384,
+          "title": "Dim",
+          "type": "integer"
+        },
+        "query_prefix": {
+          "default": "Represent this sentence for searching relevant passages: ",
+          "title": "Query Prefix",
+          "type": "string"
+        }
+      },
+      "title": "EmbeddingCfg",
+      "type": "object"
+    },
+    "ExtractCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_min_evidence": {
+          "default": 2,
+          "title": "Rule Min Evidence",
+          "type": "integer"
+        },
+        "spacy_model": {
+          "default": "en_core_web_sm",
+          "title": "Spacy Model",
+          "type": "string"
+        }
+      },
+      "title": "ExtractCfg",
+      "type": "object"
+    },
+    "ModelEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "supports_tools": {
+          "default": false,
+          "title": "Supports Tools",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "ModelEntry",
+      "type": "object"
+    },
+    "RetrievalCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_k": {
+          "default": 50,
+          "title": "Candidate K",
+          "type": "integer"
+        },
+        "rrf_k": {
+          "default": 60,
+          "title": "Rrf K",
+          "type": "integer"
+        },
+        "recency_weight": {
+          "default": 0.2,
+          "title": "Recency Weight",
+          "type": "number"
+        },
+        "recency_half_life_days": {
+          "default": 30,
+          "title": "Recency Half Life Days",
+          "type": "number"
+        }
+      },
+      "title": "RetrievalCfg",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "embedding": {
+      "$ref": "#/$defs/EmbeddingCfg",
+      "default": {
+        "model": "BAAI/bge-small-en-v1.5",
+        "dim": 384,
+        "query_prefix": "Represent this sentence for searching relevant passages: "
+      }
+    },
+    "chunking": {
+      "$ref": "#/$defs/ChunkCfg",
+      "default": {
+        "max_tokens": 512,
+        "overlap_tokens": 64
+      }
+    },
+    "retrieval": {
+      "$ref": "#/$defs/RetrievalCfg",
+      "default": {
+        "candidate_k": 50,
+        "rrf_k": 60,
+        "recency_weight": 0.2,
+        "recency_half_life_days": 30.0
+      }
+    },
+    "context": {
+      "$ref": "#/$defs/ContextCfg",
+      "default": {
+        "default_budget": 2000,
+        "persona_max_tokens": 300,
+        "max_facts": 12,
+        "max_projects": 3
+      }
+    },
+    "clustering": {
+      "$ref": "#/$defs/ClusterCfg",
+      "default": {
+        "min_cluster_size": 3,
+        "assign_threshold": 0.6,
+        "similar_link_threshold": 0.75,
+        "similar_links_per_node": 3,
+        "rebuild_match_jaccard": 0.5,
+        "dormant_after_days": 30
+      }
+    },
+    "extraction": {
+      "$ref": "#/$defs/ExtractCfg",
+      "default": {
+        "rule_min_evidence": 2,
+        "spacy_model": "en_core_web_sm"
+      }
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelEntry"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "sync_interval_seconds": {
+      "default": 5,
+      "title": "Sync Interval Seconds",
+      "type": "integer"
+    }
+  },
+  "title": "PamConfig",
+  "type": "object"
+}

@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "type": {
+      "const": "tool_call",
+      "default": "tool_call",
+      "title": "Type",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "arguments": {
+      "additionalProperties": true,
+      "title": "Arguments",
+      "type": "object"
+    },
+    "result_summary": {
+      "title": "Result Summary",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "arguments",
+    "result_summary"
+  ],
+  "title": "ToolCallEvent",
+  "type": "object"
+}
