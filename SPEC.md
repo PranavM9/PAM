@@ -1409,6 +1409,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Risk: `pam api serve` doesn't exist until T14, and T14 can't edit compose. The compose file therefore runs `pam api serve … || exec sleep infinity`, so the container idles now and starts serving automatically once T14 lands. T16 removes the fallback.
   - Deferred to T16 (decided by Yogesh): spaCy/fastembed model baking and the `/api/health` healthcheck.
 - **Result (➕):** 2026-10-17 · PASS · `docker compose up --build -d` starts `pam-backend` and `pam-frontend-1`; `docker compose exec backend pam --version` → `0.1.0`; http://localhost:5173 → 200 (Vite page); `/api/*` → 502 as expected until T14; all §8 libraries import in the container; `pytest -q` → no tests yet. Note: this checkout is on `C:\` rather than inside WSL2 (SETUP §1).
+- **Result (➕):** 2026-10-17 · PASS · On this Windows/WSL2 Docker Desktop host, `docker compose up --build -d` built both images; `docker compose ps` shows backend and frontend running; `docker compose exec backend pam --version` printed `0.1.0`; `http://localhost:5173` returned HTTP 200; imports for all §8 runtime dependencies succeeded in the backend container. Docker access required running outside the workspace sandbox. macOS line endings remain unverified.
 
 #### T01 · Contracts & core (≈ 1.5 h)
 - **Module:** M0
