@@ -15,3 +15,9 @@
 - 2026-10-17 12:30 PDT · SCOPE · Claude conversation branching (parent_message_uuid) is OUT OF SCOPE (user). Removed from the R1/fixtures work.
 - 2026-10-17 12:30 PDT · DECISION · User approved the T01 cli/main.py auto-discovery and putting all deps in pyproject.toml in T00.
 - 2026-10-17 12:30 PDT · ASSIGN (pending CHG-0000) · Pranav: P0.0 + P0.3/P0.4/R1. Yogesh: T00 -> T01. Aakash: R5/R6 spike -> T03.
+- 2026-10-17 13:25 PDT · STATE · Verified: CHG-0000 APPROVED 12:36 (team, Pranav). origin/main = 703ab4f + 456e9dc (§5 skeleton). Local checkout on p0/claude-fixture-r1 (dd0c934). Untracked .claude/ in working tree.
+- 2026-10-17 13:25 PDT · CHECK · dd0c934 Claude fixture: export.zip has conversations.json, 10 convs (1 empty, so 9 expected), WSU 2026-08-17 -> UW 2026-08-31 planted, "no bullet points" in 2 convs, 3 topics x3, only example.edu emails, no team names found. Covers T03's Claude part. T03's Done-when also needs ChatGPT + Gemini fixtures (missing). Fixture README flags that no starter pattern matches "I go to UW", so T08 must add one.
+- 2026-10-17 13:25 PDT · CUT (user) · Research work (P0.1, R5/R6 spike) dropped as separate work. Agents learn what they need inside their task.
+- 2026-10-17 13:25 PDT · STATE · Yogesh reports T00 finished. Branch not on origin. State: awaiting merge + checks.
+- 2026-10-17 13:25 PDT · ASSIGN · Pranav: T08 test table (t08/extract-test-table), then T15a shell after T01 (if approved). Yogesh: T01 (t01/contracts-core) -> T02 -> T05 -> T04 -> T06. Aakash: review T00 + Windows test, ChatGPT/Gemini fixtures (p0/chatgpt-gemini-fixtures), then T03 (t03/importers).
+- 2026-10-17 13:25 PDT · DECISION · Branch convention t<NN>/<slug>, p0/<slug>. PR into main, non-implementer reviews, PM runs checks before merge/done.
