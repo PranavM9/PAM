@@ -1,1 +1,8 @@
-"""M3 — skeleton. Owner: T08 (facts.py also touched by T09). Planned: patterns.py facts.py rules.py style.py persona.py templates/*.j2. See SPEC.md §8 M3 and §9.3."""
+"""M3 rule extractor and persona deriver (SPEC §8 M3).
+
+Behavior:
+    `patterns` declares the fact patterns, `facts` extracts and merges them, `rules` finds repeated
+    instructions, `style` measures how the user writes, `persona` renders the Derived persona
+    sections from `templates/`, `text` holds shared text helpers, and `derive` runs the pipeline
+    behind `pam derive`.
+"""

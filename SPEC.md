@@ -1531,6 +1531,11 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   5. A test table with ≥ 30 cases.
 - **Done when:** the M3 acceptance criteria pass.
 - **Agent plan (➕):**
+  - Files (all inside Allowed paths): `extract/{patterns,text,facts,rules,style,persona,derive}.py`, `extract/templates/{identity,style}.md.j2`, `cli/derive_cmd.py`, plus a one-sentence fixture plant (`backend/tests/fixtures/claude/export.zip` conv 7, README note) that `test_m03_extract.py` already expects. `text.py` (masking, sentence splitting, lazy spaCy, transcript parsing) and `derive.py` (the pipeline) are additions to the §8 file list.
+  - Functions: `facts.extract_candidates(text, role, spacy_model) -> list[Candidate]` and `scan_text` (keeps skipped matches for `pam patterns test`); `facts.Merger(vault, episode_times).add(EpisodeRef, Candidate)` for the §8 merge rules; `facts.write_fact` / `add_backlink` / `write_merge` as the minimal writer T09 reroutes, and `facts.write_candidates(vault, text, agent)` as the route `test_m07_memory.py` expects; `rules.extract_rules(text, role)` and `rules.derive_rules(episodes, min_evidence)`; `style.compute_stats` / `style_sentences`; `persona.render_identity|render_style|render_rules|persona_updates` (uses `agents.manifest.format_rule` / `replace_derived`); `derive.derive(vault, episode, dry_run) -> DeriveReport`.
+  - CLI: `pam derive [--episode ID] [--dry-run]` (one commit `derive: +c ~u !k`, none when nothing changed), `pam patterns list|test`, `pam persona show [--agent]`.
+  - Tests: the existing `test_m03_extract.py` (64 sentence cases, 13 pattern ids, rules, fixture acceptance) runs unedited with no skips.
+  - Risks: `en_core_web_sm` is not in the image, so the regex splitter and capitalization heuristic must pass the same table (the spaCy path is the one more likely to differ); a second `derive` must be a no-op, which needs processed episodes remembered outside the vault history (see CHG-0005); the fixture has no "I live in Seattle" sentence until the follow-up fixture PR, so one is planted here.
 - **Result (➕):**
 
 #### T09 · Memory writer (≈ 1.5 h)
@@ -1722,6 +1727,29 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M2 only. No contract changes.
 - **Status log:**
   - 2026-10-17 17:00 · IMPLEMENTED · agent (T04)
+
+### CHG-0005 — M3 implementation choices: new patterns, spaCy fallback, merge bookkeeping, rule anchoring
+- **Type:** design
+- **Module(s):** M3 (affects M7/T09, which reroutes the fact writer, and the Claude fixture)
+- **Proposed by:** agent (task T08)
+- **Date:** 2026-10-17 16:20
+- **Motivation:** §8 M3 leaves the pattern details, the merge bookkeeping, and the no-spaCy case open, and `test_m03_extract.py` pins several choices the starter table does not cover.
+- **Proposal:**
+  1. Pattern changes: a new `attend` pattern (`\bi (?:go to|attend) (?P<v>.+)` → `school`, education, single, ORG); `use_tool` and `stack` values split on `,` / `and`, one MULTI fact per tool; capitalized value groups (`name`, `call_me`, `use_tool`) match case-sensitively through a scoped `(?-i:...)` flag; `job_title` is non-greedy and allows at most 3 words before the role keyword (`(?:\w+ ){0,3}?`); `major` does not fire on "studying at" and rejects values that start with a preposition or pronoun; `live_in` also matches "I'm based in" (`I(?: live|'m based| am based) in`); apostrophes match straight or curly. Confidence follows §8 (0.75 identity/education/work/location, 0.6 otherwise).
+  2. Values: a clause ends at `,`, `;`, `(`, a masked span, ` and `, ` but `, ` because `, or `.` only before whitespace or the end (so `Node.js` survives); list-valued patterns keep `,` and `and` and split on them. Values are capped at 60 characters at a word boundary. The junk filter drops pronouns and generic nouns with an optional article (`it`, `this`, `a list`, `a function`, `the thing`, …).
+  3. Skips: a question mark anywhere in the sentence; `if|would|imagine|pretend` plus `suppose|assuming|hypothetically`; `not|never|cannot|nor|neither|no longer|…n't` within the 3 tokens before the trigger (the trigger's own words do not count, so "I can't stand Java" is a dislike). Double quotes, curly quotes, inline code, and code fences are masked before matching.
+  4. NER filter: the value must contain a capitalized token and either be an acronym (`UW`, `WSU`) or, when spaCy ran, overlap an `ORG`, `GPE`, `LOC`, `FAC`, or `PRODUCT` entity (ORG filter) or a `GPE`, `LOC`, or `FAC` entity (GPE filter), because the small model often labels companies and places loosely. Without spaCy the capitalization test alone decides.
+  5. spaCy: `en_core_web_sm` is loaded lazily on first use. If spaCy or the model is missing, `pam.extract.text` warns once and falls back to a regex sentence splitter, so the suite passes either way. Rules use the same splitter and need no entities.
+  6. Merging: facts always land in the `shared` scope, whichever agent's episode is mined. Confidence is bumped once per distinct episode, not per mention. An overwrite pushes a history entry (`value=<old>`, `changed_by=rule`, `changed_at=<now>`, `episode_id=<old source episode>`), sets `source_episode` and `updated_by_episode` to the new episode, resets confidence to the pattern default, and appends the fact id to the old episode's `superseded_facts` (frontmatter only; the body hash is re-checked first). A slot already in `status=conflict` is never changed by rules, and an episode that already appears in a fact's `source_episode`, `updated_by_episode`, or history is not applied again.
+  7. Idempotence: processed episode ids are stored in `.pam/derive_state.json` (derived, gitignored, §6), so a second `pam derive` adds no confidence and makes no commit. Deleting the file re-processes every episode; the history check above prevents false conflicts in that case.
+  8. Rules: `^(?:please )?(?:don't|do not|never|always|stop|avoid) (?:use|using|write|include|add|give|say) ...` also accepts leading filler words and the gerunds of those verbs; the `no <noun>` regex must start a sentence or clause (so "I have no markdown files" is not a rule); rules skip questions and negations but not hypotheticals (`if possible` is common in instructions). Canonical text is `Don't <verb> <value>.`, `Always <verb> <value>.`, `Keep answers <word>.`; `emoji` / `bullet point` are pluralized. Evidence counts distinct episodes; `evidence_episodes` keeps the first five by time.
+  9. Persona: rules, style, and identity are recomputed from all episodes on every run (also with `--episode`); only the Derived sections are rewritten, with `format_rule` / `replace_derived`. `DeriveReport.rules_derived` is the number of derived rules in the persona, `facts_updated` counts pre-existing facts that gained confidence or a new value, and `conflicts_flagged` counts slots newly flagged.
+  10. The tunable numbers the spec fixes in prose (bump 0.05, cap 0.95, 60 characters, 3 tokens, style thresholds) are named module constants in `patterns.py` and `style.py`, because §7.13 `ExtractCfg` only has `rule_min_evidence` and `spacy_model`.
+  11. `facts.write_candidates(vault, text, agent)` extracts from one message and commits the facts; it is the hook `test_m07_memory.py` expects T09 to route through `pam.memory`.
+  12. Fixture: conv 7 of `tests/fixtures/claude/export.zip` now says "I live in Seattle and i just re-entered the US for my first quarter of sophomore year." (was "i just re-entered seattle for my first quarter"), in both `text` and the `content[]` block, because `test_m03_extract.py` requires `location=Seattle` and the fixture had no such sentence. `tests/fixtures/claude/README.md` lists it.
+- **Impact:** M3 only, plus the fixture sentence above. T09 replaces `write_fact` / `write_merge` with `pam.memory` calls. No contract changes.
+- **Status log:**
+  - 2026-10-17 16:20 · IMPLEMENTED · agent (T08)
 
 ---
 

@@ -72,7 +72,7 @@ The key is always present and empty means `""`, never `null`. Summaries look lik
 | 4 | 2026-08-31 | Tailscale access over eduroam network | tailscale | 4 | — | **plant: "I go to UW"** |
 | 5 | 2026-09-03 | Local LLM gateway setup with Ollama and Tailscale | tailscale | 48 | ✓ | longest; attachments; edit branch (msg 4 repeats msg 0) |
 | 6 | 2026-09-05 | *(empty name)* | empty | 2 | — | both messages have `text=""` and `content=[]` → importer must **skip and count** it |
-| 7 | 2026-09-14 | F1 visa check-in and service record requirements | university | 2 | ✓ | |
+| 7 | 2026-09-14 | F1 visa check-in and service record requirements | university | 2 | ✓ | **plant: "I live in Seattle"** (human msg 0) |
 | 8 | 2026-09-15 | Intensive 15-day course prep for UW CS | university | 6 | ✓ | **plant: "no bullet points" #2** (human msg 4) |
 | 9 | 2026-09-18 | Finding on-campus winter break jobs | university | 22 | ✓ | heaviest anonymization (names, emails, employer) |
 
@@ -84,6 +84,7 @@ Expected importer output: **9 `RawConversation`s, 1 skipped empty**. The importe
   - A real line in conv 8 (`i study at UW cs.`) was rewritten to `i'm in UW cs.` so the two plants are the only `school` evidence.
 - **Repeated rule:** `no bullet points` appears in user messages of 2 distinct conversations (conv 2, conv 8). It matches the §M3 rule regex `\bno (?P<v>…bullet points?…)\b`, so `rule_min_evidence=2` is met.
 - **3 topics × 3 conversations:** tailscale/remote access (0, 4, 5), Immich photo server (1, 2, 3), university admin/coursework (7, 8, 9).
+- **Location:** conv 7 (2026-09-14), user msg 0: `I live in Seattle and i just re-entered the US for my first quarter of sophomore year.` → `location=Seattle` (`live_in`, GPE). It replaces the original clause `i just re-entered seattle for my first quarter`, so the only `location` evidence is this plant.
 - Incidental M3 hits, for reference: `job_title` → "international student" (conv 9, several messages).
 
 Plants are written into both `text` and the last `content[]` text block, so both import paths see them.
