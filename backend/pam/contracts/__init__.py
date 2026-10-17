@@ -1,0 +1,1 @@
+"""M0 — skeleton. Owner: T01. Planned: common.py raw.py episode.py fact.py project.py skill.py agent.py retrieval.py working.py writes.py reports.py api.py graph.py config.py. See SPEC.md §8 M0 and §9.3."""
