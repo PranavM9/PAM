@@ -1440,7 +1440,18 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** implement `commit`, `status_porcelain`, `restore`, `head_sha`, plus the init-time git config.
 - **Done when:** the unit test creates a file, commits it, and gets a sha back. It passes on Linux in Docker.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `sync/git.py` (subprocess + pathlib; failures raise `pam.core.errors.PamError`, so the CLI maps them to exit 1):
+    - `run(vault, *args, check=True) -> CompletedProcess[str]`: `git -C <vault> -c safe.directory=<vault> -c core.quotePath=false …`, UTF-8; a missing `git` binary or a non-zero exit (with `check`) → `PamError` carrying git's stderr.
+    - `configure_repo(vault)`: `core.autocrlf=false` in the repo config; adds the vault path to the **global** `safe.directory` list unless it (or `*`) is already there, because git ignores `safe.directory` in repo config (Docker bind mounts). Idempotent.
+    - `commit(vault, paths, message) -> str`: paths may be absolute (inside the vault) or vault-relative, sent to git as POSIX; `git add -- <paths>`, then `git -c user.name=PAM -c user.email=pam@local commit -q -m <message> --author "PAM <pam@local>" -- <paths>` (the pathspec keeps unrelated staged files out of the commit); returns the new HEAD sha. Empty `paths`, a path outside the vault, or nothing staged for `paths` → `PamError` ("nothing to commit").
+    - `status_porcelain(vault) -> list[tuple[str, str]]`: parses `git status --porcelain -z --untracked-files=all` into `(XY, path)`; renames/copies report the new path; entries under `.pam/` are dropped.
+    - `restore(vault, path)`: `git checkout HEAD -- <path>`; only rewrites tracked files from HEAD, never deletes.
+    - `head_sha(vault) -> str | None`: `git rev-parse --verify -q HEAD`; `None` before the first commit.
+  - `cli/sync_cmd.py`: module-level Typer `app` (auto-mounted as `pam sync`) whose callback prints `not implemented until T09b`.
+  - Tests `tests/test_m10_git.py` on `tmp_path` repos with `GIT_CONFIG_GLOBAL` pointed at a temp file (no user identity, global config untouched): commit → 40-hex sha == `head_sha`; nothing-to-commit and empty paths raise; commit only includes the given paths; status sees modified, untracked, and a path with a space, and ignores `.pam/`; restore brings back a deleted file and refuses an untracked path; `head_sha` is `None` on an empty repo; `configure_repo` sets `core.autocrlf=false` and `safe.directory` once; `pam sync` prints the stub message.
+  - Risks: `core/vault.init_vault` (T01) has its own minimal git runner and does not yet call `configure_repo` (not in T02's allowed paths); a follow-up task that owns `core/vault.py` should switch it over.
+- **Result (➕):** 2026-10-17 · PARTIAL · macOS 12 (Intel, git 2.37, Python 3.12): `pytest -q tests/test_m10_git.py` → 16 passed; full `pytest -q` → 102 passed, 1 skipped (T08's tests-first module); `pam sync` prints the stub message. The container check (`docker compose exec backend pytest -q tests/test_m10_git.py`) was **not run**: this Mac has no Docker daemon. T01 was already merged, so `git.py` raises `pam.core.errors.PamError` instead of staying stdlib-only. Local env note: `uv sync --frozen` fails on Intel macOS (no `onnxruntime` 1.31 wheel), so it was synced with `--no-install-package onnxruntime`.
+- **Result (➕):** 2026-10-17 · PASS · Container check run on Yogesh's machine: `docker compose exec backend pytest -q tests/test_m10_git.py` and the full `pytest -q` pass with no failures.
 
 #### T03 · Importers (≈ 2 h)
 - **Module:** M1
