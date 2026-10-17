@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "goal": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Goal"
+    },
+    "add_decisions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Add Decisions",
+      "type": "array"
+    },
+    "add_open_questions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Add Open Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "session_id"
+  ],
+  "title": "UpdateWorkingMemoryInput",
+  "type": "object"
+}

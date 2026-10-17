@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "Actor": {
+      "enum": [
+        "rule",
+        "agent",
+        "manual",
+        "cluster"
+      ],
+      "title": "Actor",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "value": {
+      "title": "Value",
+      "type": "string"
+    },
+    "changed_at": {
+      "format": "date-time",
+      "title": "Changed At",
+      "type": "string"
+    },
+    "changed_by": {
+      "$ref": "#/$defs/Actor"
+    },
+    "agent": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agent"
+    },
+    "episode_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Episode Id"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    }
+  },
+  "required": [
+    "value",
+    "changed_at",
+    "changed_by"
+  ],
+  "title": "FactHistoryEntry",
+  "type": "object"
+}

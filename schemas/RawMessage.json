@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "AttachmentRef": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "file",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "mime_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mime Type"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "AttachmentRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "role": {
+      "enum": [
+        "user",
+        "assistant",
+        "system",
+        "tool"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "attachments": {
+      "items": {
+        "$ref": "#/$defs/AttachmentRef"
+      },
+      "title": "Attachments",
+      "type": "array"
+    }
+  },
+  "required": [
+    "role",
+    "text"
+  ],
+  "title": "RawMessage",
+  "type": "object"
+}

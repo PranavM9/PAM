@@ -1,0 +1,24 @@
+{
+  "properties": {
+    "type": {
+      "const": "error",
+      "default": "error",
+      "title": "Type",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    },
+    "retryable": {
+      "title": "Retryable",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "message",
+    "retryable"
+  ],
+  "title": "ErrorEvent",
+  "type": "object"
+}

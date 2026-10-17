@@ -1,0 +1,60 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "incremental",
+        "rebuild"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "projects_created": {
+      "title": "Projects Created",
+      "type": "integer"
+    },
+    "projects_updated": {
+      "title": "Projects Updated",
+      "type": "integer"
+    },
+    "episodes_assigned": {
+      "title": "Episodes Assigned",
+      "type": "integer"
+    },
+    "episodes_unassigned": {
+      "title": "Episodes Unassigned",
+      "type": "integer"
+    },
+    "commit_sha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Commit Sha"
+    },
+    "duration_ms": {
+      "title": "Duration Ms",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "mode",
+    "projects_created",
+    "projects_updated",
+    "episodes_assigned",
+    "episodes_unassigned",
+    "commit_sha",
+    "duration_ms"
+  ],
+  "title": "ClusterReport",
+  "type": "object"
+}

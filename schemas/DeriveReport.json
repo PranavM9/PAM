@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "facts_created": {
+      "title": "Facts Created",
+      "type": "integer"
+    },
+    "facts_updated": {
+      "title": "Facts Updated",
+      "type": "integer"
+    },
+    "conflicts_flagged": {
+      "title": "Conflicts Flagged",
+      "type": "integer"
+    },
+    "rules_derived": {
+      "title": "Rules Derived",
+      "type": "integer"
+    },
+    "commit_sha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Commit Sha"
+    },
+    "duration_ms": {
+      "title": "Duration Ms",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "facts_created",
+    "facts_updated",
+    "conflicts_flagged",
+    "rules_derived",
+    "commit_sha",
+    "duration_ms"
+  ],
+  "title": "DeriveReport",
+  "type": "object"
+}

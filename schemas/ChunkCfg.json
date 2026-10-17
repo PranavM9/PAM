@@ -1,0 +1,17 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_tokens": {
+      "default": 512,
+      "title": "Max Tokens",
+      "type": "integer"
+    },
+    "overlap_tokens": {
+      "default": 64,
+      "title": "Overlap Tokens",
+      "type": "integer"
+    }
+  },
+  "title": "ChunkCfg",
+  "type": "object"
+}

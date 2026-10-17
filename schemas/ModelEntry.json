@@ -1,0 +1,24 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "supports_tools": {
+      "default": false,
+      "title": "Supports Tools",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "label"
+  ],
+  "title": "ModelEntry",
+  "type": "object"
+}

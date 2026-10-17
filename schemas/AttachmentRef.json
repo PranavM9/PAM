@@ -1,0 +1,36 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "image",
+        "file",
+        "other"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "mime_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mime Type"
+    }
+  },
+  "required": [
+    "name",
+    "kind"
+  ],
+  "title": "AttachmentRef",
+  "type": "object"
+}

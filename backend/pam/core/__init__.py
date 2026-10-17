@@ -1,1 +1,7 @@
-"""M0 — skeleton. Owner: T01. Planned: config, vault paths, md+frontmatter IO, tokens, ids, locking, time helpers. See SPEC.md §8 M0 and §9.3."""
+"""M0 core plumbing shared by every module (SPEC §8 M0).
+
+Behavior:
+    `config` loads `pam.toml`, `vault` resolves paths and creates vaults, `mdio` reads and writes
+    frontmatter Markdown, `tokens` counts `cl100k_base` tokens, `lock` serializes vault writers,
+    and `time`, `ids`, `errors` hold shared helpers.
+"""

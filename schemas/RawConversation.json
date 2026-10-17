@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "AttachmentRef": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "image",
+            "file",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "mime_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mime Type"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "AttachmentRef",
+      "type": "object"
+    },
+    "RawMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "user",
+            "assistant",
+            "system",
+            "tool"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "attachments": {
+          "items": {
+            "$ref": "#/$defs/AttachmentRef"
+          },
+          "title": "Attachments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "role",
+        "text"
+      ],
+      "title": "RawMessage",
+      "type": "object"
+    },
+    "Source": {
+      "enum": [
+        "claude",
+        "chatgpt",
+        "gemini",
+        "pam",
+        "manual"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "source_conversation_id": {
+      "minLength": 1,
+      "title": "Source Conversation Id",
+      "type": "string"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Updated At"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Summary"
+    },
+    "messages": {
+      "items": {
+        "$ref": "#/$defs/RawMessage"
+      },
+      "title": "Messages",
+      "type": "array"
+    },
+    "source_metadata": {
+      "additionalProperties": true,
+      "title": "Source Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source",
+    "source_conversation_id",
+    "messages"
+  ],
+  "title": "RawConversation",
+  "type": "object"
+}

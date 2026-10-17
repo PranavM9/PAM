@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "format": "date-time",
+      "title": "At",
+      "type": "string"
+    },
+    "from_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "From Model"
+    },
+    "to_model": {
+      "title": "To Model",
+      "type": "string"
+    }
+  },
+  "required": [
+    "at",
+    "from_model",
+    "to_model"
+  ],
+  "title": "ModelSwitch",
+  "type": "object"
+}

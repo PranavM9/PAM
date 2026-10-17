@@ -1,0 +1,201 @@
+{
+  "$defs": {
+    "ContextEvent": {
+      "properties": {
+        "type": {
+          "const": "context",
+          "default": "context",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "tokens_used": {
+          "title": "Tokens Used",
+          "type": "integer"
+        },
+        "baseline_tokens": {
+          "title": "Baseline Tokens",
+          "type": "integer"
+        },
+        "tokens_saved": {
+          "title": "Tokens Saved",
+          "type": "integer"
+        },
+        "doc_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Doc Ids",
+          "type": "array"
+        },
+        "rendered": {
+          "title": "Rendered",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "tokens_used",
+        "baseline_tokens",
+        "tokens_saved",
+        "doc_ids",
+        "rendered"
+      ],
+      "title": "ContextEvent",
+      "type": "object"
+    },
+    "DoneEvent": {
+      "properties": {
+        "type": {
+          "const": "done",
+          "default": "done",
+          "title": "Type",
+          "type": "string"
+        },
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Prompt Tokens"
+        },
+        "completion_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completion Tokens"
+        }
+      },
+      "required": [
+        "session_id",
+        "model",
+        "prompt_tokens",
+        "completion_tokens"
+      ],
+      "title": "DoneEvent",
+      "type": "object"
+    },
+    "ErrorEvent": {
+      "properties": {
+        "type": {
+          "const": "error",
+          "default": "error",
+          "title": "Type",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message",
+        "retryable"
+      ],
+      "title": "ErrorEvent",
+      "type": "object"
+    },
+    "TokenEvent": {
+      "properties": {
+        "type": {
+          "const": "token",
+          "default": "token",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TokenEvent",
+      "type": "object"
+    },
+    "ToolCallEvent": {
+      "properties": {
+        "type": {
+          "const": "tool_call",
+          "default": "tool_call",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": true,
+          "title": "Arguments",
+          "type": "object"
+        },
+        "result_summary": {
+          "title": "Result Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "arguments",
+        "result_summary"
+      ],
+      "title": "ToolCallEvent",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "context": "#/$defs/ContextEvent",
+      "done": "#/$defs/DoneEvent",
+      "error": "#/$defs/ErrorEvent",
+      "token": "#/$defs/TokenEvent",
+      "tool_call": "#/$defs/ToolCallEvent"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ContextEvent"
+    },
+    {
+      "$ref": "#/$defs/TokenEvent"
+    },
+    {
+      "$ref": "#/$defs/ToolCallEvent"
+    },
+    {
+      "$ref": "#/$defs/DoneEvent"
+    },
+    {
+      "$ref": "#/$defs/ErrorEvent"
+    }
+  ],
+  "title": "ChatEvent"
+}

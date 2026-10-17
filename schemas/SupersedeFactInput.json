@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "fact_id": {
+      "format": "uuid",
+      "title": "Fact Id",
+      "type": "string"
+    },
+    "new_value": {
+      "minLength": 1,
+      "title": "New Value",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "episode_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Episode Id"
+    }
+  },
+  "required": [
+    "fact_id",
+    "new_value",
+    "reason"
+  ],
+  "title": "SupersedeFactInput",
+  "type": "object"
+}

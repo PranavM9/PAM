@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "model": {
+      "default": "BAAI/bge-small-en-v1.5",
+      "title": "Model",
+      "type": "string"
+    },
+    "dim": {
+      "default": 384,
+      "title": "Dim",
+      "type": "integer"
+    },
+    "query_prefix": {
+      "default": "Represent this sentence for searching relevant passages: ",
+      "title": "Query Prefix",
+      "type": "string"
+    }
+  },
+  "title": "EmbeddingCfg",
+  "type": "object"
+}

@@ -1,0 +1,48 @@
+{
+  "properties": {
+    "type": {
+      "const": "context",
+      "default": "context",
+      "title": "Type",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "tokens_used": {
+      "title": "Tokens Used",
+      "type": "integer"
+    },
+    "baseline_tokens": {
+      "title": "Baseline Tokens",
+      "type": "integer"
+    },
+    "tokens_saved": {
+      "title": "Tokens Saved",
+      "type": "integer"
+    },
+    "doc_ids": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Doc Ids",
+      "type": "array"
+    },
+    "rendered": {
+      "title": "Rendered",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "tokens_used",
+    "baseline_tokens",
+    "tokens_saved",
+    "doc_ids",
+    "rendered"
+  ],
+  "title": "ContextEvent",
+  "type": "object"
+}

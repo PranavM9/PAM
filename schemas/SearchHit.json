@@ -1,0 +1,102 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "chunk_id": {
+      "title": "Chunk Id",
+      "type": "string"
+    },
+    "doc_id": {
+      "format": "uuid",
+      "title": "Doc Id",
+      "type": "string"
+    },
+    "doc_type": {
+      "enum": [
+        "episode",
+        "fact",
+        "project",
+        "skill"
+      ],
+      "title": "Doc Type",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Title"
+    },
+    "snippet": {
+      "maxLength": 500,
+      "title": "Snippet",
+      "type": "string"
+    },
+    "path": {
+      "pattern": "^[^\\\\:]+$",
+      "title": "Path",
+      "type": "string"
+    },
+    "score": {
+      "title": "Score",
+      "type": "number"
+    },
+    "vector_rank": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Vector Rank"
+    },
+    "keyword_rank": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Keyword Rank"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Created At"
+    }
+  },
+  "required": [
+    "chunk_id",
+    "doc_id",
+    "doc_type",
+    "scope",
+    "title",
+    "snippet",
+    "path",
+    "score",
+    "vector_rank",
+    "keyword_rank",
+    "created_at"
+  ],
+  "title": "SearchHit",
+  "type": "object"
+}

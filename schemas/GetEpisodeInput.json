@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "episode_id": {
+      "format": "uuid",
+      "title": "Episode Id",
+      "type": "string"
+    },
+    "max_tokens": {
+      "default": 4000,
+      "maximum": 32000,
+      "minimum": 256,
+      "title": "Max Tokens",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "episode_id"
+  ],
+  "title": "GetEpisodeInput",
+  "type": "object"
+}

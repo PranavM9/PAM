@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "query": {
+      "minLength": 1,
+      "title": "Query",
+      "type": "string"
+    },
+    "agent": {
+      "default": "default",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Agent",
+      "type": "string"
+    },
+    "session_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    },
+    "token_budget": {
+      "anyOf": [
+        {
+          "maximum": 32000,
+          "minimum": 256,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Token Budget"
+    },
+    "include_persona": {
+      "default": true,
+      "title": "Include Persona",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "query"
+  ],
+  "title": "ContextRequest",
+  "type": "object"
+}

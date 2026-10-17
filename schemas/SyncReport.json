@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "dirty_paths": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Dirty Paths",
+      "type": "array"
+    },
+    "reindexed": {
+      "title": "Reindexed",
+      "type": "integer"
+    },
+    "commit_sha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Commit Sha"
+    }
+  },
+  "required": [
+    "dirty_paths",
+    "reindexed",
+    "commit_sha"
+  ],
+  "title": "SyncReport",
+  "type": "object"
+}
