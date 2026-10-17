@@ -356,3 +356,71 @@ def test_fixture_rule_no_bullet_points(derived):
     assert "## Derived" in derived_part
     assert BULLETS.lower() in derived_part.lower()
     assert "bullet" not in custom_part.lower()
+
+
+# --- review follow-ups (CHG-0006) ---
+
+
+@pytest.mark.parametrize(
+    "text,same_as",
+    [
+        ("Please don't use emojis, thanks", "No emojis."),
+        ("Don't use bullet points, please.", "no bullet points"),
+        ("never use markdown pls", "No markdown."),
+    ],
+)
+def test_rule_polite_tail_keeps_canonical_text(text, same_as):
+    got = rules.extract_rules(text, role="user")
+    assert got == rules.extract_rules(same_as, role="user")
+    assert not got[0].endswith(",.")
+
+
+def test_bump_records_episode_and_counts_it_once(tmp_path):
+    """Re-mining an episode that already confirmed a value does not raise its confidence again."""
+    from datetime import datetime, timedelta, timezone
+    from uuid import uuid4
+
+    from pam.core.vault import Vault, init_vault
+
+    init_vault(tmp_path)
+    v = Vault(tmp_path)
+    a, b = uuid4(), uuid4()
+    t = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    facts.write_candidates(v, "I work at Microsoft.", episode_id=a, created_at=t)
+    (f,) = facts.write_candidates(v, "I work at Microsoft.", episode_id=b, created_at=t + timedelta(days=1))
+    assert f.confidence == pytest.approx(0.8)
+    assert f.updated_by_episode == b
+    assert facts.write_candidates(v, "I work at Microsoft.", episode_id=b, created_at=t + timedelta(days=1)) == []
+    (again,) = facts.load_shared_facts(v).values()
+    assert again.confidence == pytest.approx(0.8)
+
+
+def test_fixture_older_school_after_newer_goes_to_history(tmp_path):
+    """Deriving the newer UW episode first, then the rest, ends like one chronological run."""
+    from typer.testing import CliRunner
+
+    from pam.cli.main import app
+    from pam.contracts.common import Source
+    from pam.contracts.episode import EpisodeFrontmatter, episode_id
+    from pam.core import mdio
+    from pam.core.vault import Vault
+
+    convs = {c["name"]: c for c in _fixture_conversations()}
+    uw_episode = episode_id(Source.CLAUDE, convs[UW_TITLE]["uuid"])
+    wsu_episode = episode_id(Source.CLAUDE, convs[WSU_TITLE]["uuid"])
+    runner = CliRunner()
+    for args in (["init"], ["import", "run", str(FIXTURE)], ["derive", "--episode", str(uw_episode)], ["derive"]):
+        res = runner.invoke(app, ["--vault", str(tmp_path), *args])
+        assert res.exit_code == 0, res.output
+
+    school = [f for f in facts.load_shared_facts(Vault(tmp_path)).values() if f.attribute == "school"]
+    assert len(school) == 1
+    f = school[0]
+    assert _norm(f.value) == "uw"
+    assert f.status.value == "active"
+    assert f.conflict is None
+    assert f.source_episode == uw_episode
+    assert [(_norm(h.value), h.episode_id) for h in f.history] == [("wsu", wsu_episode)]
+    (path,) = tmp_path.glob(f"memory/*/episodes/{wsu_episode}.md")
+    fm, _ = mdio.read_model(path, EpisodeFrontmatter)
+    assert f.id in fm.superseded_facts

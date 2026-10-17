@@ -50,7 +50,7 @@ def _canonical(text: str) -> list[str]:
     if m and not negated(text[: m.start("neg")]):
         cut = pat.LIST_CLAUSE_BOUNDARY.search(m.group("v"))
         value = m.group("v")[: cut.start()] if cut else m.group("v")
-        value = cap_value(_TRAILING_POLITE.sub("", value.strip().rstrip(" .,;:!")))
+        value = cap_value(_TRAILING_POLITE.sub("", value.strip().rstrip(" .,;:!")).rstrip(" .,;:!"))
         if value and not pat.JUNK_VALUE.match(value):
             verb = _BASE_VERB.get(m.group("verb").lower(), m.group("verb").lower())
             if m.group("neg").lower() == "always":
