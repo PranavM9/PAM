@@ -1,4 +1,10 @@
 vault/
 demo/
 .env
+node_modules/
+__pycache__/
+.pam/
 .DS_Store
+dist/
+build/
+agent-plan/

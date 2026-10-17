@@ -1,0 +1,39 @@
+# SPEC §4 Runtime + §8 M15. T00 skeleton; T16 adds the /api/health healthcheck and model baking.
+services:
+  backend:
+    build: ./backend
+    container_name: pam-backend
+    # Until T14 adds `pam api serve`, the server command fails and the container idles
+    # so `docker compose exec backend pam …` works. T16 removes this fallback.
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["pam api serve --host 0.0.0.0 --port 8000 || exec sleep infinity"]
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PAM_VAULT: /vault
+    volumes:
+      - ./vault:/vault
+      - ./demo:/demo
+      - pam-models:/models
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+  ollama:
+    image: ollama/ollama
+    profiles: [local]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
+volumes:
+  pam-models:
+  ollama-models:
