@@ -1,0 +1,184 @@
+[
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-3",
+    "time": "2026-10-17T16:25:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Summarize the checklist in one sentence."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-3",
+    "time": "2026-10-17T15:56:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "How do I keep my phone dry on the trail?"
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-3",
+    "time": "2026-10-17T15:27:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Give me a lightweight checklist."
+      },
+      {
+        "name": "Response",
+        "value": "Pack rain jacket, warm layer, water, food, map, first-aid kit, and dry socks."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-3",
+    "time": "2026-10-17T14:58:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "What should I pack for a rainy day hike?"
+      },
+      {
+        "name": "Response",
+        "value": "Bring a shell, insulating layer, water, snacks, map, and a dry bag."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-2",
+    "time": "2026-10-17T14:27:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Add a short HTML code block to the example."
+      },
+      {
+        "name": "Response",
+        "value": "Example:\n```html\n<section><h1>Welcome</h1></section>\n```"
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-2",
+    "time": "2026-10-17T13:58:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Can you show an Nginx example?"
+      },
+      {
+        "name": "Response",
+        "value": "A basic server block can forward traffic to an app listening on localhost."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-2",
+    "time": "2026-10-17T13:29:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Explain what a reverse proxy does."
+      },
+      {
+        "name": "Response",
+        "value": "A reverse proxy receives requests and forwards them to an application server."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-1",
+    "time": "2026-10-17T12:58:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Make the recipe vegetarian and budget friendly."
+      },
+      {
+        "name": "Response",
+        "value": "Use dried lentils, seasonal vegetables, and beans for affordable protein."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-1",
+    "time": "2026-10-17T12:29:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "How can I add more vegetables to the soup?"
+      },
+      {
+        "name": "Response",
+        "value": "Add carrots, spinach, or zucchini near the end so they keep some texture."
+      }
+    ]
+  },
+  {
+    "header": "Gemini",
+    "title": "Used Gemini Apps",
+    "titleUrl": "https://gemini.google.com/app/c/synthetic-thread-1",
+    "time": "2026-10-17T12:00:00.000Z",
+    "products": [
+      "Gemini Apps"
+    ],
+    "details": [
+      {
+        "name": "Request",
+        "value": "Suggest a simple meal plan with lentils."
+      },
+      {
+        "name": "Response",
+        "value": "Try lentil soup, roasted vegetables, and rice bowls for flexible meals."
+      }
+    ]
+  }
+]
