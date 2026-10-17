@@ -5,12 +5,25 @@
 > Every item has a **Done when**, so you know when to stop.
 
 ## R1 — Claude export format 🔴 (blocks M1)
-- [ ] Request a real Claude export and record the exact zip contents (file names, top-level keys).
-- [ ] Document the fields of `conversations.json`: conversation id/name/summary/timestamps, the message `sender` values, `text` vs `content[]` blocks, attachments/files.
-- [ ] How often is `summary` populated? Is it ever empty-string vs missing?
-- [ ] Are there other useful files (projects, memories, users)? Note them for a possible later importer.
-- [ ] How long did the export take to arrive? (affects the demo plan)
+- [x] Request a real Claude export and record the exact zip contents (file names, top-level keys).
+- [x] Document the fields of `conversations.json`: conversation id/name/summary/timestamps, the message `sender` values, `text` vs `content[]` blocks, attachments/files.
+- [x] How often is `summary` populated? Is it ever empty-string vs missing?
+- [x] Are there other useful files (projects, memories, users)? Note them for a possible later importer.
+- [x] How long did the export take to arrive? (affects the demo plan)
 - **Done when:** a 10-conversation anonymized fixture exists in `backend/tests/fixtures/claude/` with a README listing every field we use.
+
+### R1 findings (2026-10-17) ➕
+- **Delivery:** the export arrived in ~30 s. It is a `manifest-<id>.json` with 6 download links (each expires in 24 h; download each one fully on first open): `light_metadata-000.zip`, `projects-000.zip`, `memories-000.zip`, `feedback-000.zip`, `frames-000.zip`, `conversations-000.zip`. The conversations zip holds just `conversations.json`, a top-level JSON array. Exports from two dates (70 and 20 conversations) have the identical schema.
+- **Conversation keys (all always present):** `uuid`, `name`, `summary`, `created_at`, `updated_at`, `account{uuid}`, `chat_messages[]`. Timestamps look like `2026-08-17T10:58:50.109075Z` (µs, `Z`). `name` can be `""` (5/70).
+- **Message keys (all always present):** `uuid`, `text`, `content[]`, `sender`, `created_at`, `updated_at`, `attachments[]`, `files[]`, `parent_message_uuid`. `sender` ∈ {`human`, `assistant`} only. Messages are already in chronological order.
+- **`text` vs `content[]`:** prefer the `content[]` blocks with `type=="text"` (join with `\n\n`). `text` differs from them in 312/1737 messages, all assistant: it has thinking text glued on the front and `This block is not supported on your current device yet.` placeholders where tools ran. Fall back to `text` only when there is no text block (25 cases).
+- **Block types:** `text`, `thinking`, `tool_use`, `tool_result`, `injected_prompt_block`. Only `text` is conversation content.
+- **Attachments/files:** `attachments[]` = `{file_name, file_size, file_type, extracted_content}` (text files with their extracted text; `file_type` is sometimes a bare extension like `txt`). `files[]` = `{file_uuid, file_name}`; it duplicates attachments for text files, but **images/PDFs appear only in `files`**, and `file_name` can be `null`.
+- **Summary:** the key is always present and never `null`; absent means `""`. 51/70 (73%) were `""` in the older export, 1/20 in the newer one. It looks like a recent feature: almost every conversation since about 2026-09-11 has one. When `""`, fall back to the verbatim transcript (`has_summary=false`).
+- **Empty conversations:** 3/70 have only messages with `text=""`, `content=[]` and no files. The importer must skip and count them.
+- **Branching (out of scope for now):** 26/70 conversations are non-linear; edits and retries leave sibling branches flattened into `chat_messages` by time. A linear read duplicates edited prompts. A later fix is to walk `parent_message_uuid` back from the last message (root parent = `00000000-0000-4000-8000-000000000000`).
+- **Other files for later importers:** `memories` (Claude's saved memory, an obvious P2 source for facts), `projects` (project docs/instructions → `Project`), `light_metadata`/`frames`/`feedback` (not inspected yet).
+- **Fixture:** `backend/tests/fixtures/claude/export.zip` + `README.md` (10 anonymized conversations, 3 topics × 3, WSU→UW contradiction, "no bullet points" ×2, 1 empty conversation). Gap for T08: no §M3 starter pattern matches "I go to UW". Add a `go to|attend` → `school` pattern.
 
 ## R2 — ChatGPT export format 🟡
 - [ ] Inspect the `conversations.json` `mapping` tree: `current_node`, `parent`, `children`, `message.author.role`, `content.parts`, `create_time` (epoch float).
