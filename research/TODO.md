@@ -47,19 +47,23 @@
 - **Done when:** a 20-line toy server with one tool works in both Claude Desktop (stdio) and Inspector (HTTP).
 
 ## R5 — sqlite-vec + FTS5 🔴 (blocks M4, M6)
-- [ ] Install `sqlite-vec` in `python:3.12-slim`; `sqlite_vec.load(conn)`; check the version.
-- [ ] `vec0` virtual table syntax, inserting with `serialize_float32`, KNN query (`MATCH … AND k = ?`), what "distance" means for normalized vectors.
-- [ ] Can vec0 filter by metadata columns, or do we post-filter? (Affects scope filtering.)
-- [ ] FTS5 basics: `MATCH` syntax, `bm25()`, the porter tokenizer, escaping user queries safely.
-- [ ] Reciprocal Rank Fusion: read one short explainer; confirm `k=60`.
-- **Done when:** a toy script indexes 100 sentences and runs a hybrid query with RRF in Docker.
+- [x] Install `sqlite-vec` in `python:3.12-slim`; `sqlite_vec.load(conn)`; check the version. (Docker was initially unavailable; a later Docker 29.8.2 build/run succeeded with `sqlite-vec` 0.1.6.)
+- [x] `vec0` virtual table syntax, inserting with `serialize_float32`, KNN query (`MATCH … AND k = ?`), what "distance" means for normalized vectors.
+- [x] Can vec0 filter by metadata columns, or do we post-filter? (Affects scope filtering.)
+- [x] FTS5 basics: `MATCH` syntax, `bm25()`, the porter tokenizer, escaping user queries safely.
+- [x] Reciprocal Rank Fusion: read one short explainer; confirm `k=60`.
+- **Done when:** a toy script indexes 100 sentences and runs a hybrid query with RRF in Docker. ✓
+- **Findings (2026-10-17, append-only):** See `~/pam-spikes/R5.md`. Host spike verified 100 shared rowids, FTS5 porter/unicode61 + quoted OR/BM25, vec0 KNN and RRF. vec0 supports typed metadata filters when declared in the vec0 schema, but §7.8 `chunks_vec` declares only `embedding`, so M6 must join and post-filter by `ReadScope` (with its specified over-fetch). Docker image/run is still unverified because Docker Desktop could not start.
+- **Findings (update 2026-10-17, append-only):** Docker later started successfully. The `python:3.12-slim` image built, pre-downloaded the model to `/models`, and the container passed the 100-row hybrid query and metadata-filter probe. The earlier note records the initial Docker failure; this update supersedes its run status.
 
 ## R6 — Embeddings & chunking 🔴 (blocks M4)
 - [ ] What embeddings are and why cosine similarity works (watch one 10-min explainer).
-- [ ] `fastembed`: `TextEmbedding("BAAI/bge-small-en-v1.5")`, batch embedding, cache dir env var, pre-downloading in a Dockerfile.
-- [ ] bge query instruction prefix: confirm it's still recommended for v1.5.
-- [ ] Chunking strategies (fixed-size, semantic, turn-based); why turn pairs fit chat logs.
-- **Done when:** embedding 1,000 chunks takes a measured time on our laptops (record the number here).
+- [x] `fastembed`: `TextEmbedding("BAAI/bge-small-en-v1.5")`, batch embedding, cache dir env var, pre-downloading in a Dockerfile.
+- [x] bge query instruction prefix: confirm it's still recommended for v1.5.
+- [x] Chunking strategies (fixed-size, semantic, turn-based); why turn pairs fit chat logs.
+- **Done when:** embedding 1,000 chunks takes a measured time on our laptops (record the number here). ✓ Docker median: 3.493 s.
+- **Findings (2026-10-17, append-only):** See `~/pam-spikes/R6.md`. The BAAI model card still recommends `Represent this sentence for searching relevant passages: ` for short-query-to-passage retrieval. In a small synthetic 10-query check, Recall@10 was 0.43 with the prefix and 0.44 without; this is effectively no demonstrated benefit and is too small to override the recommendation. On this Windows 11 Intel host (22 logical CPUs), 1,000 chunks at batch size 64 took 2.806 s, 2.577 s, and 2.626 s (median 2.626 s). Docker pre-download remains unverified.
+- **Findings (update 2026-10-17, append-only):** The Docker image successfully pre-downloaded the model into `/models`. In the Linux/WSL2 container, three warmed 1,000-chunk runs at batch size 64 took 3.493 s, 3.567 s, and 3.349 s (median 3.493 s). The earlier note records the first attempt; this update supplies the completed container results. The video suggestion in the first R6 checkbox was not watched; the concept is explained in `~/pam-spikes/R6.md` and validated by the normalized-vector run.
 
 ## R7 — Clustering & topic naming 🟡 (M5)
 - [ ] `sklearn.cluster.HDBSCAN`: `min_cluster_size`, noise label `-1`, behavior on small datasets.
