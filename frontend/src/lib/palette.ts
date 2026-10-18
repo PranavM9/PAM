@@ -7,13 +7,13 @@
  */
 
 const PALETTE = [
-  '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#60a5fa', '#f87171',
-  '#a78bfa', '#2dd4bf', '#fb923c', '#a3e635', '#e879f9', '#38bdf8',
+  '#b8a9ff', '#f0abfc', '#7dd3fc', '#a5b4fc', '#fda4af', '#86efac',
+  '#fcd34d', '#c4b5fd', '#93c5fd', '#f9a8d4', '#67e8f9', '#d8b4fe',
 ]
 
 /** Color for a cluster; unclustered items get a neutral grey. */
 export function clusterColor(clusterId: string | null | undefined): string {
-  if (!clusterId) return '#8c93a3'
+  if (!clusterId) return '#9d93bd'
   let h = 0
   for (let i = 0; i < clusterId.length; i++) h = (Math.imul(h, 31) + clusterId.charCodeAt(i)) >>> 0
   return PALETTE[h % PALETTE.length]

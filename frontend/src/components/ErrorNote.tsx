@@ -6,8 +6,9 @@ import { ApiError } from '../api/client'
  * Inline error box for a failed request.
  *
  * Behavior:
- *     Shows the `ApiError` code and message, or the plain error message.
- *     Renders nothing when `error` is falsy.
+ *     Shows the `ApiError` code and message, or the plain error message, with a
+ *     warning icon so the state does not rely on color alone. Renders nothing
+ *     when `error` is falsy.
  * Parameters:
  *     error: The error to show.
  *     action: Optional control, e.g. a Retry button.
@@ -17,11 +18,11 @@ export function ErrorNote({ error, action }: { error: unknown; action?: ReactNod
   const code = error instanceof ApiError ? error.code : null
   const message = error instanceof Error ? error.message : String(error)
   return (
-    <div role="alert" className="flex items-start gap-2 rounded-md border border-bad/40 bg-bad/10 px-3 py-2 text-sm">
+    <div role="alert" className="flex items-start gap-3 rounded-2xl border border-bad/30 bg-bad/10 px-4 py-3 text-sm">
       <AlertTriangle size={16} className="mt-0.5 shrink-0 text-bad" aria-hidden />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 leading-relaxed">
         {code && <span className="mr-2 font-mono text-xs text-bad">{code}</span>}
-        <span>{message}</span>
+        <span className="text-fg/90">{message}</span>
       </div>
       {action}
     </div>

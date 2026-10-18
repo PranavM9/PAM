@@ -2,35 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dark-first palette as RGB triplets; light mode overrides via prefers-color-scheme. */
+/*
+ * Lavender glass theme. Colors are RGB triplets so Tailwind can apply alpha
+ * (`bg-panel/60`). Dark is the default; light mode overrides the same tokens.
+ */
 :root {
-  --bg: 13 15 20;
-  --panel: 20 23 31;
-  --raised: 29 33 44;
-  --line: 44 49 63;
-  --fg: 228 231 238;
-  --muted: 140 147 163;
-  --accent: 129 140 248;
-  --accent-fg: 12 14 22;
-  --ok: 52 211 153;
-  --warn: 251 191 36;
-  --bad: 248 113 113;
+  --bg: 9 7 17;
+  --panel: 24 17 46;
+  --raised: 44 32 82;
+  --line: 58 46 98;
+  --edge: 255 255 255;
+  --fg: 250 247 255;
+  --muted: 190 180 228;
+  --accent: 184 169 255;
+  --accent-strong: 120 100 216;
+  --accent-fg: 22 13 46;
+  --ok: 110 231 183;
+  --warn: 252 211 77;
+  --bad: 253 128 150;
+
+  --glass-fill: 255 255 255;
+  --glass-alpha: 0.07;
+  --glass-alpha-strong: 0.11;
+  --glass-border-alpha: 0.13;
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 24px 80px rgba(3, 1, 14, 0.42);
+  --glass-fallback: rgba(28, 20, 54, 0.92);
+  --atmosphere:
+    radial-gradient(ellipse at 78% 8%, rgba(143, 113, 255, 0.42), transparent 42%),
+    radial-gradient(ellipse at 22% 46%, rgba(101, 56, 172, 0.38), transparent 50%),
+    radial-gradient(ellipse at 64% 88%, rgba(80, 103, 210, 0.2), transparent 44%),
+    radial-gradient(ellipse at 50% 120%, rgba(184, 169, 255, 0.12), transparent 50%),
+    linear-gradient(145deg, #090711 4%, #120b24 48%, #090914 100%);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', system-ui, Roboto, sans-serif;
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: 246 247 250;
+    --bg: 244 241 255;
     --panel: 255 255 255;
-    --raised: 238 240 245;
-    --line: 218 222 231;
-    --fg: 22 25 34;
-    --muted: 96 104 122;
-    --accent: 79 70 229;
+    --raised: 234 228 252;
+    --line: 214 205 240;
+    --edge: 76 45 121;
+    --fg: 28 18 56;
+    --muted: 96 84 140;
+    --accent: 108 84 214;
+    --accent-strong: 84 58 190;
     --accent-fg: 255 255 255;
-    --ok: 5 150 105;
-    --warn: 180 83 9;
-    --bad: 220 38 38;
+    --ok: 4 140 96;
+    --warn: 170 92 6;
+    --bad: 200 36 70;
+
+    --glass-fill: 255 255 255;
+    --glass-alpha: 0.55;
+    --glass-alpha-strong: 0.72;
+    --glass-border-alpha: 0.12;
+    --glass-highlight: rgba(255, 255, 255, 0.85);
+    --glass-shadow: 0 24px 70px rgba(76, 45, 121, 0.16);
+    --glass-fallback: rgba(255, 255, 255, 0.94);
+    --atmosphere:
+      radial-gradient(ellipse at 78% 8%, rgba(167, 146, 255, 0.42), transparent 40%),
+      radial-gradient(ellipse at 18% 44%, rgba(196, 170, 255, 0.4), transparent 46%),
+      radial-gradient(ellipse at 66% 90%, rgba(150, 170, 255, 0.28), transparent 42%),
+      linear-gradient(145deg, #f6f3ff 4%, #ece6ff 50%, #f3f1fb 100%);
     color-scheme: light;
   }
 }
@@ -43,30 +79,46 @@ body,
 
 body {
   margin: 0;
-  background: rgb(var(--bg));
   color: rgb(var(--fg));
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background-color: rgb(var(--bg));
+  background-image: var(--atmosphere);
+  background-attachment: fixed;
+  font-family: var(--font-ui);
+  font-feature-settings: 'tnum' 0;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Typography plugin colors follow the theme tokens. */
 :root .prose {
-  --tw-prose-body: rgb(var(--fg) / 0.9);
+  --tw-prose-body: rgb(var(--fg) / 0.88);
   --tw-prose-headings: rgb(var(--fg));
   --tw-prose-lead: rgb(var(--muted));
   --tw-prose-links: rgb(var(--accent));
   --tw-prose-bold: rgb(var(--fg));
   --tw-prose-counters: rgb(var(--muted));
-  --tw-prose-bullets: rgb(var(--muted));
-  --tw-prose-hr: rgb(var(--line));
-  --tw-prose-quotes: rgb(var(--fg));
-  --tw-prose-quote-borders: rgb(var(--line));
+  --tw-prose-bullets: rgb(var(--accent) / 0.7);
+  --tw-prose-hr: rgb(var(--edge) / 0.12);
+  --tw-prose-quotes: rgb(var(--fg) / 0.9);
+  --tw-prose-quote-borders: rgb(var(--accent) / 0.5);
   --tw-prose-captions: rgb(var(--muted));
   --tw-prose-code: rgb(var(--fg));
   --tw-prose-pre-code: rgb(var(--fg));
-  --tw-prose-pre-bg: rgb(var(--raised));
-  --tw-prose-th-borders: rgb(var(--line));
-  --tw-prose-td-borders: rgb(var(--line));
+  --tw-prose-pre-bg: rgb(var(--bg) / 0.55);
+  --tw-prose-th-borders: rgb(var(--edge) / 0.16);
+  --tw-prose-td-borders: rgb(var(--edge) / 0.08);
   max-width: none;
+}
+
+:root .prose :where(h1, h2, h3) {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+:root .prose :where(pre) {
+  border: 1px solid rgb(var(--edge) / 0.1);
+  border-radius: 14px;
 }
 
 :root .prose :where(code)::before,
@@ -75,9 +127,9 @@ body {
 }
 
 :root .prose :where(code):not(:where(pre code)) {
-  border-radius: 0.25rem;
-  background: rgb(var(--raised));
-  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: rgb(var(--edge) / 0.08);
+  padding: 0.1em 0.4em;
   font-weight: 500;
 }
 
@@ -94,27 +146,139 @@ body {
 }
 
 @layer components {
+  /* Glass surfaces: translucent fill, hairline border, top highlight, soft shadow. */
+  .glass {
+    background: linear-gradient(
+      145deg,
+      rgb(var(--glass-fill) / calc(var(--glass-alpha) + 0.04)),
+      rgb(var(--glass-fill) / var(--glass-alpha)) 58%,
+      rgb(var(--glass-fill) / calc(var(--glass-alpha) - 0.03))
+    );
+    border: 1px solid rgb(var(--edge) / var(--glass-border-alpha));
+    box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
+    -webkit-backdrop-filter: blur(28px) saturate(145%);
+    backdrop-filter: blur(28px) saturate(145%);
+  }
+  .glass-strong {
+    background: linear-gradient(
+      145deg,
+      rgb(var(--glass-fill) / calc(var(--glass-alpha-strong) + 0.04)),
+      rgb(var(--glass-fill) / var(--glass-alpha-strong)) 60%
+    );
+    border: 1px solid rgb(var(--edge) / calc(var(--glass-border-alpha) + 0.03));
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 12px 40px rgba(3, 1, 14, 0.22);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+  }
+  /* Quiet inset surface for content inside a glass panel (no extra blur). */
+  .well {
+    @apply rounded-2xl;
+    background: rgb(var(--edge) / 0.045);
+    border: 1px solid rgb(var(--edge) / 0.07);
+  }
+
+  .card {
+    @apply glass rounded-[20px];
+  }
+  .panel {
+    @apply glass rounded-[28px];
+  }
+
   .btn {
-    @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-raised px-3 py-1.5 text-sm font-medium text-fg transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-[2.25rem] select-none items-center justify-center gap-2 rounded-xl px-3.5 py-1.5 text-sm font-medium text-fg transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-45;
+    background: linear-gradient(180deg, rgb(var(--edge) / 0.1), rgb(var(--edge) / 0.05));
+    border: 1px solid rgb(var(--edge) / 0.12);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+  }
+  .btn:not(:disabled):hover {
+    background: linear-gradient(180deg, rgb(var(--edge) / 0.15), rgb(var(--edge) / 0.08));
+    border-color: rgb(var(--accent) / 0.4);
+  }
+  .btn:not(:disabled):active {
+    transform: translateY(1px);
   }
   .btn-primary {
-    @apply border-accent bg-accent text-accent-fg hover:bg-accent/90;
+    @apply text-accent-fg;
+    background: linear-gradient(180deg, rgb(var(--accent)), rgb(var(--accent-strong) / 0.95));
+    border-color: rgb(var(--accent) / 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgb(var(--accent-strong) / 0.35);
   }
+  .btn-primary:not(:disabled):hover {
+    background: linear-gradient(180deg, rgb(var(--accent) / 0.95), rgb(var(--accent-strong)));
+    border-color: rgb(var(--accent) / 0.8);
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-1.5 text-sm text-muted transition duration-200 ease-out hover:bg-fg/[0.06] hover:text-fg disabled:cursor-not-allowed disabled:opacity-45;
+  }
+  .icon-btn {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted transition duration-200 ease-out hover:bg-fg/[0.07] hover:text-fg disabled:opacity-45;
+  }
+
   .input {
-    @apply rounded-md border border-line bg-panel px-2.5 py-1.5 text-sm text-fg placeholder:text-muted;
+    @apply min-h-[2.25rem] rounded-xl px-3 py-1.5 text-sm text-fg transition duration-200 ease-out placeholder:text-muted/80;
+    background: rgb(var(--bg) / 0.35);
+    border: 1px solid rgb(var(--edge) / 0.12);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
   }
-  .card {
-    @apply rounded-lg border border-line bg-panel;
+  .input:hover {
+    border-color: rgb(var(--edge) / 0.2);
   }
+  .input:focus {
+    outline: none;
+    border-color: rgb(var(--accent) / 0.7);
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.2);
+  }
+  select.input option {
+    background: rgb(var(--panel));
+    color: rgb(var(--fg));
+  }
+
   .label {
-    @apply text-xs font-medium uppercase tracking-wide text-muted;
+    @apply text-[13px] font-medium text-muted;
+  }
+  .eyebrow {
+    @apply text-xs font-medium text-accent;
   }
   .badge {
-    @apply inline-flex items-center rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted;
+    @apply inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[11px] text-muted;
+    background: rgb(var(--edge) / 0.06);
+    border: 1px solid rgb(var(--edge) / 0.1);
+  }
+  .divider {
+    border-color: rgb(var(--edge) / 0.08);
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-strong,
+  .card,
+  .panel {
+    background: var(--glass-fallback);
   }
 }
 
 :focus-visible {
   outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--edge) / 0.18) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

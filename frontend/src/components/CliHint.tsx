@@ -5,8 +5,8 @@ import { useState } from 'react'
  * Show the equivalent `pam …` command with a copy button.
  *
  * Behavior:
- *     Renders the command in monospace. The button copies it to the clipboard
- *     and shows a check mark for 1.5 s.
+ *     Renders the command in monospace on a quiet inset strip. The button copies
+ *     it to the clipboard and shows a check mark for 1.5 s.
  * Parameters:
  *     command: The CLI command, usually from `cliHints`.
  *     label: Caption shown before the command.
@@ -23,18 +23,13 @@ export function CliHint({ command, label = 'CLI' }: { command: string; label?: s
     }
   }
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded-md border border-line bg-raised/60 px-2.5 py-1.5 text-xs">
-      <Terminal size={14} className="shrink-0 text-muted" aria-hidden />
+    <div className="well flex min-w-0 items-center gap-2.5 rounded-[14px] py-1 pl-3 pr-1 text-xs">
+      <Terminal size={14} className="shrink-0 text-accent/80" aria-hidden />
       <span className="shrink-0 text-muted">{label}</span>
-      <code className="min-w-0 flex-1 truncate font-mono text-fg" title={command}>
+      <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-fg/90" title={command}>
         {command}
       </code>
-      <button
-        type="button"
-        onClick={copy}
-        className="shrink-0 rounded p-1 text-muted hover:text-fg"
-        aria-label={copied ? 'Copied' : `Copy command: ${command}`}
-      >
+      <button type="button" onClick={copy} className="icon-btn h-8 w-8" aria-label={copied ? 'Copied' : `Copy command: ${command}`}>
         {copied ? <Check size={14} className="text-ok" /> : <Copy size={14} />}
       </button>
     </div>
