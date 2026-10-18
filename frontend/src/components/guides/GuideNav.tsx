@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { Guide } from '../../guides'
 import { guideKind } from './guideKind'
 
@@ -11,15 +12,18 @@ import { guideKind } from './guideKind'
  *     guides: All guides, already sorted.
  *     selected: Slug of the guide being read.
  *     onSelect: Called with the slug of a clicked guide.
+ *     style: Inline style; sets `--pane-w`, the width from `lg` up.
  */
 export function GuideNav({
   guides,
   selected,
   onSelect,
+  style,
 }: {
   guides: Guide[]
   selected: string | undefined
   onSelect: (slug: string) => void
+  style?: CSSProperties
 }) {
   const groups = new Map<string, Guide[]>()
   for (const g of guides) {
@@ -27,7 +31,7 @@ export function GuideNav({
     groups.set(label, [...(groups.get(label) ?? []), g])
   }
   return (
-    <nav aria-label="Guides" className="panel shrink-0 p-3 sm:p-4 lg:max-h-full lg:w-72 lg:self-start lg:overflow-auto">
+    <nav aria-label="Guides" style={style} className="panel shrink-0 p-3 sm:p-4 lg:max-h-full lg:w-[var(--pane-w)] lg:self-start lg:overflow-auto">
       {[...groups].map(([label, items]) => (
         <div key={label} className="mb-3 last:mb-0">
           <h2 className="px-3 pb-1.5 pt-2 text-[13px] font-medium text-muted">{label}</h2>

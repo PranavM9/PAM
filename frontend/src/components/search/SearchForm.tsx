@@ -59,7 +59,7 @@ export function SearchForm({
         onSearch()
       }}
     >
-      <div className="glass-strong flex items-center gap-2 rounded-[18px] py-1.5 pl-4 pr-1.5 transition duration-200 ease-out focus-within:border-accent/60 focus-within:shadow-[0_0_0_3px_rgb(var(--accent)/0.18)]">
+      <div className="glass-strong flex items-center gap-2 rounded-[18px] py-1.5 pl-4 pr-1.5 transition duration-200 ease-out focus-within:border-accent/60">
         <Search size={20} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
         <input
           className="min-h-[2.75rem] min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-muted/80 sm:text-[17px]"
@@ -68,7 +68,7 @@ export function SearchForm({
           placeholder="e.g. sqlite-vec hybrid search"
           aria-label="Query"
         />
-        <button type="submit" className="btn btn-primary min-h-[2.75rem] shrink-0 rounded-[14px] px-4" disabled={blank || searching}>
+        <button type="submit" className="btn btn-solid min-h-[2.75rem] shrink-0 rounded-[14px] px-4" disabled={blank || searching}>
           {searching ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Search size={16} strokeWidth={2} aria-hidden />} Search
         </button>
       </div>

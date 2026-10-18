@@ -5,6 +5,8 @@ import { api, chatStream } from '../api/client'
 import { AgentSelect } from '../components/AgentSelect'
 import { CliHint } from '../components/CliHint'
 import { ErrorNote } from '../components/ErrorNote'
+import { ResizeHandle } from '../components/Resizable'
+import { usePaneSize } from '../lib/usePaneSize'
 import { ModeToggle, ModelSelect } from '../components/chat/ChatControls'
 import { Composer } from '../components/chat/Composer'
 import { ContextPanel } from '../components/chat/ContextPanel'
@@ -60,6 +62,8 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false)
   const [requestError, setRequestError] = useState<unknown>(null)
   const [ended, setEnded] = useState<WriteResult | null>(null)
+  const sessionsPane = usePaneSize({ id: 'chat-sessions', initial: 240, min: 200, max: 360 })
+  const contextPane = usePaneSize({ id: 'chat-context', initial: 336, min: 280, max: 560 })
   const [sessionsOpen, setSessionsOpen] = useState(false)
   const [contextOpen, setContextOpen] = useState(false)
   const abort = useRef<AbortController | null>(null)
@@ -223,7 +227,7 @@ export default function ChatPage() {
   const closeContext = useCallback(() => setContextOpen(false), [])
 
   return (
-    <div className="flex min-h-0 flex-1 gap-4">
+    <div className="flex min-h-0 flex-1 gap-4 xl:gap-0">
       <SessionList
         sessions={sessions}
         activeId={activeId}
@@ -238,7 +242,9 @@ export default function ChatPage() {
         disabled={streaming}
         open={sessionsOpen}
         onClose={closeSessions}
+        style={sessionsPane.style}
       />
+      <ResizeHandle pane={sessionsPane} side="before" label="Resize sessions panel" breakpoint="xl" />
 
       <section className="panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversation">
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-edge/[0.08] px-4 py-3 sm:px-5">
@@ -339,7 +345,9 @@ export default function ChatPage() {
         </footer>
       </section>
 
+      <ResizeHandle pane={contextPane} side="after" label="Resize context panel" breakpoint="xl" />
       <ContextPanel
+        style={contextPane.style}
         context={session.context}
         budget={agent?.token_budget}
         goal={working.data?.goal}

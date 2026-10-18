@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { PageHeader } from '../components/PageHeader'
+import { ResizeHandle } from '../components/Resizable'
+import { usePaneSize } from '../lib/usePaneSize'
 import { GuideNav } from '../components/guides/GuideNav'
 import { guideKind } from '../components/guides/guideKind'
 import { guides } from '../guides'
@@ -19,6 +21,7 @@ import { cliHints } from '../lib/cliHints'
  *     next guide, and scrolls back to the top when the guide changes.
  */
 export default function GuidesPage() {
+  const navPane = usePaneSize({ id: 'guides-nav', initial: 288, min: 220, max: 420 })
   const [params, setParams] = useSearchParams()
   const selected = guides.find((g) => g.slug === params.get('g')) ?? guides[0]
   const index = selected ? guides.indexOf(selected) : -1
@@ -44,8 +47,9 @@ export default function GuidesPage() {
         subtitle="How to export from each provider and connect MCP clients."
         cli={cliHints.mcpServe()}
       />
-      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-4">
-        <GuideNav guides={guides} selected={selected?.slug} onSelect={select} />
+      <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
+        <GuideNav guides={guides} selected={selected?.slug} onSelect={select} style={navPane.style} />
+        <ResizeHandle pane={navPane} side="before" label="Resize guide list" />
         <article className="panel flex min-w-0 flex-col lg:min-h-0 lg:flex-1">
           <div ref={scroller} className="px-5 py-6 sm:px-10 sm:py-10 lg:min-h-0 lg:flex-1 lg:overflow-auto">
             {selected && kind ? (
@@ -66,7 +70,7 @@ export default function GuidesPage() {
                     {prev ? (
                       <button type="button" onClick={() => select(prev.slug)} className="well group flex flex-col items-start gap-1 rounded-card px-4 py-3 text-left transition duration-200 ease-out hover:bg-fg/[0.07]">
                         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted">
-                          <ArrowLeft size={14} strokeWidth={1.75} className="transition duration-200 ease-out group-hover:-translate-x-0.5" aria-hidden />
+                          <ArrowLeft size={14} strokeWidth={1.75} className="transition duration-200 ease-out" aria-hidden />
                           Previous
                         </span>
                         <span className="text-sm font-medium text-fg">{prev.title}</span>
@@ -78,7 +82,7 @@ export default function GuidesPage() {
                       <button type="button" onClick={() => select(next.slug)} className="well group flex flex-col items-end gap-1 rounded-card px-4 py-3 text-right transition duration-200 ease-out hover:bg-fg/[0.07]">
                         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted">
                           Next
-                          <ArrowRight size={14} strokeWidth={1.75} className="transition duration-200 ease-out group-hover:translate-x-0.5" aria-hidden />
+                          <ArrowRight size={14} strokeWidth={1.75} className="transition duration-200 ease-out" aria-hidden />
                         </span>
                         <span className="text-sm font-medium text-fg">{next.title}</span>
                       </button>

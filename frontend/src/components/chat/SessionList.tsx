@@ -1,4 +1,5 @@
 import { CheckCircle2, MessageSquarePlus } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { SidePanel } from './SidePanel'
 import type { StoredSession } from './types'
 
@@ -17,6 +18,7 @@ import type { StoredSession } from './types'
  *     disabled: Whether opening another session is blocked.
  *     open: Whether the drawer is shown below `xl`.
  *     onClose: Called to close the drawer.
+ *     style: Inline style; sets `--pane-w`, the width from `xl` up.
  */
 export function SessionList({
   sessions,
@@ -26,6 +28,7 @@ export function SessionList({
   disabled,
   open,
   onClose,
+  style,
 }: {
   sessions: StoredSession[]
   activeId: string | null
@@ -34,6 +37,7 @@ export function SessionList({
   disabled: boolean
   open: boolean
   onClose: () => void
+  style?: CSSProperties
 }) {
   return (
     <SidePanel
@@ -44,7 +48,8 @@ export function SessionList({
       side="left"
       open={open}
       onClose={onClose}
-      width="xl:w-60"
+      width="xl:w-[var(--pane-w)]"
+      style={style}
       actions={
         <button type="button" className="btn w-full" onClick={onNew}>
           <MessageSquarePlus size={16} strokeWidth={1.75} /> New chat

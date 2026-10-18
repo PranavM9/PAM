@@ -160,7 +160,7 @@ export function EmptyChat({ onPick }: { onPick: (q: string) => void }) {
             <ArrowRight
               size={16}
               strokeWidth={1.75}
-              className="shrink-0 text-muted transition duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-accent"
+              className="shrink-0 text-muted transition duration-200 ease-out group-hover:text-accent"
               aria-hidden
             />
           </button>

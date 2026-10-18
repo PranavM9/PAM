@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, type CSSProperties, type ReactNode } from 'react'
 
 /**
  * Glass side column that becomes an overlay drawer below the `xl` breakpoint.
@@ -18,6 +18,7 @@ import { useEffect, type ReactNode } from 'react'
  *     open: Whether the drawer is shown below `xl`.
  *     onClose: Called to close the drawer.
  *     width: Width classes used from `xl` up.
+ *     style: Inline style, e.g. the `--pane-w` variable used by `width`.
  *     actions: Controls shown under the heading.
  *     children: Panel content.
  */
@@ -30,6 +31,7 @@ export function SidePanel({
   open,
   onClose,
   width,
+  style,
   actions,
   children,
 }: {
@@ -41,6 +43,7 @@ export function SidePanel({
   open: boolean
   onClose: () => void
   width: string
+  style?: CSSProperties
   actions?: ReactNode
   children: ReactNode
 }) {
@@ -60,6 +63,7 @@ export function SidePanel({
       <Tag
         id={id}
         aria-label={label}
+        style={style}
         className={`panel min-h-0 flex-col overflow-hidden ${drawer} xl:static xl:z-auto xl:flex xl:shrink-0 ${width}`}
       >
         <div className="flex shrink-0 items-center justify-between gap-2 px-5 pb-3 pt-5">

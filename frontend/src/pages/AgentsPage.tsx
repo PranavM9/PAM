@@ -8,6 +8,8 @@ import { ChoiceRow, Field, FormSection, choiceClass } from '../components/agents
 import { ErrorNote } from '../components/ErrorNote'
 import { Markdown } from '../components/Markdown'
 import { PageHeader } from '../components/PageHeader'
+import { ResizeHandle } from '../components/Resizable'
+import { usePaneSize } from '../lib/usePaneSize'
 import { cliHints } from '../lib/cliHints'
 import { clusterColor } from '../lib/palette'
 import type { AgentManifest } from '../types/generated'
@@ -77,6 +79,7 @@ function customRules(detail: AgentDetail): string {
  *     above the editor and the whole page scrolls; at `lg` only the form panel does.
  */
 export default function AgentsPage() {
+  const listPane = usePaneSize({ id: 'agents-list', initial: 256, min: 208, max: 400 })
   const [params, setParams] = useSearchParams()
   const selected = params.get('agent')
   const creating = params.get('new') === '1'
@@ -88,7 +91,7 @@ export default function AgentsPage() {
   })
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:flex-row lg:overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:flex-row lg:gap-0 lg:overflow-hidden">
       <AgentList
         agents={agents.data}
         loading={agents.isPending}
@@ -96,7 +99,9 @@ export default function AgentsPage() {
         selected={creating ? null : selected}
         onSelect={(name) => setParams({ agent: name })}
         onNew={() => setParams({ new: '1' })}
+        style={listPane.style}
       />
+      <ResizeHandle pane={listPane} side="before" label="Resize agents list" />
 
       <section className="flex min-w-0 shrink-0 flex-col lg:min-h-0 lg:flex-1 lg:shrink" aria-label="Agent editor">
         {creating ? (

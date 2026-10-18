@@ -10,6 +10,8 @@ import { SourcePicker } from '../components/import/SourcePicker'
 import { SOURCES, type ImportSource } from '../components/import/stages'
 import { Markdown } from '../components/Markdown'
 import { PageHeader } from '../components/PageHeader'
+import { ResizeHandle } from '../components/Resizable'
+import { usePaneSize } from '../lib/usePaneSize'
 import { guide } from '../guides'
 import { cliHints } from '../lib/cliHints'
 
@@ -24,6 +26,7 @@ import { cliHints } from '../lib/cliHints'
  *     beside it on wide screens and below it on narrow ones.
  */
 export default function ImportPage() {
+  const guidePane = usePaneSize({ id: 'import-guide', initial: 480, min: 340, max: 720 })
   const [params, setParams] = useSearchParams()
   const [source, setSource] = useState<ImportSource>((params.get('source') as ImportSource) || 'claude')
   const [fileName, setFileName] = useState<string | null>(null)
@@ -75,8 +78,8 @@ export default function ImportPage() {
         subtitle="Bring your conversation history into the vault. Runs extract → normalize → derive → index → cluster."
         cli={cliHints.importRun(fileName ? `/demo/${fileName}` : undefined)}
       />
-      <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:overflow-hidden">
-        <section className="panel space-y-8 p-5 sm:p-8 lg:min-h-0 lg:overflow-y-auto" aria-label="Import steps">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:flex-row lg:gap-0 lg:overflow-hidden">
+        <section className="panel min-w-0 space-y-8 p-5 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" aria-label="Import steps">
           <SourcePicker value={source} onChange={pickSource} />
           <Dropzone sourceLabel={sourceLabel} fileName={fileName} busy={upload.isPending} onFile={start} />
           <ErrorNote error={upload.error ?? job.error} />
@@ -95,7 +98,8 @@ export default function ImportPage() {
           </div>
         </section>
 
-        <aside className="panel p-5 sm:p-8 lg:min-h-0 lg:overflow-y-auto" aria-label="Export guide">
+        <ResizeHandle pane={guidePane} side="after" label="Resize export guide" />
+        <aside style={guidePane.style} className="panel p-5 sm:p-8 lg:min-h-0 lg:w-[var(--pane-w)] lg:shrink-0 lg:overflow-y-auto" aria-label="Export guide">
           <div className="eyebrow mb-4 flex items-center gap-2">
             <BookOpen size={14} strokeWidth={1.75} aria-hidden />
             Export guide

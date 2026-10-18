@@ -1,5 +1,5 @@
 import { ChevronDown, FileText } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import type { ContextEvent } from '../../types/generated'
 import { Markdown } from '../Markdown'
 import { TokenMeter } from '../TokenMeter'
@@ -21,6 +21,7 @@ import { SidePanel } from './SidePanel'
  *     turns: Number of recent turns carried to the next model.
  *     open: Whether the drawer is shown below `xl`.
  *     onClose: Called to close the drawer.
+ *     style: Inline style; sets `--pane-w`, the width from `xl` up.
  */
 export function ContextPanel({
   context,
@@ -30,6 +31,7 @@ export function ContextPanel({
   turns,
   open,
   onClose,
+  style,
 }: {
   context: ContextEvent | null
   budget?: number
@@ -38,6 +40,7 @@ export function ContextPanel({
   turns?: number
   open: boolean
   onClose: () => void
+  style?: CSSProperties
 }) {
   const [showRendered, setShowRendered] = useState(true)
   return (
@@ -49,7 +52,8 @@ export function ContextPanel({
       side="right"
       open={open}
       onClose={onClose}
-      width="xl:w-[21rem]"
+      width="xl:w-[var(--pane-w)]"
+      style={style}
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 xl:overflow-hidden">
         <div className="well shrink-0 space-y-3 p-4">

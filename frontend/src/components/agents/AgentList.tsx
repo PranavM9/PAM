@@ -1,4 +1,5 @@
 import { Bot, Plus } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import type { AgentManifest } from '../../types/generated'
 import { ErrorNote } from '../ErrorNote'
 
@@ -15,6 +16,7 @@ import { ErrorNote } from '../ErrorNote'
  *     selected: Name of the highlighted agent, or null.
  *     onSelect: Called with an agent's name when its row is clicked.
  *     onNew: Called when "New agent" is clicked.
+ *     style: Inline style; sets `--pane-w`, the width from `lg` up.
  */
 export function AgentList({
   agents,
@@ -23,6 +25,7 @@ export function AgentList({
   selected,
   onSelect,
   onNew,
+  style,
 }: {
   agents: AgentManifest[] | undefined
   loading: boolean
@@ -30,9 +33,10 @@ export function AgentList({
   selected: string | null
   onSelect: (name: string) => void
   onNew: () => void
+  style?: CSSProperties
 }) {
   return (
-    <nav aria-label="Agents" className="panel flex shrink-0 flex-col gap-3 p-3 lg:w-64 lg:gap-4 lg:p-4">
+    <nav aria-label="Agents" style={style} className="panel flex shrink-0 flex-col gap-3 p-3 lg:w-[var(--pane-w)] lg:gap-4 lg:p-4">
       <div className="flex items-center justify-between gap-3 px-1 lg:flex-col lg:items-stretch">
         <h2 className="text-[15px] font-semibold tracking-[-0.01em] lg:px-1 lg:pt-1">Agents</h2>
         <button type="button" className="btn lg:w-full" onClick={onNew}>

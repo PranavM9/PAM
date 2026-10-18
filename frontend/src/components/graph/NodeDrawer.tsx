@@ -1,4 +1,6 @@
 import { ExternalLink, X } from 'lucide-react'
+import { ResizeHandle } from '../Resizable'
+import { usePaneSize } from '../../lib/usePaneSize'
 import { VaultFileView } from '../VaultFileView'
 import type { GraphNode } from '../../types/generated'
 
@@ -8,7 +10,8 @@ const TYPE_LABEL: Record<GraphNode['type'], string> = { project: 'Project', epis
  * Glass drawer floating over the right edge of the graph panel with one node's file.
  *
  * Behavior:
- *     Takes the full panel width below `sm` and a fixed 30rem column above it.
+ *     Takes the full panel width below `sm` and a column above it whose width
+ *     can be dragged from its left edge (340–760 px, never wider than the panel).
  *     The header shows the node type and label, an "Open in vault" action when
  *     the node has a file, and a close button; the body renders the file.
  * Parameters:
@@ -31,11 +34,14 @@ export function NodeDrawer({
   onOpen: () => void
   onClose: () => void
 }) {
+  const pane = usePaneSize({ id: 'graph-drawer', initial: 480, min: 340, max: 760 })
   return (
     <aside
-      className="absolute inset-2 z-20 flex flex-col overflow-hidden rounded-card border border-edge/[0.12] bg-bg/80 shadow-[inset_0_1px_0_var(--glass-highlight),0_24px_60px_rgba(3,1,14,0.35)] backdrop-blur-2xl sm:inset-y-3 sm:left-auto sm:right-3 sm:w-[min(30rem,calc(100%-1.5rem))]"
+      style={pane.style}
+      className="absolute inset-2 z-20 flex flex-col overflow-hidden rounded-card border border-edge/[0.12] bg-bg/80 shadow-[inset_0_1px_0_var(--glass-highlight),0_24px_60px_rgba(3,1,14,0.35)] backdrop-blur-2xl sm:inset-y-3 sm:left-auto sm:right-3 sm:w-[min(var(--pane-w),calc(100%-1.5rem))]"
       aria-label="Node details"
     >
+      <ResizeHandle pane={pane} side="after" label="Resize details drawer" breakpoint="md" className="absolute inset-y-0 left-0 z-10 w-3 rounded-none" />
       <div className="flex items-start gap-3 border-b border-edge/10 px-5 pb-4 pt-5">
         <span className="mt-2 h-3 w-3 shrink-0 rounded-full ring-4 ring-edge/[0.06]" style={{ background: swatch }} aria-hidden />
         <div className="min-w-0 flex-1">

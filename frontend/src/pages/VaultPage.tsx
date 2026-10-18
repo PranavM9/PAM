@@ -6,6 +6,8 @@ import { api } from '../api/client'
 import { AgentSelect } from '../components/AgentSelect'
 import { ErrorNote } from '../components/ErrorNote'
 import { PageHeader } from '../components/PageHeader'
+import { ResizeHandle } from '../components/Resizable'
+import { usePaneSize } from '../lib/usePaneSize'
 import { VaultFileView } from '../components/VaultFileView'
 import { VaultTree } from '../components/VaultTree'
 import { cliForPath } from '../lib/cliHints'
@@ -27,6 +29,7 @@ function ancestors(path: string): string[] {
  *     below `lg` it stacks above the viewer and can be collapsed.
  */
 export default function VaultPage() {
+  const treePane = usePaneSize({ id: 'vault-tree', initial: 320, min: 240, max: 520 })
   const [params, setParams] = useSearchParams()
   const selected = params.get('path')
   const agent = params.get('agent') || 'default'
@@ -75,8 +78,8 @@ export default function VaultPage() {
           />
         }
       />
-      <div className="flex flex-col gap-4 pb-1 lg:min-h-0 lg:flex-1 lg:flex-row">
-        <nav aria-label="Vault files" className="panel flex shrink-0 flex-col overflow-hidden lg:w-[19rem] xl:w-[21rem]">
+      <div className="flex flex-col gap-4 pb-1 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
+        <nav aria-label="Vault files" style={treePane.style} className="panel flex shrink-0 flex-col overflow-hidden lg:w-[var(--pane-w)]">
           <div className="flex items-center gap-3 px-5 pb-3 pt-5">
             <div className="min-w-0 flex-1">
               <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-fg">Files</h2>
@@ -129,6 +132,7 @@ export default function VaultPage() {
             </div>
           </div>
         </nav>
+        <ResizeHandle pane={treePane} side="before" label="Resize file tree" />
         <article
           className="panel flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-auto"
           aria-label="File viewer"
