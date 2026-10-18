@@ -634,8 +634,8 @@ function compose(session: WorkingMemory, message: string, bundle: ContextBundle,
       '',
       '**Next steps**',
       `1. ${next[0].toUpperCase()}${next.slice(1)}.`,
-      '2. Add the "switched to X" divider when the model changes.',
-      '3. Rehearse the demo flow end to end.',
+      `2. Re-read "${latest?.title ?? project.name}" for open questions.`,
+      '3. Log the next decision so the next model sees it too.',
       ...(conflict ? ['', `⚠ One thing to confirm: is your vector store **${conflict.value}** or **${conflict.conflict?.candidate_value}**? Your history says both.`] : []),
     ].join('\n')
   }
