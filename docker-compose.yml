@@ -1,10 +1,10 @@
-# SPEC §4 Runtime + §8 M15. T00 skeleton; T16 adds the /api/health healthcheck and model baking.
+# SPEC §4 Runtime + §8 M15.
 services:
   backend:
     build: ./backend
     container_name: pam-backend
     # Until T14 adds `pam api serve`, the server command fails and the container idles
-    # so `docker compose exec backend pam …` works. T16 removes this fallback.
+    # so `docker compose exec backend pam …` works. Remove this fallback once T14 is on main.
     entrypoint: ["/bin/sh", "-c"]
     command: ["pam api serve --host 0.0.0.0 --port 8000 || exec sleep infinity"]
     ports:
@@ -17,14 +17,23 @@ services:
     volumes:
       - ./vault:/vault
       - ./demo:/demo
+      # Docker seeds an empty named volume from the image, so the baked models appear on first run.
+      # An existing volume is not reseeded: `docker compose down -v` after a model change.
       - pam-models:/models
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 30s
 
   frontend:
     build: ./frontend
     ports:
       - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   ollama:
     image: ollama/ollama

@@ -35,14 +35,14 @@ Gates: chk = Done-when commands pass (PM ran) · reg = earlier tests pass (PM ra
 | T07 | Retriever & context | Aakash | DONE: PR #28 (t07/retriever-fixes; CHG-0010 (M6), CHG-0011) | T06 | 18:32 | ~20:10 | 2.0 | ~1.6 | pass (PM 20:15 real model: 'tailscale eduroam' -> the right episode at #1; context --budget 800 -> 776 used, baseline 5251, saved 4475) | pass | pending | waived? |
 | T08 | Rule extractor & persona | Pranav | DONE: PRs #15, #16, #17, #20 merged (latest 00:24Z) | T04, T05 | 15:50 | 17:24 | 2.0 | ~1.6 | pass (PM 16:58 + 17:26) | pass (334 passed, 2 skipped) | PASS (Pranav + team cross-check, 17:26) | PASS (team cross-check) |
 | T09 | Memory writer | Pranav | DONE: PR #22 | T06, T08 | 17:42 | ~19:00 | 1.5 | ~1.3 | pass (PM 20:15 full suite incl. the real-index write test) | pass | pending | waived? |
-| T09b | Vault sync watcher | Yogesh (took it instead of T11) | PR #31 OPEN, mergeable | T09 ✓, T07 ✓ | | ~22:20 | 0.5 | ? | pass (PM 22:26, uv Python: branch pytest 543 passed, 4 skipped; M10 acceptance: hand-edited fact -> `pam sync` 1 commit 'manual: 1 files', search finds the new value; edited episode body reported, not committed; deleted fact restored) | pass | n/a | waived? |
-| T10 | Clusterer & graph | Pranav (t10/cluster-graph), after T13 part 1 | todo, READY | T06 ✓, T09 ✓ | | | 1.5 | | | | | |
-| T11 | Working memory | Yogesh (t11/working-memory), NOT started at 22:26 (he did T09b + fix #30 first) | todo, READY, CRITICAL | T09 ✓ | | | 0.75 | | | | | |
+| T09b | Vault sync watcher | Yogesh | DONE: PR #31 (CHG-0012, incl. the B-02 transcript skip) | T09, T07 | | 22:43 | 0.5 | ? | pass (PM 22:26 + main 23:19) | pass (618 passed, 2 skipped) | n/a | waived? |
+| T10 | Clusterer & graph | Pranav | PR #35 OPEN (agents testing); B-04 to fix before merge | T06, T09 | ~23:10 | | 1.5 | ~0.9 | pass (PM 00:07 uv Python: branch pytest 646 passed, 2 skipped; 3 fixtures -> 3 projects (Immich, 'Day', Tailscale), 17 assigned; 2nd run no-op, no commit; --rebuild keeps ids; graph export 20 nodes / 27 links, 0 dangling, validates) | pass | pending | waived? |
+| T11 | Working memory | Yogesh | DONE: PR #33 (CHG-0014) | T09 | ~22:40 | 23:09 | 0.75 | ~0.5 | pass (PM 23:19: start + 4 records on 2 models -> show; `pam sync` leaves the transcript untracked, nothing committed; end -> episode, verify OK) | pass (618 passed) | pending | waived? |
 | T12 | MCP server | Aakash | DONE: PR #29 (7fac367; CHG-0010 (M11)) | T07, T09, T11 | 19:12 | ~20:10 | 1.0 | ~1.0 | pass (test_m11 green; `pam mcp serve --help` lists both transports) | pass | Pranav verifies (Inspector / Claude Desktop) | waived? |
-| T13 | Chat orchestrator | Pranav part 1 (t13/chat-llm), NOT started at 22:26; Yogesh rest after T11 + part 1 | todo, READY | T12 ✓ (+T11 for turn recording) | | | 1.5 | | | | | |
+| T13 | Chat orchestrator | part 1 DONE (PR #34); rest Yogesh (t13/chat-orchestrator) assigned 23:19, NOT on origin at 00:07 | in progress (rest) | all deps merged | 22:40 | | 1.5 | ~0.6 (part 1) | part 1 pass | pass | live: Pranav verifies | waived? |
 | T14 | REST API | Yogesh (after T13 rest; needs T10) | todo | T10, T13 | | | 1.25 | | | | | |
 | T15 | Frontend (a–g) | Aakash: draft on t15/frontend-draft, a–f pushed (e5018d3), g pending; real wiring after T14 | in progress | T14 (wiring) | 19:50 | | 3.5 | ~0.4 so far | | | | |
-| T16 | Docker hardening & demo | — | todo | T15 | | | 1.0 | | | | | |
+| T16 | Docker hardening & demo | T16a Pranav PR #36 OPEN (B-05 to fix); T16b demo kit Pranav after T15 wiring; T16c clean-machine runs all three after T14 | in progress | T14/T15 | 23:30 | | 1.0 | | T16a: `docker compose config` OK; Docker build/run NOT verified by PM (no daemon) - Pranav verifies | | | |
 
 ## Critical path (with 3 people in parallel)
 T00 → T01 → T03 → T04 → {T06 ∥ T08} → T09 → T11 → T12 → T13 → T14 → T15 → T16
@@ -147,6 +147,10 @@ T00 0–0.75 · T01 0.75–2.25 · T02 2.25–2.75 · T03 2.25–4.25 · T05 2.7
 ## Bugs (CLI audit and others)
 | ID | Summary | Owner | Branch / PR | State |
 |----|---------|-------|-------------|-------|
+| B-05 | T16a PR #36: frontend depends_on backend `service_healthy`, but until T14 the backend runs `sleep infinity` and /api/health never answers, so the frontend container never starts | Pranav | PR #36 | open: use service_started until T14, or hold #36 until T14 |
+| B-04 | T10 PR #35: a project on the fixtures is named 'Day' (generic unigram from the title rule) | Pranav | PR #35 | open: require >= 2-token n-grams or a generic-word stoplist, plus a test |
+| B-03 | test_m13_api.py chat tests (cases 11–12) take monkeypatch but install no fake LLM and no 'test/model' in pam.toml, so they can't pass as written | Yogesh (in T14) | t14/rest-api | open; T14 may ADD the fake/model setup without weakening assertions |
+| B-02 | (FIXED in PR #31) T09b sync_once commits untracked non-.md files such as working/<id>.transcript.jsonl as 'manual' (its _check returns None for unknown doc types), which breaks §8 M9 ('gitignored until end'); the vault .gitignore is only '.pam/' (§6 vs M9 inconsistency) | Yogesh | on PR #31 (t09b/sync-watcher) | found by PM 22:34; fix = a skip rule in watcher.py + a test; long-term fix = CHG-0013 (vault .gitignore line), drafted, awaiting human APPROVED |
 | B-01 | Empty/whitespace id prefix matched every file (project note/add-episodes, fact show/supersede, episode show, derive --episode); plus a Pydantic warning in test_m07 | Yogesh | fix/empty-id-prefix, PR #30 | PM verified 22:26 (206 targeted tests pass; `project note ""` -> exit 1 "project id must not be empty", no commit). Ready to merge. Touches finished tasks' files only (derive.py, episode/fact/project cmds) |
 
 ## 22:26 notes
@@ -154,3 +158,18 @@ T00 0–0.75 · T01 0.75–2.25 · T02 2.25–2.75 · T03 2.25–4.25 · T05 2.7
 - T15 draft: t15/frontend-draft at 9eba842 (20:52), incl. CHG-0012 and a 'lavender glass' restyle; no PR yet.
 - Next free CHG: CHG-0013 (T15 draft took CHG-0012 on its branch).
 - .pm/ edits keep getting stashed by branch switches in Pranav's checkout (stash@{0} recovered 22:26). Commit .pm via a docs PR, or keep it out of feature branches.
+
+## 22:34 notes
+- Since 22:26: only PR #32 (PM board sync) merged. #30 and #31 are still open. No t10/t11/t13 branches; no T15 PR. No new CLI-audit bugs reported.
+- Yogesh: B-02 on PR #31 (10 min) -> T11 -> T13 rest -> T14. Main session's T11 answer confirmed, with B-02 first and the T11 prompt amended for the transcript-file issue.
+- CHG-0013 drafted (vault .gitignore adds working/*.transcript.jsonl), awaiting human APPROVED. Next free for agents: CHG-0014.
+
+## 23:19 notes
+- Merged since 22:34: #30 (B-01), #31 (T09b + B-02 transcript skip), #33 (T11), #34 (T13 part 1). PM verified main with the uv Python: 618 passed, 2 skipped (api.app missing; PAM_PERF opt-in).
+- CHG on main: ..., 0012 (M10, T09b), 0014 (M9), 0015 (M12). 0013 still reserved (transcript-gitignore draft NOT yet appended to §10 by a human, although watcher.py cites it). The T15 branch also uses CHG-0012, so it must renumber on rebase. Next free: CHG-0016.
+- Remaining critical path: T13 rest 0.75 -> T14 1.25 -> T15 wiring 0.5 -> T16c/rehearsal ~0.5 ≈ 3 h. T10 (Pranav) must finish before T14 merges. T16a runs alongside T14.
+
+## 00:07 notes
+- No merges since 23:19. Open: #35 T10, #36 T16a (Pranav). T13 rest not on origin. No T15 PR.
+- Plan: Pranav: B-04/B-05 on his PRs -> merge T10 -> HUMAN §10 housekeeping -> e2e demo smoke test (test/e2e-demo) -> T16b. Yogesh: T13 rest -> T14 -> T16c Windows. Aakash: T15 refine -> T15 PR (renumber CHG-0012) -> wiring after T14 -> T16c Windows.
+- Remaining critical path: T13 rest 0.75 -> T14 1.25 -> T15 wiring 0.5 -> T16c/rehearsals 0.5 ≈ 3 h. Hackathon end still unknown; if it is ~12:40 (24 h from the first commit), ~12.5 h remain: ON TRACK. If the end is earlier than ~04:00, cut per §9.4: (1) Gemini importer is already done, so skip; (2) tool mode in chat; (3) fact nodes in the graph; (5) agent editor UI.
