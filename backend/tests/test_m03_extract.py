@@ -424,3 +424,64 @@ def test_fixture_older_school_after_newer_goes_to_history(tmp_path):
     (path,) = tmp_path.glob(f"memory/*/episodes/{wsu_episode}.md")
     fm, _ = mdio.read_model(path, EpisodeFrontmatter)
     assert f.id in fm.superseded_facts
+
+
+def test_derive_cli_prints_readable_summary(tmp_path):
+    """Plain `pam derive` prints a sentence, the commit, and where to look; reruns and dry runs say so."""
+    from typer.testing import CliRunner
+
+    from pam.cli.main import app
+
+    runner = CliRunner()
+    for args in (["init"], ["import", "run", str(FIXTURE)]):
+        assert runner.invoke(app, ["--vault", str(tmp_path), *args]).exit_code == 0
+
+    dry = runner.invoke(app, ["--vault", str(tmp_path), "derive", "--dry-run"])
+    assert dry.exit_code == 0, dry.output
+    assert dry.stdout.startswith("Would derive 3 new facts (0 updated, 0 conflicts)")
+    assert "nothing written" in dry.stdout
+
+    res = runner.invoke(app, ["--vault", str(tmp_path), "derive"])
+    assert res.exit_code == 0, res.output
+    lines = res.stdout.splitlines()
+    assert lines[0] == "Derived 3 new facts (0 updated, 0 conflicts); the default persona has 1 derived rule"
+    assert re.fullmatch(r"commit [0-9a-f]{7} · \d+\.\ds", lines[1])
+    assert "persona show" in lines[2]
+    assert lines[3].endswith(f"show --stat {lines[1].split()[1]}")
+    assert "derive: +" not in res.stdout and "Warning" not in res.stdout
+
+    again = runner.invoke(app, ["--vault", str(tmp_path), "derive"])
+    assert again.exit_code == 0, again.output
+    assert again.stdout.strip() == "No changes; the default persona has 1 derived rule"
+
+
+def test_derive_cli_warnings_go_to_stderr_once(tmp_path, monkeypatch):
+    """Warnings print once on stderr as `Warning: ...` without a source path; `--json` stdout stays parseable."""
+    import warnings
+
+    from typer.testing import CliRunner
+
+    from pam.cli import derive_cmd
+    from pam.cli.main import app
+    from pam.contracts.reports import DeriveReport
+
+    def fake_derive(episode=None, dry_run=False):
+        for _ in range(2):
+            warnings.warn("spaCy model 'x' is not installed", RuntimeWarning)
+        return DeriveReport(
+            facts_created=0, facts_updated=0, conflicts_flagged=0, rules_derived=0, commit_sha=None, duration_ms=1
+        )
+
+    monkeypatch.setattr(derive_cmd, "derive", fake_derive)
+    res = CliRunner().invoke(app, ["--vault", str(tmp_path), "--json", "derive"])
+    assert res.exit_code == 0, res.output
+    assert res.stderr == "Warning: spaCy model 'x' is not installed\n"
+    assert json.loads(res.stdout)["rules_derived"] == 0
+
+
+def test_missing_spacy_model_warning_says_how_to_install():
+    """The fallback warning names the model and the install command."""
+    from pam.extract.text import load_nlp
+
+    with pytest.warns(RuntimeWarning, match=r"'no_such_model_pam'.*uv sync"):
+        assert load_nlp.__wrapped__("no_such_model_pam") is None

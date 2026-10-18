@@ -115,8 +115,8 @@ def load_nlp(model: str):
         return spacy.load(model, exclude=["lemmatizer"])
     except (ImportError, OSError, ValueError) as e:
         warnings.warn(
-            f"spaCy model {model!r} is unavailable ({e.__class__.__name__}); using the regex "
-            "sentence splitter and a capitalization heuristic for ORG/GPE values",
+            f"spaCy model {model!r} is not installed ({e.__class__.__name__}), so facts are found with "
+            "a simpler sentence splitter and name check. Install it with: uv sync (in backend/)",
             RuntimeWarning,
             stacklevel=2,
         )
