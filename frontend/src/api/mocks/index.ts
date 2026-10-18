@@ -301,7 +301,7 @@ function buildContext(req: ContextRequest): ContextBundle {
     }
     if (working) {
       out.push('# Working memory', `- Goal: ${working.goal ?? 'n/a'}`,
-        ...(working.recent_turns ?? []).slice(-4).map((t) => `- ${t.role}: ${t.text.slice(0, 120)}`), `(working/${working.session_id}.md)`, '')
+        ...(working.recent_turns ?? []).slice(-4).map((t) => `- ${t.role}: ${t.text.replace(/[*#\s]+/g, ' ').trim().slice(0, 120)}`), `(working/${working.session_id}.md)`, '')
     }
     if (active.length) out.push('# Known facts', ...active.map((f) => `- ${f.attribute}: ${f.value} (${factPath(f)})`), '')
     if (projects.length) {
@@ -627,7 +627,7 @@ function compose(session: WorkingMemory, message: string, bundle: ContextBundle,
     return [
       `You were working on **${project.name}**.`,
       '',
-      `**Where you left off:** ${latest ? `"${latest.title}" (${latest.created_at.slice(0, 10)}). ${latest.text.split('. ')[0]}.` : project.summary}`,
+      `**Where you left off:** ${latest ? `"${latest.title}" (${latest.created_at.slice(0, 10)}). ${world.episodes.find((e) => e.id === latest.episode_id)?.summary ?? ''}` : project.summary}`,
       '',
       '**Decisions so far**',
       ...decisions.map((d) => `- ${d}`),
