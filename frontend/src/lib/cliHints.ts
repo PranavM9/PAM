@@ -29,5 +29,29 @@ export const cliHints = {
     `pam agent create ${name} --projects ${ids(projects)}`,
   agentSetScope: (name = '<name>', projects: string[] = []) =>
     `pam agent set-scope ${name} --projects ${ids(projects)}`,
+  agentShow: (name = '<name>') => `pam agent show ${name}`,
+  sessionShow: (id = '<id>') => `pam session show ${id}`,
+  configShow: () => 'pam config show',
   mcpServe: (agent = 'default') => `pam mcp serve --transport stdio --agent ${agent}`,
+}
+
+/**
+ * CLI command that prints the vault file at `path`.
+ *
+ * Behavior:
+ *     Maps the §6 vault layout to the matching `show` command; unknown paths
+ *     fall back to `pam episode show <id>`.
+ * Parameters:
+ *     path: Vault-relative POSIX path, or nothing for the placeholder.
+ */
+export function cliForPath(path?: string | null): string {
+  if (!path) return cliHints.episodeShow()
+  const id = path.split('/').at(-1)?.replace(/\.(md|yaml)$/, '')
+  if (/^memory\/[^/]+\/episodes\//.test(path)) return cliHints.episodeShow(id)
+  if (/^memory\/[^/]+\/projects\//.test(path)) return cliHints.projectShow(id)
+  if (/^memory\/[^/]+\/facts\//.test(path)) return cliHints.factShow(id)
+  if (path.startsWith('agent/')) return cliHints.agentShow(path.split('/')[1])
+  if (path.startsWith('working/')) return cliHints.sessionShow(id)
+  if (path === 'pam.toml') return cliHints.configShow()
+  return cliHints.episodeShow()
 }

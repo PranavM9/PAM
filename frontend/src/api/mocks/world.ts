@@ -4,7 +4,8 @@
  * Behavior:
  *     Holds seed projects, episodes, facts, agents and sessions. A base set
  *     (an earlier ChatGPT import) exists from the start; the Claude export used in
- *     the §3.3 demo is added when a mock import job finishes, so the graph grows.
+ *     the §3.3 demo is added when a mock import job finishes, so the graph grows;
+ *     that flag survives reloads in `sessionStorage`.
  *     All IDs and dates derive from fixed seeds, so every reload looks the same.
  */
 import type {
@@ -280,6 +281,8 @@ export const world = {
   sessions: new Map<string, WorkingMemory>(),
 }
 
+const IMPORTED_KEY = 'pam-mock-claude-imported'
+
 /** Facts that only exist after the Claude export is imported. */
 const CLAUDE_FACTS: Fact[] = [
   fact('working_on', 'PAM, a portable memory layer for AI agents', 'project', pamEpisodes[0]?.id ?? null, { confidence: 0.9 }),
@@ -310,7 +313,18 @@ export function importClaudeExport(): [number, number] {
   world.projects.push(...claude.projects)
   world.episodes.push(...claude.episodes)
   world.facts.push(...CLAUDE_FACTS)
+  try {
+    sessionStorage.setItem(IMPORTED_KEY, '1')
+  } catch {
+    // Storage unavailable: the import lasts until the next reload.
+  }
   return [found, found]
+}
+
+try {
+  if (sessionStorage.getItem(IMPORTED_KEY) === '1') importClaudeExport()
+} catch {
+  // Storage unavailable: start from the base vault.
 }
 
 export const MODELS: ModelEntry[] = [

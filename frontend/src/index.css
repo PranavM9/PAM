@@ -69,6 +69,18 @@ body {
   max-width: none;
 }
 
+:root .prose :where(code)::before,
+:root .prose :where(code)::after {
+  content: none;
+}
+
+:root .prose :where(code):not(:where(pre code)) {
+  border-radius: 0.25rem;
+  background: rgb(var(--raised));
+  padding: 0.1em 0.35em;
+  font-weight: 500;
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-raised px-3 py-1.5 text-sm font-medium text-fg transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50;
