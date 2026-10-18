@@ -1,8 +1,44 @@
-import { ArrowRight, ArrowRightLeft, Loader2, RotateCcw, Sparkles, Wrench } from 'lucide-react'
+import { ArrowRight, ArrowRightLeft, Loader2, Plug, RotateCcw, Sparkles, Wrench } from 'lucide-react'
 import { ApiError } from '../../api/client'
+import { splitToolName, useConnectors } from '../../lib/connectors'
+import { ConnectorCards } from '../connectors/Cards'
 import { ErrorNote } from '../ErrorNote'
 import { Markdown } from '../Markdown'
 import type { Message } from './types'
+
+/**
+ * A connector tool call in the transcript: a compact chip, then its display cards.
+ *
+ * Behavior:
+ *     The chip reads "Used <connector name> · <tool>"; the name comes from the
+ *     connector list (archived included) and falls back to the id. A failed call
+ *     (its summary starts with `ERROR:`) shows the summary instead of cards.
+ * Parameters:
+ *     call: The connector id and tool parsed from `<connector_id>__<tool>`.
+ *     message: The tool message.
+ */
+function ConnectorToolCall({ call, message }: { call: { connector: string; tool: string }; message: Extract<Message, { kind: 'tool' }> }) {
+  const connectors = useConnectors(true)
+  const name = connectors.data?.find((c) => c.id === call.connector)?.name ?? call.connector
+  const failed = message.summary.startsWith('ERROR:')
+  return (
+    <div className="enter ml-11 min-w-0 space-y-2.5" data-testid="connector-call">
+      <span
+        className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+          failed ? 'border-bad/30 bg-bad/10 text-bad' : 'border-accent/25 bg-accent/10 text-fg/90'
+        }`}
+        title={message.args}
+      >
+        <Plug size={12} strokeWidth={1.75} className="shrink-0 text-accent" aria-hidden />
+        <span className="truncate">
+          Used {name} · <span className="font-mono">{call.tool}</span>
+        </span>
+      </span>
+      {failed && <p className="text-xs text-muted">{message.summary}</p>}
+      {!failed && message.cards && message.cards.length > 0 && <ConnectorCards cards={message.cards} />}
+    </div>
+  )
+}
 
 /**
  * Round lavender avatar with a sparkle, used for the assistant.
@@ -70,6 +106,8 @@ export function MessageView({
     )
   }
   if (message.kind === 'tool') {
+    const connectorCall = splitToolName(message.name)
+    if (connectorCall) return <ConnectorToolCall call={connectorCall} message={message} />
     return (
       <div className="enter ml-11 flex items-start gap-2.5 rounded-control border border-edge/[0.08] bg-edge/[0.04] px-3.5 py-2.5 text-xs leading-relaxed">
         <Wrench size={14} strokeWidth={1.75} className="mt-0.5 shrink-0 text-accent" aria-hidden />

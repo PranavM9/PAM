@@ -11,6 +11,8 @@ import type {
   AgentManifest,
   ChatEvent,
   ChatRequest,
+  Connector,
+  ConnectorResult,
   ContextBundle,
   ContextRequest,
   GraphData,
@@ -205,6 +207,14 @@ export const api = {
 
   sync: () => request<SyncReport>('POST', '/sync'),
   syncStatus: () => request<SyncReport>('GET', '/sync/status'),
+
+  listConnectors: (includeArchived = false) =>
+    request<Connector[]>('GET', '/connectors', undefined, { include_archived: includeArchived ? 'true' : undefined }),
+  getConnector: (id: string) => request<Connector>('GET', `/connectors/${enc(id)}`),
+  saveConnector: (connector: Connector) => request<Connector>('PUT', `/connectors/${enc(connector.id)}`, connector),
+  archiveConnector: (id: string) => request<Connector>('POST', `/connectors/${enc(id)}/archive`),
+  callConnectorTool: (id: string, tool: string, args: Record<string, unknown>) =>
+    request<ConnectorResult>('POST', `/connectors/${enc(id)}/tools/${enc(tool)}/call`, args),
 }
 
 /**

@@ -188,7 +188,10 @@ export default function ChatPage() {
                 ...s,
                 messages: [
                   ...s.messages.filter((m) => m.id !== replyId),
-                  { id: uid(), kind: 'tool', name: event.name, args: JSON.stringify(event.arguments), summary: event.result_summary },
+                  {
+                    id: uid(), kind: 'tool', name: event.name, args: JSON.stringify(event.arguments),
+                    summary: event.result_summary, cards: event.cards ?? [],
+                  },
                   ...s.messages.filter((m) => m.id === replyId),
                 ],
               }))
