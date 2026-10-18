@@ -1,4 +1,6 @@
-"""Expose budgeted context assembly through `pam context`."""
+"""`pam context`: the token-budgeted context bundle from the command line (SPEC §8 M6, SETUP §6)."""
+
+from __future__ import annotations
 
 import typer
 
@@ -7,38 +9,40 @@ from pam.core.vault import Vault
 from pam.retrieve.context import build_context
 
 
-def register(app: typer.Typer) -> None:
-    """Register the context command.
-
-    Behavior:
-        Adds `pam context` to the root CLI.
-    Parameters:
-        app: Root Typer application.
-    """
-    app.command("context")(context_command)
-
-
 def context_command(
     ctx: typer.Context,
-    query: str = typer.Argument(..., metavar="Q"),
-    budget: int | None = typer.Option(None, "--budget", min=256, max=32000),
-    agent: str = typer.Option("default", "--agent"),
-    session: str | None = typer.Option(None, "--session"),
+    query: str = typer.Argument(..., metavar="QUERY"),
+    agent: str = typer.Option("default", "--agent", help="Agent whose read scope and persona apply."),
+    budget: int | None = typer.Option(None, "--budget", min=256, max=32000,
+                                      help="Token budget (default: the agent's token_budget)."),
+    session: str | None = typer.Option(None, "--session", help="Working-memory session id."),
+    no_persona: bool = typer.Option(False, "--no-persona", help="Leave the persona out."),
 ) -> None:
-    """Assemble and print query context.
+    """Print the context bundle for a query: rendered Markdown plus the token line.
 
     Behavior:
-        Prints contract JSON in global JSON mode; otherwise prints rendered Markdown and token use.
+        Prints the `ContextBundle` as JSON with the global `--json`; otherwise `rendered` followed by
+        `<used>/<budget> tokens · <saved> saved (baseline <n>)`.
+    Exceptions:
+        PamError: The agent does not exist, or the index needs `pam index --rebuild` (exit 1).
     Parameters:
-        ctx: Click command context.
+        ctx: Typer context with the global options.
         query: User query.
-        budget: Optional context token budget.
-        agent: Agent whose read scope applies.
-        session: Optional working-memory session id.
+        agent: Agent whose scope applies.
+        budget: Token budget.
+        session: Working-memory session id.
+        no_persona: Leave the persona out.
     """
-    result = build_context(Vault.resolve(), ContextRequest(query=query, agent=agent, token_budget=budget, session_id=session))
+    req = ContextRequest(query=query, agent=agent, token_budget=budget, session_id=session,
+                         include_persona=not no_persona)
+    result = build_context(Vault.resolve().require_initialized(), req)
     if (ctx.find_root().obj or {}).get("json"):
         typer.echo(result.model_dump_json(indent=2))
-    else:
-        typer.echo(result.rendered)
-        typer.echo(f"{result.tokens_used}/{result.token_budget} tokens · {result.tokens_saved} saved")
+        return
+    typer.echo(result.rendered)
+    typer.echo(f"{result.tokens_used}/{result.token_budget} tokens · {result.tokens_saved} saved "
+               f"(baseline {result.baseline_tokens})")
+
+
+def register(app: typer.Typer) -> None:
+    app.command("context")(context_command)

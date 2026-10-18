@@ -73,7 +73,8 @@ def stub_vault(tmp_path, monkeypatch) -> Vault:
         CREATE TABLE doc_vectors (doc_id TEXT PRIMARY KEY, embedding BLOB NOT NULL);
         CREATE TABLE project_centroids (project_id TEXT PRIMARY KEY, embedding BLOB NOT NULL, updated_at TEXT NOT NULL);
     """)
-    conn.execute("INSERT INTO meta VALUES ('embedding_model','fake')")
+    # The configured model name: M6 refuses an index built with another model (§7.8 Promise).
+    conn.execute("INSERT INTO meta VALUES ('embedding_model','BAAI/bge-small-en-v1.5')")
     rowid = 1
     for episode, body, path in episodes:
         doc_id = str(episode.id)

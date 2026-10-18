@@ -1,82 +1,77 @@
-"""Read indexed chunks and embed retrieval queries (SPEC §7.8, §8 M4)."""
+"""Read-only access to the derived index and query embedding for retrieval (SPEC §7.8, §8 M6)."""
 
 from __future__ import annotations
 
 import sqlite3
-from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
+import sqlite_vec
 
 from pam.contracts.config import PamConfig
+from pam.core.errors import PamError
 from pam.core.vault import Vault
+from pam.index import indexer
 
-_embedding_models = {}
+BUSY_TIMEOUT_S = 10.0  # same wait as the indexer's connection
 
 
-def connect(vault: Vault) -> sqlite3.Connection:
-    """Open the vault index read-only and load sqlite-vec.
+def connect(vault: Vault) -> sqlite3.Connection | None:
+    """Open the vault index read-only with sqlite-vec loaded.
 
     Behavior:
-        Uses T06's database helper when it is available, otherwise opens `.pam/index.db` in
-        SQLite read-only mode and loads sqlite-vec for vector queries.
+        Never creates or changes `.pam/index.db`; a vault that was never indexed has no index.
     Exceptions:
-        sqlite3.Error: The database or sqlite-vec cannot be opened.
+        PamError: This Python cannot load SQLite extensions.
     Returns:
-        A read-only SQLite connection.
+        A read-only connection, or `None` when `index.db` does not exist.
     Parameters:
         vault: Vault whose index is opened.
     """
+    if not vault.index_db.is_file():
+        return None
+    conn = sqlite3.connect(f"{vault.index_db.as_uri()}?mode=ro", uri=True, timeout=BUSY_TIMEOUT_S)
     try:
-        from pam.index import db  # type: ignore[attr-defined]
-    except ImportError:
-        db = None
-    if db is not None and hasattr(db, "connect"):
-        return db.connect(vault)
-    path = Path(vault.index_db)
-    conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
-    conn.row_factory = sqlite3.Row
-    conn.enable_load_extension(True)
-    try:
-        import sqlite_vec
-
+        conn.enable_load_extension(True)
         sqlite_vec.load(conn)
-    finally:
         conn.enable_load_extension(False)
+    except (AttributeError, sqlite3.OperationalError) as exc:
+        conn.close()
+        raise PamError(f"cannot load sqlite-vec ({exc}); use the uv-managed Python or Docker") from exc
     return conn
 
 
-def embed_query(text: str, cfg: PamConfig) -> list[float]:
-    """Embed and L2-normalize one prefixed search query.
+def check_model(conn: sqlite3.Connection, cfg: PamConfig) -> None:
+    """Refuse an index built with a different embedding model than the config names.
 
     Behavior:
-        Uses T06's embedder when available, otherwise caches FastEmbed models by name and returns
-        a normalized float32 vector.
+        Compares `meta.embedding_model` with `embedding.model`; an index without the key passes.
     Exceptions:
-        ImportError: FastEmbed is unavailable.
-        ValueError: The embedder returns a zero vector.
-    Returns:
-        The normalized query vector as Python floats.
+        PamError: The models differ (§7.8: the index must be rebuilt).
     Parameters:
-        text: Unprefixed query text.
+        conn: Open index connection.
         cfg: Effective vault configuration.
     """
-    try:
-        from pam.index import embedder  # type: ignore[attr-defined]
-    except ImportError:
-        embedder = None
-    if embedder is not None and hasattr(embedder, "embed_query"):
-        return embedder.embed_query(text, cfg)
-    if cfg.embedding.model not in _embedding_models:
-        from fastembed import TextEmbedding
+    row = conn.execute("SELECT value FROM meta WHERE key = 'embedding_model'").fetchone()
+    if row and row[0] != cfg.embedding.model:
+        raise PamError(
+            f"the index was built with {row[0]} but the config says {cfg.embedding.model}; run `pam index --rebuild`"
+        )
 
-        _embedding_models[cfg.embedding.model] = TextEmbedding(cfg.embedding.model)
-    raw = next(_embedding_models[cfg.embedding.model].query_embed(cfg.embedding.query_prefix + text))
-    vector = np.asarray(raw, dtype=np.float32)
-    norm = float(np.linalg.norm(vector))
-    if not norm:
-        raise ValueError("query embedding is a zero vector")
-    return (vector / norm).astype(np.float32).tolist()
+
+def embed_query(text: str, cfg: PamConfig) -> np.ndarray:
+    """Embed a search query with the same embedder the indexer uses.
+
+    Behavior:
+        Goes through `pam.index.indexer.get_embedder`, so queries and documents always share one
+        model instance and query prefix.
+    Returns:
+        One L2-normalized float32 vector.
+    Parameters:
+        text: Query text without the prefix.
+        cfg: Effective vault configuration.
+    """
+    return indexer.get_embedder(cfg.embedding).embed_query(text)
 
 
 def doc_token_counts(conn: sqlite3.Connection, doc_ids: Iterable[str]) -> dict[str, int]:
