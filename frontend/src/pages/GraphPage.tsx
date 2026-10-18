@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ExternalLink, Loader2, Maximize2, PinOff, Search, X } from 'lucide-react'
+import { Loader2, Maximize2, PinOff, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph2D, { type ForceGraphMethods, type LinkObject, type NodeObject } from 'react-force-graph-2d'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -7,7 +7,7 @@ import { api } from '../api/client'
 import { AgentSelect } from '../components/AgentSelect'
 import { ErrorNote } from '../components/ErrorNote'
 import { PageHeader } from '../components/PageHeader'
-import { VaultFileView } from '../components/VaultFileView'
+import { NodeDrawer } from '../components/graph/NodeDrawer'
 import { cliHints } from '../lib/cliHints'
 import { clusterColor } from '../lib/palette'
 import type { GraphLink, GraphNode } from '../types/generated'
@@ -16,7 +16,13 @@ type Node = NodeObject<GraphNode>
 type Link = LinkObject<GraphNode, GraphLink>
 type Methods = ForceGraphMethods<Node, Link>
 
-const FACT_COLOR = '#fbbf24'
+/** Fact color from the `--warn` token, read once so canvas frames stay cheap. */
+let factColor: string | null = null
+
+function factFill(): string {
+  factColor ??= themeColor('warn')
+  return factColor
+}
 
 function radius(node: GraphNode): number {
   if (node.type === 'project') return 5 + Math.sqrt(Math.max(1, node.size)) * 2.2
@@ -25,7 +31,7 @@ function radius(node: GraphNode): number {
 }
 
 function color(node: GraphNode): string {
-  return node.type === 'fact' ? FACT_COLOR : clusterColor(node.cluster_id)
+  return node.type === 'fact' ? factFill() : clusterColor(node.cluster_id)
 }
 
 /** Link ends are ids in the API but become node objects once d3-force runs. */
@@ -113,7 +119,16 @@ export default function GraphPage() {
 
   const focus = hover ?? (selected ? String(selected.id) : null)
   const lit = useMemo(() => (focus ? new Set([focus, ...(neighbours.get(focus) ?? [])]) : null), [focus, neighbours])
-  const palette = useMemo(() => ({ fg: themeColor('fg'), muted: themeColor('muted', 0.25), bg: themeColor('bg', 0.85) }), [])
+  const palette = useMemo(
+    () => ({
+      fg: themeColor('fg'),
+      muted: themeColor('muted', 0.25),
+      bg: themeColor('bg', 0.72),
+      edge: themeColor('edge', 0.14),
+      derived: themeColor('warn', 0.35),
+    }),
+    [],
+  )
 
   useEffect(() => {
     const methods = fg.current
@@ -122,7 +137,6 @@ export default function GraphPage() {
     methods.d3Force('link')?.distance((link: Link) => (link.kind === 'member' ? 30 : 60))
     methods.d3ReheatSimulation()
   }, [data])
-
 
   const flyTo = useCallback((node: Node) => {
     setSelected(node)
@@ -165,15 +179,23 @@ export default function GraphPage() {
       const showLabel = !faded && (node.type === 'project' ? scale > 0.6 : String(node.id) === focus || (lit !== null && scale > 1.5) || scale > 3.5)
       if (showLabel) {
         const size = (node.type === 'project' ? 13 : 11) / scale
-        ctx.font = `${node.type === 'project' ? 600 : 400} ${size}px system-ui, sans-serif`
+        ctx.font = `${node.type === 'project' ? 600 : 400} ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
         const text = node.label.length > 48 ? `${node.label.slice(0, 46)}…` : node.label
         const w = ctx.measureText(text).width
+        const padX = 5 / scale
+        const padY = 2.5 / scale
+        const top = y + r + 3 / scale
+        ctx.beginPath()
+        ctx.roundRect(x - w / 2 - padX, top, w + padX * 2, size + padY * 2, 6 / scale)
         ctx.fillStyle = palette.bg
-        ctx.fillRect(x - w / 2 - 2 / scale, y + r + 2 / scale, w + 4 / scale, size + 2 / scale)
+        ctx.fill()
+        ctx.lineWidth = 1 / scale
+        ctx.strokeStyle = palette.edge
+        ctx.stroke()
         ctx.fillStyle = palette.fg
-        ctx.fillText(text, x, y + r + 3 / scale)
+        ctx.fillText(text, x, top + padY)
       }
       ctx.globalAlpha = 1
     },
@@ -192,7 +214,7 @@ export default function GraphPage() {
       const touches = focus !== null && (endpointId(link.source) === focus || endpointId(link.target) === focus)
       if (touches) return themeColor('accent', 0.9)
       if (lit) return themeColor('muted', 0.05)
-      if (link.kind === 'derived_from') return 'rgba(251,191,36,0.35)'
+      if (link.kind === 'derived_from') return palette.derived
       return link.kind === 'member' ? palette.muted : themeColor('muted', 0.45)
     },
     [focus, lit, palette],
@@ -217,23 +239,8 @@ export default function GraphPage() {
         title="Graph"
         subtitle="Projects (large), episodes (small) and similarity links. Drag to pin, scroll to zoom, click to open."
         cli={cliHints.graphExport(agent, facts)}
-        actions={
-          <>
-            <AgentSelect value={agent} onChange={(name) => setParam('agent', name === 'default' ? null : name)} />
-            <label className="flex items-center gap-1.5 text-sm">
-              <input type="checkbox" checked={facts} onChange={(e) => setParam('facts', e.target.checked ? 'true' : null)} />
-              Show facts
-            </label>
-            <button type="button" className="btn" onClick={() => fg.current?.zoomToFit(600, 40)}>
-              <Maximize2 size={14} /> Fit
-            </button>
-            <button type="button" className="btn" onClick={unpinAll} disabled={pinned === 0}>
-              <PinOff size={14} /> Unpin {pinned > 0 ? pinned : ''}
-            </button>
-          </>
-        }
       />
-      <div className="relative min-h-0 flex-1">
+      <section className="panel relative mb-1 min-h-[26rem] flex-1 overflow-hidden shadow-[inset_0_1px_0_var(--glass-highlight),0_8px_24px_rgba(3,1,14,0.16)] sm:mx-2" aria-label="Memory graph">
         <div ref={box} className="absolute inset-0">
           {width > 0 && (
             <ForceGraph2D<GraphNode, GraphLink>
@@ -270,94 +277,115 @@ export default function GraphPage() {
           )}
         </div>
 
-        <div className="absolute left-4 top-4 w-72 space-y-2">
-          <div className="card flex items-center gap-2 px-2.5 py-1.5 shadow-lg">
-            <Search size={14} className="text-muted" aria-hidden />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
-              placeholder="Find a node…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && matches[0]) flyTo(matches[0])
-                if (e.key === 'Escape') setQuery('')
-              }}
-              aria-label="Find a node"
-              aria-controls="graph-matches"
-            />
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-col gap-2 sm:inset-x-4 sm:top-4 md:flex-row md:items-start md:justify-between">
+          <div className="pointer-events-auto w-full md:w-80">
+            <div className="flex min-h-[2.75rem] items-center gap-2.5 rounded-control border border-edge/[0.12] bg-bg/45 px-3.5 shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-xl transition duration-200 ease-out focus-within:border-accent/60">
+              <Search size={16} strokeWidth={1.75} className="shrink-0 text-muted" aria-hidden />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted/80 focus-visible:outline-none"
+                placeholder="Find a node…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && matches[0]) flyTo(matches[0])
+                  if (e.key === 'Escape') setQuery('')
+                }}
+                aria-label="Find a node"
+                aria-controls="graph-matches"
+              />
+            </div>
+            {matches.length > 0 && (
+              <ul id="graph-matches" className="mt-2 overflow-hidden rounded-control border border-edge/[0.12] bg-bg/80 p-1.5 shadow-xl backdrop-blur-xl">
+                {matches.map((n) => (
+                  <li key={String(n.id)}>
+                    <button
+                      type="button"
+                      onClick={() => flyTo(n)}
+                      className="flex min-h-[2.5rem] w-full items-center gap-3 rounded-[10px] px-2.5 text-left text-sm text-fg transition duration-150 ease-out hover:bg-fg/[0.07] focus:bg-fg/[0.07] focus:outline-none"
+                    >
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color(n) }} aria-hidden />
+                      <span className="truncate">{n.label}</span>
+                      <span className="ml-auto shrink-0 text-xs capitalize text-muted">{n.type}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          {matches.length > 0 && (
-            <ul id="graph-matches" className="card overflow-hidden shadow-lg">
-              {matches.map((n) => (
-                <li key={String(n.id)}>
-                  <button
-                    type="button"
-                    onClick={() => flyTo(n)}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-raised focus:bg-raised"
-                  >
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color(n) }} aria-hidden />
-                    <span className="truncate">{n.label}</span>
-                    <span className="ml-auto text-xs text-muted">{n.type}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="text-xs text-muted">
-            {counts.project} projects · {counts.episode} episodes{facts ? ` · ${counts.fact} facts` : ''} · {graph.data?.links.length ?? 0} links
+
+          <div
+            role="toolbar"
+            aria-label="Graph controls"
+            className="pointer-events-auto flex flex-wrap rounded-control border border-edge/[0.12] bg-bg/45 shadow-[inset_0_1px_0_var(--glass-highlight)] backdrop-blur-xl items-center gap-1.5 self-start p-1.5"
+          >
+            <AgentSelect value={agent} onChange={(name) => setParam('agent', name === 'default' ? null : name)} />
+            <label className="flex min-h-[2.25rem] cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 text-sm text-fg/90 transition duration-200 ease-out hover:bg-fg/[0.06]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-accent"
+                checked={facts}
+                onChange={(e) => setParam('facts', e.target.checked ? 'true' : null)}
+              />
+              Show facts
+            </label>
+            <span className="mx-0.5 hidden h-5 w-px bg-edge/10 sm:block" aria-hidden />
+            <button type="button" className="btn-ghost min-h-[2.25rem]" onClick={() => fg.current?.zoomToFit(600, 40)}>
+              <Maximize2 size={15} strokeWidth={1.75} /> Fit
+            </button>
+            <button type="button" className="btn-ghost min-h-[2.25rem]" onClick={unpinAll} disabled={pinned === 0}>
+              <PinOff size={15} strokeWidth={1.75} /> Unpin {pinned > 0 ? pinned : ''}
+            </button>
           </div>
         </div>
 
+        <div className="pointer-events-none absolute bottom-3 border border-edge/[0.12] bg-bg/45 backdrop-blur-xl left-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-x-4 gap-y-1 rounded-control px-3.5 py-2 text-xs tabular-nums text-muted sm:bottom-4 sm:left-4">
+          <span>
+            <span className="font-medium text-fg">{counts.project}</span> projects
+          </span>
+          <span>
+            <span className="font-medium text-fg">{counts.episode}</span> episodes
+          </span>
+          {facts && (
+            <span>
+              <span className="font-medium text-fg">{counts.fact}</span> facts
+            </span>
+          )}
+          <span>
+            <span className="font-medium text-fg">{graph.data?.links.length ?? 0}</span> links
+          </span>
+        </div>
+
         {graph.isPending && (
-          <div className="absolute inset-0 grid place-items-center text-sm text-muted">
-            <span className="flex items-center gap-2">
-              <Loader2 size={16} className="animate-spin" /> Loading graph…
+          <div className="absolute inset-0 grid place-items-center">
+            <span className="glass-strong flex items-center gap-2.5 rounded-control px-4 py-2.5 text-sm text-muted">
+              <Loader2 size={16} strokeWidth={1.75} className="animate-spin text-accent" /> Loading graph…
             </span>
           </div>
         )}
         {graph.isError && (
-          <div className="absolute inset-x-4 bottom-4">
+          <div className="absolute inset-x-4 bottom-16 z-10">
             <ErrorNote error={graph.error} />
           </div>
         )}
         {graph.data && graph.data.nodes.length === 0 && (
-          <div className="absolute inset-0 grid place-items-center text-sm text-muted">Nothing here yet. Import an export first.</div>
+          <div className="absolute inset-0 grid place-items-center px-6 text-center">
+            <div>
+              <p className="text-[15px] font-medium text-fg">Nothing here yet</p>
+              <p className="mt-1 text-sm text-muted">Import an export first.</p>
+            </div>
+          </div>
         )}
 
         {selected && (
-          <aside
-            className="absolute bottom-0 right-0 top-0 flex w-[min(30rem,100%)] flex-col border-l border-line bg-panel shadow-2xl"
-            aria-label="Node details"
-          >
-            <div className="flex items-start gap-2 border-b border-line px-4 py-3">
-              <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full" style={{ background: color(selected) }} aria-hidden />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs uppercase tracking-wide text-muted">{selected.type}</div>
-                <h2 className="font-semibold">{selected.label}</h2>
-              </div>
-              {selected.path && (
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => navigate(`/vault?path=${encodeURIComponent(selected.path!)}`)}
-                >
-                  <ExternalLink size={14} /> Vault
-                </button>
-              )}
-              <button type="button" className="rounded p-1 text-muted hover:text-fg" onClick={() => setSelected(null)} aria-label="Close details">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto p-4">
-              {selected.path ? (
-                <VaultFileView path={selected.path} agent={agent} />
-              ) : (
-                <p className="text-sm text-muted">This node has no vault file.</p>
-              )}
-            </div>
-          </aside>
+          <NodeDrawer
+            node={selected}
+            swatch={color(selected)}
+            agent={agent}
+            onOpen={() => navigate(`/vault?path=${encodeURIComponent(selected.path!)}`)}
+            onClose={() => setSelected(null)}
+          />
         )}
-      </div>
+      </section>
     </div>
   )
 }

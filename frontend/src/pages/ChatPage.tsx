@@ -1,51 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  ArrowRightLeft,
-  Bot,
-  CheckCircle2,
-  Loader2,
-  MessageSquarePlus,
-  RotateCcw,
-  Send,
-  Square,
-  Wrench,
-} from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ApiError, api, chatStream } from '../api/client'
+import { CheckCircle2, History, Loader2, MessageSquarePlus, PanelRight } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { api, chatStream } from '../api/client'
 import { AgentSelect } from '../components/AgentSelect'
 import { CliHint } from '../components/CliHint'
 import { ErrorNote } from '../components/ErrorNote'
-import { Markdown } from '../components/Markdown'
-import { TokenMeter } from '../components/TokenMeter'
+import { ModeToggle, ModelSelect } from '../components/chat/ChatControls'
+import { Composer } from '../components/chat/Composer'
+import { ContextPanel } from '../components/chat/ContextPanel'
+import { AssistantAvatar, EmptyChat, MessageView } from '../components/chat/MessageView'
+import { SessionList } from '../components/chat/SessionList'
+import type { Message, Mode, StoredSession } from '../components/chat/types'
 import { cliHints } from '../lib/cliHints'
-import type { ContextEvent, ModelEntry, WriteResult } from '../types/generated'
-
-type Mode = 'injection' | 'tool'
-
-type Message =
-  | { id: string; kind: 'user'; text: string }
-  | {
-      id: string
-      kind: 'assistant'
-      text: string
-      model: string
-      streaming: boolean
-      usage?: { prompt: number | null; completion: number | null }
-      error?: { message: string; retryable: boolean; prompt: string }
-    }
-  | { id: string; kind: 'switch'; model: string }
-  | { id: string; kind: 'tool'; name: string; args: string; summary: string }
-
-/** A chat session as remembered by this browser (the API has no session list). */
-interface StoredSession {
-  id: string
-  title: string
-  agent: string
-  updated: string
-  ended: boolean
-  messages: Message[]
-  context: ContextEvent | null
-}
+import type { WriteResult } from '../types/generated'
 
 const STORE_KEY = 'pam-chat-sessions'
 
@@ -79,7 +46,9 @@ const uid = () => `m${Date.now().toString(36)}${(counter++).toString(36)}`
  *     session, so working memory carries the thread. Retryable errors show a
  *     Retry button. "End session" calls `POST /sessions/{id}/end`. Sessions and
  *     their transcripts are remembered in `localStorage`, since the API only
- *     returns the last 8 turns of a session.
+ *     returns the last 8 turns of a session. From `xl` up the sessions,
+ *     conversation and context sit side by side; below it the sessions and
+ *     context columns open as drawers from the conversation header.
  */
 export default function ChatPage() {
   const [sessions, setSessions] = useState<StoredSession[]>(loadSessions)
@@ -91,6 +60,8 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false)
   const [requestError, setRequestError] = useState<unknown>(null)
   const [ended, setEnded] = useState<WriteResult | null>(null)
+  const [sessionsOpen, setSessionsOpen] = useState(false)
+  const [contextOpen, setContextOpen] = useState(false)
   const abort = useRef<AbortController | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
   const draftRef = useRef(draft)
@@ -248,44 +219,81 @@ export default function ChatPage() {
 
   const labelOf = (id: string) => modelList.find((m) => m.id === id)?.label ?? id
 
-  return (
-    <div className="flex min-h-0 flex-1">
-      <SessionList sessions={sessions} activeId={activeId} onOpen={openSession} onNew={newChat} disabled={streaming} />
+  const closeSessions = useCallback(() => setSessionsOpen(false), [])
+  const closeContext = useCallback(() => setContextOpen(false), [])
 
-      <section className="flex min-w-0 flex-1 flex-col" aria-label="Conversation">
-        <header className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-          <label className="flex items-center gap-1.5 text-sm text-muted">
-            Agent
-            <AgentSelect
-              value={agentName}
-              onChange={(name) => update(activeId, (s) => ({ ...s, agent: name }))}
-            />
-          </label>
-          <ModelSelect models={modelList} value={model} onChange={pickModel} />
-          <ModeToggle mode={mode} onChange={setMode} toolsSupported={Boolean(current?.supports_tools)} />
-          <div className="ml-auto flex items-center gap-2">
-            {activeId && (
-              <span className="font-mono text-xs text-muted" title="Session id">
-                {activeId}
-              </span>
-            )}
+  return (
+    <div className="flex min-h-0 flex-1 gap-4">
+      <SessionList
+        sessions={sessions}
+        activeId={activeId}
+        onOpen={(id) => {
+          openSession(id)
+          setSessionsOpen(false)
+        }}
+        onNew={() => {
+          newChat()
+          setSessionsOpen(false)
+        }}
+        disabled={streaming}
+        open={sessionsOpen}
+        onClose={closeSessions}
+      />
+
+      <section className="panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" aria-label="Conversation">
+        <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-edge/[0.08] px-4 py-3 sm:px-5">
+          <button
+            type="button"
+            className="icon-btn xl:hidden"
+            onClick={() => setSessionsOpen(true)}
+            aria-label="Show sessions"
+            aria-controls="chat-sessions"
+            aria-expanded={sessionsOpen}
+          >
+            <History size={18} strokeWidth={1.75} />
+          </button>
+          <div className="flex min-w-0 items-center gap-3">
+            <AssistantAvatar />
+            <div className="min-w-0 leading-tight">
+              <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-fg">
+                {activeId ? session.title : 'New chat'}
+              </h1>
+              <p className="truncate font-mono text-[11px] text-muted" title="Session id">
+                {activeId ?? 'not started'}
+              </p>
+            </div>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <AgentSelect value={agentName} onChange={(name) => update(activeId, (s) => ({ ...s, agent: name }))} />
+            <ModelSelect models={modelList} value={model} onChange={pickModel} />
+            <ModeToggle mode={mode} onChange={setMode} toolsSupported={Boolean(current?.supports_tools)} />
             <button
               type="button"
               className="btn"
               disabled={!activeId || session.ended || streaming || end.isPending}
               onClick={() => activeId && end.mutate(activeId)}
             >
-              {end.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+              {end.isPending ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} strokeWidth={1.75} />}
               End session
+            </button>
+            <button
+              type="button"
+              className="icon-btn xl:hidden"
+              onClick={() => setContextOpen(true)}
+              aria-label="Show context"
+              aria-controls="chat-context"
+              aria-expanded={contextOpen}
+            >
+              <PanelRight size={18} strokeWidth={1.75} />
             </button>
           </div>
         </header>
 
-        <div ref={scroller} className="min-h-0 flex-1 overflow-auto px-6 py-5" aria-live="polite">
+        <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8" aria-live="polite" aria-busy={streaming}>
           {session.messages.length === 0 ? (
             <EmptyChat onPick={(q) => send(q)} />
           ) : (
-            <ol className="mx-auto max-w-3xl space-y-5">
+            <ol className="mx-auto max-w-3xl space-y-6">
               {session.messages.map((m) => (
                 <li key={m.id}>
                   <MessageView message={m} labelOf={labelOf} onRetry={(prompt) => send(prompt, m.id)} disabled={streaming} />
@@ -295,53 +303,40 @@ export default function ChatPage() {
           )}
         </div>
 
-        <div className="space-y-2 border-t border-line px-6 py-3">
-          <ErrorNote error={requestError ?? end.error} />
-          {(ended || session.ended) && (
-            <div className="flex items-center gap-2 rounded-md border border-ok/40 bg-ok/10 px-3 py-2 text-sm">
-              <CheckCircle2 size={16} className="text-ok" aria-hidden />
-              <span className="flex-1">
-                Session ended{ended?.path ? <> and saved as <code className="font-mono text-xs">{ended.path}</code></> : ''}.
-              </span>
-              <button type="button" className="btn" onClick={newChat}>
-                <MessageSquarePlus size={14} /> New chat
-              </button>
-            </div>
-          )}
-          <form
-            className="mx-auto flex max-w-3xl items-end gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              send(input)
-            }}
-          >
-            <textarea
-              className="input min-h-[2.75rem] flex-1 resize-none"
-              rows={Math.min(6, Math.max(1, input.split('\n').length))}
-              placeholder={session.ended ? 'This session has ended.' : 'Ask anything. Enter to send, Shift+Enter for a new line.'}
-              value={input}
-              disabled={session.ended}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault()
-                  send(input)
-                }
-              }}
-              aria-label="Message"
-            />
-            {streaming ? (
-              <button type="button" className="btn" onClick={() => abort.current?.abort()}>
-                <Square size={14} /> Stop
-              </button>
-            ) : (
-              <button type="submit" className="btn btn-primary" disabled={!input.trim() || !model || session.ended}>
-                <Send size={14} /> Send
-              </button>
+        <footer className="shrink-0 space-y-3 px-4 pb-4 pt-2 sm:px-8 sm:pb-5">
+          <div className="mx-auto max-w-3xl space-y-3">
+            <ErrorNote error={requestError ?? end.error} />
+            {(ended || session.ended) && (
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ok/30 bg-ok/10 px-4 py-3 text-sm">
+                <CheckCircle2 size={16} className="text-ok" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  Session ended
+                  {ended?.path ? (
+                    <>
+                      {' '}and saved as <code className="break-all font-mono text-xs">{ended.path}</code>
+                    </>
+                  ) : null}
+                  .
+                </span>
+                <button type="button" className="btn" onClick={newChat}>
+                  <MessageSquarePlus size={15} strokeWidth={1.75} /> New chat
+                </button>
+              </div>
             )}
-          </form>
-          <CliHint command={cliHints.chat(lastPrompt, model || undefined, activeId ?? undefined)} />
-        </div>
+          </div>
+          <Composer
+            value={input}
+            onChange={setInput}
+            onSend={() => send(input)}
+            onStop={() => abort.current?.abort()}
+            streaming={streaming}
+            canSend={Boolean(model)}
+            ended={session.ended}
+          />
+          <div className="mx-auto max-w-3xl">
+            <CliHint command={cliHints.chat(lastPrompt, model || undefined, activeId ?? undefined)} />
+          </div>
+        </footer>
       </section>
 
       <ContextPanel
@@ -350,6 +345,8 @@ export default function ChatPage() {
         goal={working.data?.goal}
         switches={working.data?.models_used?.map((s) => labelOf(s.to_model)) ?? []}
         turns={working.data?.recent_turns?.length}
+        open={contextOpen}
+        onClose={closeContext}
       />
     </div>
   )
@@ -357,248 +354,4 @@ export default function ChatPage() {
 
 function blank(agent: string): StoredSession {
   return { id: '', title: 'New chat', agent, updated: new Date().toISOString(), ended: false, messages: [], context: null }
-}
-
-function SessionList({
-  sessions,
-  activeId,
-  onOpen,
-  onNew,
-  disabled,
-}: {
-  sessions: StoredSession[]
-  activeId: string | null
-  onOpen: (id: string) => void
-  onNew: () => void
-  disabled: boolean
-}) {
-  return (
-    <nav aria-label="Sessions" className="flex w-56 shrink-0 flex-col border-r border-line bg-panel/50">
-      <div className="p-3">
-        <button type="button" className="btn w-full justify-center" onClick={onNew}>
-          <MessageSquarePlus size={14} /> New chat
-        </button>
-      </div>
-      <ul className="min-h-0 flex-1 space-y-0.5 overflow-auto px-2 pb-3">
-        {sessions.length === 0 && <li className="px-2 text-xs text-muted">No sessions yet.</li>}
-        {sessions.map((s) => (
-          <li key={s.id}>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onOpen(s.id)}
-              aria-current={s.id === activeId ? 'true' : undefined}
-              className={`w-full rounded-md px-2.5 py-2 text-left text-sm disabled:opacity-60 ${
-                s.id === activeId ? 'bg-accent/15' : 'hover:bg-raised'
-              }`}
-            >
-              <div className="truncate">{s.title}</div>
-              <div className="flex items-center gap-1.5 text-[11px] text-muted">
-                <span className="font-mono">{s.id}</span>
-                {s.ended && <span className="text-ok">ended</span>}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  )
-}
-
-function ModelSelect({ models, value, onChange }: { models: ModelEntry[]; value: string; onChange: (id: string) => void }) {
-  return (
-    <label className="flex items-center gap-1.5 text-sm text-muted">
-      Model
-      <select className="input max-w-[18rem]" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Model">
-        {models.length === 0 && <option value="">Loading…</option>}
-        {models.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.label}
-            {m.supports_tools ? ' · tools' : ''}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
-function ModeToggle({ mode, onChange, toolsSupported }: { mode: Mode; onChange: (m: Mode) => void; toolsSupported: boolean }) {
-  return (
-    <div role="radiogroup" aria-label="Context mode" className="flex overflow-hidden rounded-md border border-line text-sm">
-      {(['injection', 'tool'] as const).map((m) => (
-        <button
-          key={m}
-          type="button"
-          role="radio"
-          aria-checked={mode === m}
-          disabled={m === 'tool' && !toolsSupported}
-          title={m === 'tool' && !toolsSupported ? 'This model does not support tool calls' : undefined}
-          onClick={() => onChange(m)}
-          className={`px-2.5 py-1.5 disabled:cursor-not-allowed disabled:opacity-40 ${mode === m ? 'bg-accent text-accent-fg' : 'bg-panel text-muted hover:text-fg'}`}
-        >
-          {m}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-const STARTERS = [
-  "Let's keep going on my project. Where did I leave off?",
-  'What do you know about me?',
-  'Summarize the decisions I made this week.',
-]
-
-function EmptyChat({ onPick }: { onPick: (q: string) => void }) {
-  return (
-    <div className="mx-auto flex max-w-xl flex-col items-center gap-4 pt-16 text-center">
-      <Bot size={32} className="text-muted" aria-hidden />
-      <p className="text-sm text-muted">
-        Pick any model. PAM injects only the memory this turn needs and shows the token savings on the right.
-      </p>
-      <div className="flex flex-col gap-2">
-        {STARTERS.map((q) => (
-          <button key={q} type="button" className="btn justify-center" onClick={() => onPick(q)}>
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function MessageView({
-  message,
-  labelOf,
-  onRetry,
-  disabled,
-}: {
-  message: Message
-  labelOf: (id: string) => string
-  onRetry: (prompt: string) => void
-  disabled: boolean
-}) {
-  if (message.kind === 'user') {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-accent/15 px-3.5 py-2 text-sm">{message.text}</div>
-      </div>
-    )
-  }
-  if (message.kind === 'switch') {
-    return (
-      <div className="flex items-center gap-3 text-xs text-muted" role="separator">
-        <div className="h-px flex-1 bg-line" />
-        <ArrowRightLeft size={12} aria-hidden /> switched to {labelOf(message.model)}
-        <div className="h-px flex-1 bg-line" />
-      </div>
-    )
-  }
-  if (message.kind === 'tool') {
-    return (
-      <div className="flex items-start gap-2 rounded-md border border-line bg-raised/50 px-3 py-2 text-xs">
-        <Wrench size={14} className="mt-0.5 shrink-0 text-muted" aria-hidden />
-        <div className="min-w-0">
-          <span className="font-mono">{message.name}</span>
-          <span className="ml-1 break-all font-mono text-muted">{message.args}</span>
-          <div className="text-muted">→ {message.summary}</div>
-        </div>
-      </div>
-    )
-  }
-  return (
-    <div className="space-y-1.5" data-streaming={message.streaming ? 'true' : undefined}>
-      <div className="flex items-center gap-2 text-xs text-muted">
-        <Bot size={14} aria-hidden />
-        {labelOf(message.model)}
-        {message.streaming && <Loader2 size={12} className="animate-spin" aria-label="Streaming" />}
-        {message.usage && (message.usage.prompt !== null || message.usage.completion !== null) && (
-          <span className="tabular-nums">
-            · {message.usage.prompt ?? '?'} in / {message.usage.completion ?? '?'} out
-          </span>
-        )}
-      </div>
-      {message.text ? <Markdown>{message.text}</Markdown> : message.streaming ? <p className="text-sm text-muted">Thinking…</p> : null}
-      {message.error && (
-        <ErrorNote
-          error={new ApiError(0, message.error.retryable ? 'RETRYABLE' : 'ERROR', message.error.message)}
-          action={
-            message.error.retryable && (
-              <button type="button" className="btn" disabled={disabled} onClick={() => onRetry(message.error!.prompt)}>
-                <RotateCcw size={14} /> Retry
-              </button>
-            )
-          }
-        />
-      )}
-    </div>
-  )
-}
-
-function ContextPanel({
-  context,
-  budget,
-  goal,
-  switches,
-  turns,
-}: {
-  context: ContextEvent | null
-  budget?: number
-  goal?: string | null
-  switches: string[]
-  turns?: number
-}) {
-  const [showRendered, setShowRendered] = useState(true)
-  const docs = useMemo(() => context?.doc_ids.length ?? 0, [context])
-  return (
-    <aside aria-label="Injected context" className="flex w-[22rem] shrink-0 flex-col border-l border-line bg-panel/50">
-      <div className="space-y-4 border-b border-line p-4">
-        <div className="label">Context this turn</div>
-        {context ? (
-          <>
-            <TokenMeter used={context.tokens_used} baseline={context.baseline_tokens} saved={context.tokens_saved} budget={budget} />
-            <div className="text-xs text-muted">{docs} documents cited</div>
-          </>
-        ) : (
-          <p className="text-sm text-muted">Send a message to see what PAM injects.</p>
-        )}
-      </div>
-      {(goal || switches.length > 0) && (
-        <div className="space-y-2 border-b border-line p-4 text-xs">
-          <div className="label">Working memory</div>
-          {goal && (
-            <div>
-              <span className="text-muted">Goal: </span>
-              {goal}
-            </div>
-          )}
-          {switches.length > 0 && (
-            <div>
-              <span className="text-muted">Models: </span>
-              {switches.join(' → ')}
-            </div>
-          )}
-          {turns !== undefined && <div className="text-muted">{turns} recent turns carried to the next model</div>}
-        </div>
-      )}
-      {context && (
-        <div className="flex min-h-0 flex-1 flex-col">
-          <button
-            type="button"
-            className="flex items-center justify-between px-4 py-2 text-left text-xs text-muted hover:text-fg"
-            onClick={() => setShowRendered((v) => !v)}
-            aria-expanded={showRendered}
-          >
-            <span className="label">Injected bundle</span>
-            <span>{showRendered ? 'hide' : 'show'}</span>
-          </button>
-          {showRendered && (
-            <div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
-              <Markdown className="prose-compact text-xs">{context.rendered}</Markdown>
-            </div>
-          )}
-        </div>
-      )}
-    </aside>
-  )
 }
