@@ -1658,7 +1658,10 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** the app factory (mounting `/mcp`), each route file, the import job runner, SSE chat, error mapping, `pam api serve`.
 - **Done when:** the M13 acceptance criteria pass, and `/docs` lists every endpoint from §7.14.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Files: `api/app.py` (`create_app`, `app_from_env`), `errors.py`, `jobs.py`, `deps.py`, `routes/{health,imports,vault,search,graph,agents,chat,sessions,sync}.py`, `cli/api_cmd.py` (`pam api serve`). Design choices are in CHG-0022.
+  - Tests: B-03 setup in `test_m13_api.py` (add-only); new `test_m13_api_routes.py` for validation, 404/409/500 mapping, persona sections, tool-mode chat and the SSE terminal-event promise.
+  - Risks: `run_turn` and anyio cancel scopes (single pump task); `sync_once` hides a busy lock (use `sync`); chat over its own `/mcp` only in `pam api serve`.
+- **Result (➕):** 2026-10-18 · PASS · WSL2 checkout. `pytest -q tests/test_m13_api.py` 29 passed, no skips (B-03 setup only; one path fixed, `episodes/default` to `memory/default/episodes`); `tests/test_m13_api_routes.py` 26 passed. Full `pytest -q`: 765 passed, 1 skipped, locally and in the rebuilt backend container. `/openapi.json` lists all 16 §7.14 paths and `/docs` answers 200. `pam api serve --port 8123` on a scratch vault: `curl /api/health` answers; a real ChatGPT zip upload went queued, derive, index, done (5 episodes) through `/api/imports`; `curl -N -X POST /api/chat` (model configured, no key) streamed `context` (injection over the app's own `/mcp/`, 1921 tokens, 4243 saved) then one `error` (AuthenticationError); tool mode likewise; unknown model gave 400 before any stream. In the container, the CHG-0017 healthcheck command succeeds against `pam api serve`. Not verified: chat against a real provider (Pranav), the frontend wiring (T15), Windows/macOS.
 
 #### T15 · Frontend (≈ 3.5 h total, built page by page in this order)
 - **Module:** M14
@@ -2131,6 +2134,25 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - 2026-10-18 · PROPOSED · agent (T10 review)
   - 2026-10-18 · APPROVED · Yogesh
   - 2026-10-18 · IMPLEMENTED · agent (T10 review): contract, §7.13 and schemas updated; full suite passes at 0.70
+
+### CHG-0022 — M13 implementation choices: error codes, chat pump, in-process MCP, persona sections, sync status
+- **Type:** design
+- **Module(s):** M13 (`pam/api/**`, `cli/api_cmd.py`)
+- **Proposed by:** agent (task T14), decisions confirmed by Yogesh
+- **Date:** 2026-10-18
+- **Motivation:** §7.14 fixes the endpoints and the `{"error": {"code", "message"}}` shape but not the code names, how a pre-stream failure of `run_turn` becomes an HTTP error, how chat reaches MCP, what `GET /agents/{name}` returns for the Custom editors (CHG-0016 (M14), item 6), or what `GET /sync/status` reports.
+- **Proposal:**
+  1. Codes (match the T15 mocks): `VALIDATION_ERROR` 400, `PERMISSION_DENIED` 403, `NOT_FOUND` 404, `CONFLICT` 409 (`VaultBusy`, duplicates), `SESSION_ENDED` 409, `INTERNAL_ERROR` 500 (generic message; details are logged). `PamError`s are classified by class (`PermissionDenied`, `VaultBusy`, `UnknownModel`), then by message ("not found", "already exists", "already ended"), then exit code 2 (400); an unclassified `PamError` is 500. Request-body, query and model validation errors, unknown routes and wrong methods use the same shape.
+  2. `?agent=` on `/vault/*` and `/graph` must name an existing agent (404 otherwise, 400 for an invalid slug). `/vault/file` serves only visible `*.md` files: no absolute or drive paths, backslashes, `..` or hidden segments (400), the read scope is checked before the disk (403), and a symlink out of the vault is refused. `/vault/tree` lists `*.md` outside hidden folders; outside `memory/` and `skills/`, a restricted agent sees only `agent/<name>/`.
+  3. `POST /chat`: `run_turn` runs to the end in one background task that feeds a queue (it opens MCP sessions with task-bound cancel scopes). The route awaits the first queue item; an exception there is raised as a normal HTTP error (CHG-0018: 400 unknown model or agent mismatch, 404 unknown session, 409 ended session or busy vault). Otherwise the response streams the queue as `event: <type>` / `data: <json>` with `\n` separators, and always ends with one `done` or `error` (a missing terminal event is replaced by a retryable `error`). A client disconnect cancels the task.
+  4. MCP: `/mcp` is `http_app(vault)` mounted on the app and started by the app lifespan. Chat uses it in-process unless `mcp_url` is given; `pam api serve` sets `PAM_MCP_URL=http://127.0.0.1:<port>/mcp/` (trailing slash, so the mount does not redirect) so that the served app calls its own `/mcp`. `create_app(vault_path, *, mcp_url=None)`; `app_from_env()` is the uvicorn factory that `--reload` needs.
+  5. `GET /agents/{name}`: `persona.identity` and `persona.style` are the files' full text with the `## Derived` and `## Custom` headings (the editor reads the Custom part); `persona.rules` is the parsed list. `POST /agents` makes the agent with `create_agent` (one commit) and, if any Custom text is given, a second commit `pam: edit persona <name>`; `PUT` rewrites the manifest and the three Custom sections in one commit (none when nothing changed) and never touches the Derived sections. The manifest name must match the URL.
+  6. `POST /sync` calls `sync.watcher.sync` (not `sync_once`, which hides a busy lock) and answers 409 when `busy`. `GET /sync/status` lists the paths git sees as changed (transcripts excluded) without committing: `reindexed` 0, `commit_sha` null.
+  7. Imports: `POST /imports` answers 202 with the `queued` status and runs extract, normalize, derive, index, cluster as a background task. Stage progress is 0.1, 0.3, 0.5, 0.7, 0.9 and 1.0 on `done`; a failure leaves the job in `error` at its last progress with the message. The upload is stored in a temporary folder under its base name only and deleted when the job ends. Jobs live in memory.
+  8. Tests: `test_m13_api.py` got setup only (B-03): the `vault` fixture also runs derive and index and commits a `test/model` entry; fake LLM; agents `research` and `restricted`; the fixed-id session; a held lock for the 409 case. One path was corrected, not an assertion: `episodes/default` to the §6 `memory/default/episodes`. New tests are in `test_m13_api_routes.py`.
+- **Impact:** M13 only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T14)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

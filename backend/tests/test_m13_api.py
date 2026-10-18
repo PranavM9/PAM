@@ -36,12 +36,52 @@ CHATGPT_EXPORT = FIXTURES / "chatgpt" / "export.zip"
 
 @pytest.fixture
 def vault(tmp_path: Path) -> Vault:
-    """Create a temporary vault populated with the Claude fixture."""
+    """Create a temporary vault populated with the Claude fixture, derived and indexed.
+
+    Setup added for B-03: the `test/model` entry (committed) and the derive and index steps that the
+    search, context, graph and chat tests rely on.
+    """
+    from pam.contracts.config import ModelEntry  # noqa: PLC0415
+    from pam.core import config  # noqa: PLC0415
+    from pam.sync import git  # noqa: PLC0415
+
     root = tmp_path / "vault"
     init_vault(root)
-    result = runner.invoke(cli_app, ["--vault", str(root), "import", "run", str(CLAUDE_EXPORT)])
-    assert result.exit_code == 0, result.output
-    return Vault(root)
+    for args in (["import", "run", str(CLAUDE_EXPORT)], ["derive"], ["index"]):
+        result = runner.invoke(cli_app, ["--vault", str(root), *args])
+        assert result.exit_code == 0, result.output
+    created = Vault(root)
+    cfg = config.load(created)
+    cfg = cfg.model_copy(update={"models": [ModelEntry(id="test/model", label="Test model", supports_tools=True)]})
+    created.config_path.write_text(config.dump_toml(cfg), encoding="utf-8")
+    git.commit(root, [created.config_path], "test: add test/model")
+    return created
+
+
+def _make_agent(vault: Vault, name: str, **read) -> None:
+    """Create an agent with a restricted read scope (setup for the scope and permission tests)."""
+    from pam.agents.manifest import create_agent  # noqa: PLC0415
+    from pam.contracts.agent import AgentManifest, ReadScope  # noqa: PLC0415
+
+    manifest = AgentManifest(
+        name=name, display_name=name.title(), origin="custom", created_at=datetime.now(UTC),
+        read=ReadScope(all=False, **read), write="own", tools=["get_context"],
+    )
+    create_agent(manifest, vault)
+
+
+def _install_fake_llm(monkeypatch, *steps) -> None:
+    """Replace the provider call: text steps stream as tokens, an exception step is raised."""
+    from pam.chat import llm, orchestrator  # noqa: PLC0415
+
+    async def fake(model, messages, tools=None):
+        for step in steps:
+            if isinstance(step, Exception):
+                raise step
+            yield llm.LLMDelta(text=step)
+        yield llm.LLMDelta(finish_reason="stop")
+
+    monkeypatch.setattr(orchestrator, "stream_chat", fake)
 
 
 @pytest.fixture
@@ -113,8 +153,9 @@ def test_vault_tree_returns_posix_paths(client):
     assert all(isinstance(path, str) and "\\" not in path for path in payload["paths"])
 
 
-def test_vault_tree_respects_agent_scope(client):
+def test_vault_tree_respects_agent_scope(client, vault):
     pytest.importorskip("pam.agents.permissions")
+    _make_agent(vault, "research")
     response = client.get("/api/vault/tree", params={"agent": "research"})
     assert response.status_code == 200
     paths = response.json()["paths"]
@@ -122,7 +163,7 @@ def test_vault_tree_respects_agent_scope(client):
 
 
 def test_vault_file_returns_frontmatter_and_body(client, vault):
-    paths = list((vault.root / "episodes" / "default").glob("*.md"))
+    paths = list((vault.root / "memory" / "default" / "episodes").glob("*.md"))  # §6 layout; was episodes/default
     assert paths
     relative = paths[0].relative_to(vault.root).as_posix()
     response = client.get("/api/vault/file", params={"path": relative})
@@ -246,6 +287,7 @@ def test_chat_sse_event_order_and_token_content(client, monkeypatch):
     pytest.importorskip("pam.chat.orchestrator")
     from pam.contracts.api import ChatRequest  # noqa: PLC0415
 
+    _install_fake_llm(monkeypatch, "fake ", "response")
     assert ChatRequest.model_validate({"model": "test/model", "message": "hello"})
     response = client.post("/api/chat", json={"model": "test/model", "message": "hello"})
     assert response.status_code == 200
@@ -264,6 +306,9 @@ def test_chat_unknown_model_is_rejected_before_stream(client):
 
 def test_chat_provider_rate_limit_ends_with_retryable_error(client, monkeypatch):
     pytest.importorskip("pam.chat.orchestrator")
+    from pam.chat.llm import LLMError  # noqa: PLC0415
+
+    _install_fake_llm(monkeypatch, LLMError("RateLimitError: slow down", retryable=True))
     response = client.post("/api/chat", json={"model": "test/model", "message": "hello"})
     assert response.status_code == 200
     events = _events(response.text)
@@ -272,12 +317,16 @@ def test_chat_provider_rate_limit_ends_with_retryable_error(client, monkeypatch)
     assert events[-1][1]["retryable"] is True
 
 
-def test_session_get_and_end_return_contracts(client):
+def test_session_get_and_end_return_contracts(client, vault, monkeypatch):
     pytest.importorskip("pam.working.session")
     from pam.contracts.working import WorkingMemory  # noqa: PLC0415
     from pam.contracts.writes import WriteResult  # noqa: PLC0415
+    from pam.working import session  # noqa: PLC0415
 
     session_id = "s_0123456789ab"
+    monkeypatch.setattr(session, "_new_id", lambda: session_id)
+    session.start(vault, "default", "test/model")
+    session.record_turn(vault, session_id, "user", "hello", "test/model")
     current = client.get(f"/api/sessions/{session_id}")
     assert current.status_code == 200
     WorkingMemory.model_validate(current.json())
@@ -304,12 +353,17 @@ def test_sync_post_and_status_return_contracts(client):
     ("pam.core.errors", 409),
     ("pam.core.errors", 404),
 ])
-def test_permission_busy_and_missing_errors_have_standard_shape(client, module, status):
+def test_permission_busy_and_missing_errors_have_standard_shape(client, vault, module, status):
     pytest.importorskip(module)
     if status == 403:
+        _make_agent(vault, "restricted", include_shared_facts=False)
         response = client.get("/api/vault/file", params={"path": "memory/shared/facts/denied.md", "agent": "restricted"})
     elif status == 409:
-        response = client.post("/api/sync")
+        from pam.core.lock import vault_write_lock  # noqa: PLC0415
+
+        (vault.root / "outside-edit.md").write_text("edited outside PAM\n", encoding="utf-8")
+        with vault_write_lock(vault, timeout=0):
+            response = client.post("/api/sync")
     else:
         response = client.get("/api/vault/file", params={"path": "episodes/default/missing.md"})
     _error(response, status)
