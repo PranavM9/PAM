@@ -1707,6 +1707,12 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Result (➕):**
   - 2026-10-18 · T16a · PENDING Docker verification · `docker compose config -q` passes; no Docker daemon on the authoring machine, so build, offline model load, `pytest -q` and image size are verified by Pranav on WSL2. Healthcheck pending T14; fallback not removed.
 
+#### Settings: manage models and API keys in the UI (unnumbered, CHG-0023)
+- **Module:** M12 (key lookup), M13 (routes), M14 (page)
+- **Allowed paths:** `backend/pam/api/**`, `backend/pam/chat/**` (key lookup only), `backend/tests/**`, `frontend/src/**`
+- **Agent plan (➕):** `chat/keystore.py` (store in `vault/.pam/secrets.json`, 0600, gitignored; settings wins over env; `redact`), `api/routes/settings.py` (`PUT /models`, `POST /models/check`, `GET|PUT /settings/keys`), `llm._provider_kwargs` reads the store per call, `SettingsPage.tsx` + client + mocks, Chat links to Settings when `GET /models` is `[]`. Tests: `backend/tests/test_m13_settings.py`.
+- **Result (➕):** 2026-10-18 · PASS (not yet reviewed) · WSL2 checkout. `tests/test_m13_settings.py` 25 passed; full `pytest -q` 790 passed, 1 skipped locally and in Docker. Frontend (Node 20 container): `gen:types` unchanged, `build` clean, `lint` 0 errors (2 warnings in `GraphPage.tsx`, not mine). Real backend + nginx in Docker on a throwaway vault: models PUT/GET (one `pam: update models` commit), duplicate id 400, key set shows `last4` only, check and chat reach OpenRouter with the stored key (401 for a fake key), clear works; 0 hits for the key in git history, tracked files, backend and frontend logs. Not tested: the UI in a real browser, and a real chat reply (no real provider key).
+
 ### 9.4 Cut list (if behind schedule, cut from the top) 🔒
 1. Gemini importer (show that Gemini consumes memory via MCP instead).
 2. Tool mode in chat (injection mode alone proves the claim).
@@ -2153,6 +2159,24 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M13 only. No contract changes.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T14)
+
+### CHG-0023 — Settings: manage models and provider keys from the UI (new routes)
+- **Type:** design (new REST routes; §7.14 is locked, so this is PROPOSED)
+- **Module(s):** M12 (`chat/llm.py` key lookup only), M13 (`pam/api/routes/settings.py`, `routes/chat.py`), M14 (Settings page)
+- **Proposed by:** agent (Settings task), decisions confirmed by Yogesh
+- **Date:** 2026-10-18
+- **Motivation:** The model list lives in `pam.toml` and keys in the host `.env`; neither can be edited from the UI. A fresh vault has no models, so Chat shows "Loading models..." and cannot run.
+- **Proposal:**
+  1. Routes under `/api`, errors in the `{"error": {"code", "message"}}` envelope: `PUT /models` (body `list[ModelEntry]`; ids unique and non-empty, labels non-empty, else 400 `VALIDATION_ERROR`; no provider call on save), `POST /models/check` (body `{id?}`; returns `[{id, ok, latency_ms, error?}]`, same ping as `pam models check`), `GET /settings/keys` (`[{provider, is_set, last4, source}]`, providers `anthropic`, `openrouter`, and the Ollama base URL), `PUT /settings/keys` (body `{provider, value|null}`; null clears). `GET /models` is unchanged.
+  2. `PUT /models` rewrites `pam.toml` with `config.dump_toml` under the vault write lock and ends in exactly one commit (none if nothing changed).
+  3. Keys are stored in `vault/.pam/secrets.json` (mode 0600 on POSIX, atomic write). `.pam/` is already in the vault `.gitignore`, so the file is never tracked and key writes make no commit. The API never returns a key: only `is_set`, `last4` and `source`. A key never appears in git, logs, API responses, SSE events, error messages or test output; the Ollama base URL is not secret and is shown in full.
+  4. `chat/keystore.py` owns the store (`read_store`, `set_value`, `lookup`, `status`, `redact`, `bind`); `create_app` calls `bind(vault)`, and the CLI falls back to `--vault` / `PAM_VAULT`. `chat/llm.py` `_provider_kwargs` reads the store at call time, so a change applies without a restart. The settings store wins over the environment; `source` is `settings`, `env` or `none`. Clearing a settings value falls back to the environment.
+  5. Frontend: `/settings` page (nav item), key inputs are write-only password fields, a free-text model id with a presets dropdown, per-row Check. Saving invalidates the `['models']` query. When `GET /models` is `[]`, Chat links to Settings. Mocks cover every new route.
+  6. Contract models for the request/response bodies are inline in `pam/api/` (as in CHG-0016 (M14), item 2), so no §7 contract and no JSON Schema changes; `frontend/src/types` gets hand-typed API shapes only if `gen:types` cannot produce them.
+- **Impact:** Adds routes only. No change to the vault layout or to any §7 contract. Allowed paths beyond the usual: `backend/pam/chat/llm.py` (key lookup), `backend/pam/cli/models_cmd.py` (only if the ping helper must be shared).
+- **Status log:**
+  - 2026-10-18 · PROPOSED · agent (Settings task)
+  - 2026-10-18 · IMPLEMENTED · agent (Settings task; plan approved by Yogesh in session). Provider error messages are masked with `keystore.redact`; `last4` is empty for values shorter than 12 characters.
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

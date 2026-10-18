@@ -2,9 +2,9 @@
 
 Behavior:
     Wraps `litellm.acompletion` so `anthropic/…`, `openrouter/…` and `ollama/…` models share one
-    streaming API. Keys come from the environment (`ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`;
-    `OLLAMA_BASE_URL` as `api_base`). Provider failures surface as `LLMError` with a `retryable`
-    flag. LiteLLM's model cost map is read from the installed package instead of fetched at import.
+    streaming API. Keys come from the Settings store, then the environment (`ANTHROPIC_API_KEY`,
+    `OPENROUTER_API_KEY`; `OLLAMA_BASE_URL` as `api_base`), read on every call (CHG-0023). Provider
+    failures surface as `LLMError` with a `retryable` flag and a message with any key masked. LiteLLM's model cost map is read from the installed package instead of fetched at import.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ import httpx  # noqa: E402
 import litellm  # noqa: E402
 import openai  # noqa: E402
 
+from pam.chat import keystore  # noqa: E402
 from pam.contracts.config import ModelEntry, PamConfig  # noqa: E402
 from pam.core.errors import PamError  # noqa: E402
 
@@ -40,7 +41,6 @@ PING_PROMPT = "ping"
 
 _API_KEY_ENV = {"anthropic": "ANTHROPIC_API_KEY", "openrouter": "OPENROUTER_API_KEY"}
 _OLLAMA_PREFIXES = ("ollama", "ollama_chat")
-_OLLAMA_BASE_ENV = "OLLAMA_BASE_URL"
 
 _HTTP_TOO_MANY_REQUESTS = 429
 _HTTP_SERVER_ERROR = 500
@@ -238,9 +238,9 @@ async def ping(model: ModelEntry) -> PingResult:
 def _provider_kwargs(model: ModelEntry) -> dict[str, Any]:
     provider = model.id.split("/", 1)[0]
     kwargs: dict[str, Any] = {}
-    if key := os.environ.get(_API_KEY_ENV.get(provider, "")):
+    if provider in _API_KEY_ENV and (key := keystore.lookup(provider)[0]):
         kwargs["api_key"] = key
-    if provider in _OLLAMA_PREFIXES and (base := os.environ.get(_OLLAMA_BASE_ENV)):
+    if provider in _OLLAMA_PREFIXES and (base := keystore.lookup("ollama")[0]):
         kwargs["api_base"] = base
     return kwargs
 
@@ -249,6 +249,7 @@ def _to_llm_error(e: BaseException) -> LLMError:
     if isinstance(e, LLMError):
         return e
     message = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+    message = keystore.redact(message)
     if isinstance(e, _FATAL_ERRORS):
         return LLMError(message, retryable=False)
     if isinstance(e, _RETRYABLE_ERRORS):

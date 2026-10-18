@@ -8,6 +8,7 @@ import {
   Moon,
   Network,
   Search,
+  Settings,
   Sparkles,
   Sun,
   Upload,
@@ -28,6 +29,7 @@ const ROUTES: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/agents', label: 'Agents', icon: Bot },
   { to: '/chat', label: 'Chat', icon: MessagesSquare },
   { to: '/guides', label: 'Guides', icon: BookOpen },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
 /**

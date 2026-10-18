@@ -7,6 +7,7 @@ import GuidesPage from './pages/GuidesPage'
 import HomePage from './pages/HomePage'
 import ImportPage from './pages/ImportPage'
 import SearchPage from './pages/SearchPage'
+import SettingsPage from './pages/SettingsPage'
 import VaultPage from './pages/VaultPage'
 
 /** Route table: the home page plus the seven pages of SPEC §3.2. */
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="search" element={<SearchPage />} />
         <Route path="agents" element={<AgentsPage />} />
         <Route path="chat" element={<ChatPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="guides" element={<GuidesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

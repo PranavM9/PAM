@@ -21,6 +21,7 @@ import type {
   GraphNode,
   ImportReport,
   JobStatus,
+  ModelEntry,
   ProjectBrief,
   SearchHit,
   SearchQuery,
@@ -30,7 +31,7 @@ import type {
   WorkingMemory,
   WriteResult,
 } from '../../types/generated'
-import { ApiError, type AgentUpsert, type Health, type VaultFile, type VaultTree } from '../client'
+import { ApiError, type AgentUpsert, type CheckResult, type Health, type KeyStatus, type VaultFile, type VaultTree } from '../client'
 import {
   ALL_TOOLS,
   MODELS,
@@ -65,6 +66,63 @@ const now = () => new Date().toISOString()
 const notFound = (what: string) => new ApiError(404, 'NOT_FOUND', `${what} not found`)
 const invalid = (message: string) => new ApiError(400, 'VALIDATION_ERROR', message)
 const tokensOf = (text: string) => Math.ceil(text.length / 4)
+
+// ---------------------------------------------------------------- settings
+
+type KeyProvider = KeyStatus['provider']
+
+let mockModels: ModelEntry[] = MODELS.map((m) => ({ ...m }))
+/** Provider values typed on the Settings page; the mock keeps them in memory only. */
+const mockKeys: Partial<Record<KeyProvider, string>> = {}
+
+const keyStatus = (): KeyStatus[] =>
+  (['anthropic', 'openrouter', 'ollama'] as const).map((provider) => {
+    const value = mockKeys[provider]
+    const secret = provider !== 'ollama'
+    return {
+      provider,
+      is_set: Boolean(value),
+      last4: value && secret && value.length >= 12 ? value.slice(-4) : null,
+      source: value ? 'settings' : 'none',
+      value: value && !secret ? value : null,
+    }
+  })
+
+function saveModels(list: ModelEntry[]): ModelEntry[] {
+  const trimmed = list.map((m) => ({ ...m, id: m.id?.trim() ?? '', label: m.label?.trim() ?? '' }))
+  if (trimmed.some((m) => !m.id || !m.label)) throw invalid('every model needs a non-empty id and label')
+  const dup = trimmed.find((m, i) => trimmed.findIndex((o) => o.id === m.id) !== i)
+  if (dup) throw invalid(`duplicate model id '${dup.id}'`)
+  mockModels = trimmed
+  return mockModels
+}
+
+function checkModels(id: string | undefined): CheckResult[] {
+  const targets = id ? mockModels.filter((m) => m.id === id) : mockModels
+  if (id && targets.length === 0) throw invalid(`unknown model '${id}'`)
+  return targets.map((m) => {
+    const provider = m.id.split('/')[0] as KeyProvider
+    const needsKey = provider === 'anthropic' || provider === 'openrouter'
+    const ok = !needsKey || Boolean(mockKeys[provider])
+    return {
+      id: m.id,
+      ok,
+      latency_ms: Math.round(200 + Math.random() * 600),
+      error: ok ? null : `AuthenticationError: no ${provider} API key set`,
+    }
+  })
+}
+
+function setKey(body: { provider?: string; value?: string | null }): KeyStatus {
+  const provider = body.provider as KeyProvider
+  if (!['anthropic', 'openrouter', 'ollama'].includes(provider)) throw invalid('provider: unknown provider')
+  const value = body.value?.trim()
+  if (body.value === null || body.value === undefined) delete mockKeys[provider]
+  else if (!value) throw invalid('value is empty; send null to clear it')
+  else if (provider === 'ollama' && !/^https?:\/\//.test(value)) throw invalid('the Ollama base URL must start with http:// or https://')
+  else mockKeys[provider] = value
+  return keyStatus().find((k) => k.provider === provider)!
+}
 
 // ---------------------------------------------------------------- scope
 
@@ -421,7 +479,7 @@ function vaultFile(path: string | null): VaultFile {
   if (path === 'pam.toml') {
     return {
       path, frontmatter: {},
-      body: ['```toml', 'schema_version = "1.0.0"', '', ...MODELS.map((m) => `[[models]]\nid = "${m.id}"\nlabel = "${m.label}"\nsupports_tools = ${m.supports_tools}\n`), '```'].join('\n'),
+      body: ['```toml', 'schema_version = "1.0.0"', '', ...mockModels.map((m) => `[[models]]\nid = "${m.id}"\nlabel = "${m.label}"\nsupports_tools = ${m.supports_tools}\n`), '```'].join('\n'),
     }
   }
   if (path.startsWith('imports/')) {
@@ -597,7 +655,18 @@ export async function mockRequest(method: string, url: string, body?: unknown): 
     case 'PUT /agents':
       return upsertAgent(body as AgentUpsert, parts[1] ?? '')
     case 'GET /models':
-      return MODELS
+      return mockModels
+    case 'PUT /models':
+      return saveModels(body as ModelEntry[])
+    case 'POST /models':
+      if (parts[1] === 'check') return checkModels((body as { id?: string } | undefined)?.id)
+      break
+    case 'GET /settings':
+      if (parts[1] === 'keys') return keyStatus()
+      break
+    case 'PUT /settings':
+      if (parts[1] === 'keys') return setKey(body as { provider?: string; value?: string | null })
+      break
     case 'GET /sessions':
       return getSession(parts[1] ?? '')
     case 'POST /sessions':
@@ -671,7 +740,7 @@ function compose(session: WorkingMemory, message: string, bundle: ContextBundle,
  */
 export async function mockChatStream(req: ChatRequest, emit: (e: ChatEvent) => void, signal?: AbortSignal): Promise<void> {
   await latency()
-  const model = MODELS.find((m) => m.id === req.model)
+  const model = mockModels.find((m) => m.id === req.model)
   if (!model) throw invalid(`model: '${req.model}' is not configured in pam.toml`)
   if (!req.message?.trim()) throw invalid('message: must not be empty')
   if (req.mode === 'tool' && !model.supports_tools) throw invalid(`model '${model.id}' does not support tools`)

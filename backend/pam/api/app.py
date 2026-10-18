@@ -13,12 +13,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pam import __version__
 from pam.api import errors
 from pam.api.jobs import JobRegistry
-from pam.api.routes import agents, chat, graph, health, imports, search, sessions, sync, vault
+from pam.api.routes import agents, chat, graph, health, imports, search, sessions, settings, sync, vault
+from pam.chat import keystore
 from pam.core.vault import Vault
 from pam.mcp_server.server import http_app
 
 CORS_ORIGINS = ["http://localhost:5173"]
-ROUTERS = (health, imports, vault, search, graph, agents, chat, sessions, sync)
+ROUTERS = (health, imports, vault, search, graph, agents, chat, settings, sessions, sync)
 
 
 def create_app(vault_path: str | os.PathLike | None = None, *, mcp_url: str | None = None) -> FastAPI:
@@ -49,6 +50,7 @@ def create_app(vault_path: str | os.PathLike | None = None, *, mcp_url: str | No
 
     app = FastAPI(title="PAM API", version=__version__, lifespan=lifespan)
     app.state.vault = root
+    keystore.bind(root)
     app.state.jobs = JobRegistry()
     app.state.mcp_url = mcp_url
     app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"])
