@@ -56,7 +56,7 @@ export default function VaultPage() {
   const selected = params.get('path')
   const agent = params.get('agent') || 'default'
   const [filter, setFilter] = useState('')
-  const [open, setOpen] = useState<Set<string>>(() => new Set(['memory', 'agent', ...(selected ? ancestors(selected) : [])]))
+  const [open, setOpen] = useState<Set<string>>(() => new Set(['memory', 'memory/default', ...(selected ? ancestors(selected) : [])]))
   const tree = useQuery({ queryKey: ['vault-tree', agent], queryFn: () => api.vaultTree(agent) })
 
   const nodes = useMemo(() => {

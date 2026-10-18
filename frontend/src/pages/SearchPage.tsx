@@ -84,7 +84,7 @@ export default function SearchPage() {
                 type="number"
                 min={256}
                 max={32000}
-                step={256}
+                step={1}
                 value={budget}
                 onChange={(e) => setBudget(Number(e.target.value) || 2000)}
               />
