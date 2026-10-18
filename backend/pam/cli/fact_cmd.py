@@ -75,6 +75,8 @@ def _visible(vault: Vault, agent: str):
 
 
 def _find(vault: Vault, ref: str, agent: str) -> Fact:
+    if not ref.strip():
+        raise PamError("fact id must not be empty")
     visible = _visible(vault, agent)
     matches = [f for _, f in conflicts.load_facts(vault) if str(f.id).startswith(ref.lower())]
     if not matches:

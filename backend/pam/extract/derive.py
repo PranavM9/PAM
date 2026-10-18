@@ -72,6 +72,8 @@ def load_episodes(vault: Vault) -> list[Episode]:
 def _select(episodes: list[Episode], ref: str | None) -> list[Episode]:
     if ref is None:
         return episodes
+    if not ref.strip():
+        raise PamError("episode id must not be empty")
     matches = [e for e in episodes if str(e.id).startswith(ref.lower())]
     if not matches:
         raise PamError(f"no episode with id {ref}")
