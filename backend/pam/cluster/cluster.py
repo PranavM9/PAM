@@ -182,9 +182,9 @@ def _finish(
     p = f.project
     present = [episodes[e] for e in f.members if e in episodes]
     times = [e.updated_at for e in present]
-    if p.origin is Actor.CLUSTER:
+    if f.created:
         last = max(times) if times else p.last_activity_at
-    else:
+    else:  # a note or episode added by an agent counts as activity too
         last = max([p.last_activity_at, *times])
     if p.origin is Actor.CLUSTER and not f.members:
         status = "dormant"
@@ -247,7 +247,8 @@ def run_cluster(
         projects whose members changed; a name is set only when a project is created, so
         `agent`/`manual` projects are never renamed. `## Summary (auto)` is re-rendered for every
         project; other sections are kept and `## Notes` is only appended to. A project is dormant
-        when its last activity (newest member `updated_at`) is older than `dormant_after_days`.
+        when its last activity (the later of its stored `last_activity_at` and its newest member
+        `updated_at`; a new project starts from its members) is older than `dormant_after_days`.
         Only files whose content changes are written; `updated_at` moves only for them. No change
         means no commit.
     Exceptions:

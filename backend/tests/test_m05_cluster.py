@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import subprocess
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -438,3 +439,19 @@ def test_graph_cli_stdout_json(vault):
     out = _invoke(vault.root, "graph", "export", "--facts")
     data = json.loads(out.stdout)
     GraphData.model_validate(data)
+
+
+def test_agent_note_counts_as_activity(tmp_path):
+    vault = _new_vault(tmp_path)
+    for t, x in IMMICH:
+        _log(vault, t, x)
+    run_cluster(vault)
+    (project, _), = _projects(vault).values()
+    time.sleep(1.1)  # the note must land on a later second than the episodes
+    assert writer.update_project(vault, UpdateProjectInput(project_id=project.id, note="still on it")).ok
+    noted, _ = _projects(vault)[str(project.id)]
+    assert noted.last_activity_at > project.last_activity_at
+    report = run_cluster(vault, rebuild=True)
+    after, body = _projects(vault)[str(project.id)]
+    assert after.last_activity_at == noted.last_activity_at and "still on it" in body
+    assert report.projects_updated == 0 and report.commit_sha is None
