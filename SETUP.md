@@ -17,10 +17,10 @@
 git clone <repo-url> pam && cd pam
 cp .env.example .env          # then fill in keys (see §3)
 docker compose up --build -d  # first build pre-downloads the embedding + spaCy models
-docker compose exec backend pam init
 docker compose exec backend pam doctor
 open http://localhost:5173    # Windows: start http://localhost:5173
 ```
+The first start creates `./vault` automatically (`pam init` runs only if it has no `pam.toml`).
 A handy alias for the rest of this doc (`pamx` = run pam inside the container):
 ```bash
 alias pamx='docker compose exec backend pam'           # macOS/Linux/WSL
