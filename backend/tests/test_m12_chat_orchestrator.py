@@ -238,7 +238,7 @@ def test_injection_with_tool_support_offers_tools_and_runs_them(vault, context_c
     assert len(context_calls) == 1  # context is still injected
     assert {t["function"]["name"] for t in fake.calls[0]["tools"]} == ALL_TOOLS
     system = fake.calls[0]["messages"][0]["content"]
-    assert orchestrator.TOOLS_NOTE in system and RENDERED in system
+    assert llm.MEMORY_GUIDE in system and RENDERED in system
     assert orchestrator.NO_TOOLS_NOTE not in system
 
 
@@ -769,3 +769,10 @@ def test_every_chat_event_has_a_sample():
 @pytest.mark.parametrize("event", list(EVENT_SAMPLES.values()), ids=lambda e: e.type)
 def test_chat_event_json_round_trip(event):
     assert EVENTS.validate_json(event.model_dump_json()) == event
+
+
+def test_tool_mode_system_prompt_carries_the_memory_guide(vault, fake_llm):
+    fake = fake_llm(_text("Hello."))
+    events = _run(_req(model=TOOLS_MODEL.id, mode="tool"), vault)
+    system = fake.calls[0]["messages"][0]["content"]
+    assert system == "\n\n".join((llm.PAM_PREAMBLE, llm.MEMORY_GUIDE, events[0].rendered))

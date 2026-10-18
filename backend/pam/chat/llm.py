@@ -34,6 +34,23 @@ PAM_PREAMBLE = (
     "reliable background, cite it naturally, and ask the user about any ⚠ conflicting facts."
 )
 
+# Tool-mode system prompt: when and how to read and write memory. `mcp_server.server.INSTRUCTIONS`
+# is its twin for external MCP clients (it cannot import this module), kept in step by a test.
+MEMORY_GUIDE = (
+    "Memory rules.\n"
+    "WRITE: when the user states a personal fact (name, role, preference, location), a decision, "
+    'or a correction ("actually, it\'s X"), or says "remember", "from now on" or "note that", '
+    "call add_fact straight away. Do not ask permission. Then say what you saved, in one line.\n"
+    "DO NOT WRITE: guesses, one-off questions, or anything the user did not say.\n"
+    'HOW: one fact per call. A slot is subject.attribute: use subject "user" and a stable '
+    "lowercase noun as attribute (user.name, user.timezone). To correct a fact whose id is shown "
+    "in the context (the UUID in its source path), call supersede_fact; otherwise call add_fact.\n"
+    "READ: call get_context at the start and when the topic changes. Call search_memory before "
+    'saying "I don\'t know". If get_context returns conflicting facts, ask the user which is '
+    "correct, then call supersede_fact.\n"
+    "Never say you saved something unless the tool result says ok. Never invent memories."
+)
+
 REQUEST_TIMEOUT_S = 120.0
 PING_TIMEOUT_S = 30.0
 PING_MAX_TOKENS = 1

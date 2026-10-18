@@ -25,10 +25,20 @@ from pam.core.errors import PamError
 from pam.core.vault import Vault
 from pam.mcp_server.tools import TOOL_SPECS, Binding, make_tool
 
+# Twin of `pam.chat.llm.MEMORY_GUIDE`; keep the two in step.
 INSTRUCTIONS = (
-    "Call get_context at the start of a task and whenever the topic changes. "
-    "If conflicts are returned, ask the user and then call supersede_fact. "
-    "Log important new facts with add_fact. Never invent memories."
+    "Memory rules.\n"
+    "WRITE: when the user states a personal fact (name, role, preference, location), a decision, "
+    'or a correction ("actually, it\'s X"), or says "remember", "from now on" or "note that", '
+    "call add_fact straight away. Do not ask permission. Then say what you saved, in one line.\n"
+    "DO NOT WRITE: guesses, one-off questions, or anything the user did not say.\n"
+    'HOW: one fact per call. A slot is subject.attribute: use subject "user" and a stable '
+    "lowercase noun as attribute (user.name, user.timezone). To correct a fact whose id is shown "
+    "in the context (the UUID in its source path), call supersede_fact; otherwise call add_fact.\n"
+    "READ: call get_context at the start and when the topic changes. Call search_memory before "
+    'saying "I don\'t know". If get_context returns conflicting facts, ask the user which is '
+    "correct, then call supersede_fact.\n"
+    "Never say you saved something unless the tool result says ok. Never invent memories."
 )
 DEFAULT_AGENT = "default"
 

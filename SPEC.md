@@ -2191,6 +2191,22 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M12 only. No contract, vault layout or schema change. A model declared `supports_tools` that the provider rejects with tools now fails in injection mode too (an `ErrorEvent`).
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (chat tools fix)
+
+### CHG-0025 — M11/M12: memory-use guidance (`MEMORY_GUIDE`, MCP instructions, tool examples)
+- **Type:** design (prompt text only)
+- **Module(s):** M11 (`mcp_server/server.py` `INSTRUCTIONS`, `mcp_server/tools.py` descriptions), M12 (`chat/llm.py`, `chat/orchestrator.py`)
+- **Proposed by:** agent (T13 memory guidance), plan approved by Yogesh
+- **Date:** 2026-10-18
+- **Motivation:** The only write hint was one line ("Log important new facts with add_fact"), so models asked permission, wrote guesses, or claimed to have saved facts without a tool call. This entry is CHG-0025 because CHG-0024 (tools by default) merged first.
+- **Proposal:**
+  1. `chat/llm.py` gains `MEMORY_GUIDE` (under 300 tokens): when to write (stated facts, decisions, corrections, "remember"), when not to (guesses, one-off questions), how (one fact per call; slot = `subject.attribute`, e.g. `user.name`; `supersede_fact` for a correction when the fact id is shown, else `add_fact`), when to read (`get_context` at the start and on topic change, `search_memory` before "I don't know"), and never to claim a save the tool result did not confirm.
+  2. Every model with `supports_tools` (tool mode, and injection mode since CHG-0024) gets the system prompt `PAM_PREAMBLE`, `MEMORY_GUIDE`, then the rendered context; `MEMORY_GUIDE` replaces CHG-0024's `TOOLS_NOTE` and tool mode no longer adds `INSTRUCTIONS`. `NO_TOOLS_NOTE` is unchanged. `INSTRUCTIONS` (sent to external MCP clients) becomes the same text, because `mcp_server` cannot import `chat`; a test keeps them equal.
+  3. Tool descriptions of `add_fact`, `supersede_fact`, `log_episode`, `update_project`, `add_skill` and `update_working_memory` end in a worked `Example: {...}` whose arguments are validated against the contract model in a test. `add_fact` has no `slot` argument: the example is `{"subject":"user","attribute":"name","value":"Jerry","category":"identity"}`. `search_memory` says to call it before "I don't know".
+  4. The context does not show fact ids except as the UUID in each `source:` path; the guide says so. Showing ids in `render.py` is left to a later task.
+- **Impact:** Text only; no logic, contract (§7), vault layout or schema change. The `get_context` conflict instruction (§7.15) is kept verbatim.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T13 memory guidance)
+
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
 

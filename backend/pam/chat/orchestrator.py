@@ -21,7 +21,7 @@ from mcp.client.session import ClientSession
 
 from pam.agents.manifest import load_persona
 from pam.chat import mcp_client
-from pam.chat.llm import PAM_PREAMBLE, LLMError, ToolCall, resolve_model, stream_chat
+from pam.chat.llm import MEMORY_GUIDE, PAM_PREAMBLE, LLMError, ToolCall, resolve_model, stream_chat
 from pam.chat.mcp_client import McpToolError, open_session
 from pam.contracts.api import ChatEvent, ChatRequest, ContextEvent, DoneEvent, ErrorEvent, TokenEvent, ToolCallEvent
 from pam.contracts.config import ModelEntry
@@ -30,7 +30,6 @@ from pam.contracts.working import WorkingMemory
 from pam.core import config, tokens
 from pam.core.errors import PamError, VaultBusy
 from pam.core.vault import Vault
-from pam.mcp_server.server import INSTRUCTIONS
 from pam.retrieve.render import persona_section
 from pam.working import session
 
@@ -38,11 +37,6 @@ MAX_TOOL_ROUNDS = 5
 TOOL_SUMMARY_CHARS = 200
 DEFAULT_AGENT = "default"
 
-TOOLS_NOTE = (
-    "You can call PAM's memory tools. When the user asks you to remember something, call add_fact "
-    "(or update_project / add_skill for projects and skills) and say it is saved only after the tool "
-    "result reports success."
-)
 NO_TOOLS_NOTE = (
     "You have no tools in this chat, so you cannot save or change memory. Never claim to have "
     "remembered, saved or updated anything; if the user asks, say so and suggest a model with tool support."
@@ -117,7 +111,7 @@ async def run_turn(
             )
             if not model.supports_tools:
                 raise ToolsUnsupported(f"model {model.id} does not support tools; use --mode injection")
-            system = "\n\n".join((PAM_PREAMBLE, TOOLS_NOTE, INSTRUCTIONS, rendered))
+            system = "\n\n".join((PAM_PREAMBLE, MEMORY_GUIDE, rendered))
             async with open_session(v, agent, mcp_url) as mcp:
                 async for event in _tool_loop(model, [_system(system), *turns], mcp, reply):
                     yield event
@@ -126,7 +120,7 @@ async def run_turn(
                 bundle = await mcp_client.get_context(mcp, req.message, sid)
                 context_sent = True
                 yield _context_event(sid, bundle)
-                note = TOOLS_NOTE if model.supports_tools else NO_TOOLS_NOTE
+                note = MEMORY_GUIDE if model.supports_tools else NO_TOOLS_NOTE
                 messages = [_system(f"{PAM_PREAMBLE}\n\n{note}\n\n{bundle.rendered}"), *turns]
                 if model.supports_tools:
                     events = _tool_loop(model, messages, mcp, reply)
