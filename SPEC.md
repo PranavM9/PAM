@@ -1594,7 +1594,11 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** incremental assignment, then rebuild with Jaccard ID matching, then c-TF-IDF naming, then the summary, then graph export.
 - **Done when:** the M5 acceptance criteria pass.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Files: `cluster/assign.py` (`load_vectors`, `centroid`, `save_centroids`, `assign_incremental`, `cluster_labels`, `jaccard`, `match_clusters`), `cluster/naming.py` (`ctfidf`, `project_name`, `display_term`, `summary_section`, `replace_summary`), `cluster/cluster.py` (`run_cluster(vault, agent="default", rebuild=False, now=None) -> ClusterReport`), `cluster/graph.py` (`build_graph(vault, agent="default", facts=False) -> GraphData`), `cli/cluster_cmd.py` (`pam cluster [--rebuild] [--agent]`), `cli/graph_cmd.py` (`pam graph export [--agent] [--facts] [--out]`). Tests: `tests/test_m05_cluster.py`.
+  - Flow: under `vault_write_lock`, read `memory/<agent>/episodes` + `doc_vectors` + `memory/<agent>/projects`; assign/cluster; write changed project files with `mdio`; one `git.commit` `cluster: <mode> +c ~u`; store `project_centroids`; `index_paths` for the touched files.
+  - Tests: offline topic embedder (fixture topics on fixed dimensions); fixtures give >= 2 projects incl. Immich; cluster twice is a no-op; `--rebuild` keeps ids; < `min_cluster_size` gives none; a noise episode stays unassigned; agent project never renamed; rebuild-unmatched project goes dormant with a note; dormancy by `now`; c-TF-IDF hand corpus; naming rules; GraphData endpoints, facts flag, restricted agent; CLI `--json` and `graph export --out`.
+  - Risks: HDBSCAN on tiny inputs returns all noise; a second run assigning the first run's noise would break "cluster twice is a no-op" (both handled in CHG-0016).
+- **Result (➕):** 2026-10-18 · PASS (local) · macOS scratch venv (uv CPython 3.12, `onnxruntime<1.20`): `test_m05_cluster.py` 27 passed; full suite 645 passed, 2 skipped. With the real bge model on the Claude + ChatGPT fixtures: 3 projects (Immich, Tailscale, CSE · CDS), second `pam cluster` and `pam cluster --rebuild` make no commit, `pam graph export --out g.json` validates. Tailscale is `dormant` (last episode 2026-09-06, more than `dormant_after_days` ago). Not yet run: backend container; real 65-episode export (Pranav).
 
 #### T11 · Working memory (≈ 0.75 h)
 - **Module:** M9
@@ -1975,6 +1979,27 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** T13 rest builds on `stream_chat`, `resolve_model`, `PAM_PREAMBLE`, `LLMError`. No contract changes.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 part 1)
+
+### CHG-0016 — M5 implementation choices: scope, settle loop, single-cluster fallback, stable names, graph ids
+- **Type:** design
+- **Module(s):** M5
+- **Proposed by:** agent (task T10)
+- **Date:** 2026-10-18
+- **Motivation:** §8 M5 leaves open which episodes a run covers, how "cluster twice is a no-op" holds when the first run's HDBSCAN noise could be assigned to its new centroids on the second run, what happens when HDBSCAN finds one dense group (sklearn returns all noise), when names and keywords are recomputed, what `episodes_assigned` counts, and the graph's node ids.
+- **Proposal:**
+  1. Scope: `pam cluster --agent A` (default `default`) clusters `memory/A/episodes` into `memory/A/projects`. Episodes without a `doc_vectors` row are skipped with a warning (run `pam index`). The agent must exist; no permission check (system process).
+  2. Settle loop (incremental): assign to centroids (cosine >= `assign_threshold`, running mean, oldest episode first), then HDBSCAN on the rest when >= `min_cluster_size`; repeat while either step changed something. A run therefore leaves nothing a second run would change; episodes that end as noise stay unassigned.
+  3. HDBSCAN: `metric="euclidean"`, `min_cluster_size` from config, sklearn's default `min_samples` (= `min_cluster_size`, capped at n-1). If every point is noise, it runs once more with `allow_single_cluster=True`, so one dense topic still forms a project; outliers stay noise. Turning that on always merged the whole fixture into one cluster.
+  4. Rebuild: episodes held by `agent`/`manual` projects are not re-clustered (those projects keep their members). The rest go through HDBSCAN; clusters are matched to `cluster` projects greedily by highest Jaccard (>= `rebuild_match_jaccard`, each used once), keeping id and name; then the settle loop runs on the noise. A matched project with the same member set keeps its stored order. Unmatched `cluster` projects become `dormant`, `episode_ids: []`, and get a `## Notes` bullet `- <ts> (cluster) Dormant after cluster --rebuild: …`.
+  5. Names are set once, when the clusterer creates a project; later runs never rename (so `agent`/`manual` are never renamed either). Keywords (c-TF-IDF over all projects of the scope) are recomputed for new projects, projects whose members changed, every project on `--rebuild`, and projects with no keywords. `## Summary (auto)` is re-rendered for every project; a file is written (and `updated_at` set) only if its content changes.
+  6. Naming details: a title n-gram must be in >= 30% of member titles **and** in at least 2 (`TITLE_NGRAM_MIN = 2`), else 3-member projects get one-word names from a single title; ties prefer the higher keyword rank, then a bigram. A term keeps its casing from the titles (then member texts) when that has a capital (`Immich`, `UW CS`, `CSE · CDS`), else it is title-cased. The c-TF-IDF word count `A` counts `\w\w+` tokens.
+  7. Dormancy: `last_activity_at` is the newest member `updated_at` for `cluster` projects, and the max of the stored value and that for `agent`/`manual` projects; `dormant` when older than `dormant_after_days`, `active` otherwise (an empty `cluster` project stays dormant).
+  8. Report: `episodes_assigned` = episodes placed in a project by this run; `episodes_unassigned` = the scope's episodes in no project afterwards.
+  9. `project_centroids`: recomputed from member `doc_vectors` each run (normalized mean; an index rebuild loses nothing), rows written only when the bytes change, deleted for projects without vectors. Reindexing after the commit logs and keeps the commit on failure (as CHG-0009 item 8).
+  10. Graph: node ids are the document UUIDs; project `cluster_id` is its own id, an episode's is the visible project that holds it; fact `size` = confidence, `label` = `attribute: value`; `derived_from` weight = confidence; `similar` weight = cosine. Visibility uses `can_read` per file. No index means no `similar` links. `pam graph export` without `--out` prints the JSON.
+- **Impact:** M5 only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T10)
 
 ### CHG-0018 — M12 orchestrator choices: MCP transport, session agent, tool-mode context, round cap, failures
 - **Type:** design
