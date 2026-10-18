@@ -36,6 +36,27 @@ export interface Health {
   index_ok: boolean
 }
 
+/** Providers whose value the Settings page can set (CHG-0023). */
+export type KeyProvider = 'anthropic' | 'openrouter' | 'ollama'
+
+/** `GET /settings/keys` row: never the key itself, only whether it is set and its last 4 characters. */
+export interface KeyStatus {
+  provider: KeyProvider
+  is_set: boolean
+  last4: string | null
+  source: 'settings' | 'env' | 'none'
+  /** Only the Ollama base URL, which is not a secret. */
+  value: string | null
+}
+
+/** `POST /models/check` row. */
+export interface CheckResult {
+  id: string
+  ok: boolean
+  latency_ms: number
+  error?: string | null
+}
+
 /** `GET /vault/tree` response. */
 export interface VaultTree {
   paths: string[]
@@ -173,6 +194,11 @@ export const api = {
     request<AgentManifest>('PUT', `/agents/${enc(name)}`, body),
 
   models: () => request<ModelEntry[]>('GET', '/models'),
+  saveModels: (models: ModelEntry[]) => request<ModelEntry[]>('PUT', '/models', models),
+  checkModels: (id?: string) => request<CheckResult[]>('POST', '/models/check', id ? { id } : {}),
+  keyStatus: () => request<KeyStatus[]>('GET', '/settings/keys'),
+  setKey: (provider: KeyProvider, value: string | null) =>
+    request<KeyStatus>('PUT', '/settings/keys', { provider, value }),
 
   getSession: (id: string) => request<WorkingMemory>('GET', `/sessions/${enc(id)}`),
   endSession: (id: string) => request<WriteResult>('POST', `/sessions/${enc(id)}/end`),

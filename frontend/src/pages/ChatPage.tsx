@@ -271,7 +271,7 @@ export default function ChatPage() {
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <AgentSelect value={agentName} onChange={(name) => update(activeId, (s) => ({ ...s, agent: name }))} />
-            <ModelSelect models={modelList} value={model} onChange={pickModel} />
+            <ModelSelect models={modelList} loaded={models.isSuccess} value={model} onChange={pickModel} />
             <ModeToggle mode={mode} onChange={setMode} toolsSupported={Boolean(current?.supports_tools)} />
             <button
               type="button"

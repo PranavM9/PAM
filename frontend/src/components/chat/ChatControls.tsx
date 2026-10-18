@@ -1,5 +1,6 @@
 import { Check, ChevronDown, Cpu } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Link } from 'react-router-dom'
 import type { ModelEntry } from '../../types/generated'
 import type { Mode } from './types'
 
@@ -8,13 +9,15 @@ import type { Mode } from './types'
  *
  * Behavior:
  *     Lists the models from `GET /models`, marking those that support tool
- *     calls. Shows a disabled-looking "Loading…" option until the list arrives.
+ *     calls. Shows a disabled-looking "Loading…" option until the list arrives, and a link to
+ *     Settings when the list has loaded and is empty.
  * Parameters:
  *     models: Available models.
+ *     loaded: True once `GET /models` has answered.
  *     value: Selected model id.
  *     onChange: Called with the new model id.
  */
-export function ModelSelect({ models, value, onChange }: { models: ModelEntry[]; value: string; onChange: (id: string) => void }) {
+export function ModelSelect({ models, loaded = false, value, onChange }: { models: ModelEntry[]; loaded?: boolean; value: string; onChange: (id: string) => void }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const selected = models.find((model) => model.id === value)
@@ -44,6 +47,18 @@ export function ModelSelect({ models, value, onChange }: { models: ModelEntry[];
     const direction = event.key === 'ArrowDown' ? 1 : -1
     const next = (current + direction + options.length) % options.length
     options[next]?.focus()
+  }
+
+  if (loaded && models.length === 0) {
+    return (
+      <Link
+        to="/settings"
+        className="well flex h-9 w-full items-center gap-2 rounded-xl border border-edge/10 bg-panel/65 px-3 text-sm text-fg shadow-sm transition hover:bg-panel/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:w-[18rem]"
+      >
+        <Cpu size={15} className="shrink-0 text-accent" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">No models yet: add one in Settings</span>
+      </Link>
+    )
   }
 
   return (
