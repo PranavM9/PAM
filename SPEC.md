@@ -1525,7 +1525,11 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   4. `pam search`, `pam context` (`--json`, `--budget`, `--agent`).
 - **Done when:** the M6 acceptance criteria pass, including the scope property test.
 - **Agent plan (➕):**
+  - Added `retrieve/_index.py` as the read-only seam, with T06 helper delegation and a local sqlite-vec/FastEmbed fallback. Implemented hybrid retrieval, context assembly/rendering, CLI commands, and `tests/test_m06_retrieve_stub.py`; this suite builds its own small §7.8 database with deterministic embeddings. T06-dependent indexed acceptance remains pending its merge.
+  - Review after T06/T09 merged (Yogesh): 40 spec-traced cases appended to `tests/test_m06_retrieve.py` found 10 gaps against §7.5, §7.8, §7.9, §8 M6 and SETUP §6; fixed in `retrieve/{_index,search,context,render}.py` and `cli/{search,context}_cmd.py` (CHG-0011): fact hits of any category, unrelated conflicts filled last, lower sections dropped first, only consecutive chunks merged, working memory read from `working/<id>.md`, model mismatch refused, persona trimmed by binary search over tokens, project summary = `## Summary (auto)`, `search -k/--type/--since` with ranks in the text output, `context --no-persona`. The seam opens the index read-only and embeds through `pam.index.indexer.get_embedder`.
 - **Result (➕):**
+  - 2026-10-17 · PASS (pre-T06) · In WSL (`uv run`): pure helpers via `pytest -q tests/test_m06_retrieve.py -k 'rrf_fuse or recency_multiplier or sanitize_fts'` → 10 passed; `test_m06_retrieve_stub.py` → 7 passed; `test_m06_retrieve.py` → 10 passed, 22 skipped; full backend `pytest -q` → 351 passed, 25 skipped. Stub-indexed `pam search --json` and `pam context --json` validate as their contracts. Real-index acceptance, the skipped indexed tests, and the in-container run remain pending T06.
+  - 2026-10-18 · PASS · WSL2 checkout, locally and in the backend container, rebased on T09: `pytest -q tests/test_m06_retrieve.py tests/test_m06_retrieve_stub.py` → 79 passed, 2 skipped (T11 working-memory module; opt-in perf); full `pytest -q` → 501 passed, 4 skipped; `PAM_PERF=1 … -k p95` → passed. M6 acceptance with bge-small on the Claude + ChatGPT fixtures: `pam search "Immich photo backup" -k 3` → an Immich episode first; `pam context "…" --budget 800` → 772 tokens; the restricted agent sees only its project's episodes and shared facts (50-query property test). A 20 KB persona at `--budget 256` finishes in about 1 s (was a hang).
 
 #### T08 · Rule extractor & persona (≈ 2 h)
 - **Module:** M3
@@ -1861,6 +1865,40 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - 2026-10-17 · IMPLEMENTED · agent (T12)
 
 ---
+
+### CHG-0010 — M6 index seam and FTS query sanitization
+- **Type:** design
+- **Module(s):** M6
+- **Proposed by:** agent (task T07)
+- **Date:** 2026-10-17
+- **Motivation:** T07 starts before T06 merges, so retrieval needs a stable boundary to read the future index without creating or changing M4 files. Raw user syntax also cannot be passed directly to FTS5.
+- **Proposal:** Keep all M4 access in `pam.retrieve._index` with `connect`, `embed_query`, and `doc_token_counts`. Delegate to `pam.index.db` and `pam.index.embedder` when available; otherwise use a read-only SQLite connection, sqlite-vec, and a cached FastEmbed model. Sanitize FTS input by tokenizing, double-quoting every term with embedded quotes escaped, and joining with `OR`; an empty input yields an empty phrase.
+- **Impact:** M6 retrieval only. The seam is read-only and can drop its fallback after T06 merges; no schema or contract changes.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · agent (task T07)
+  - 2026-10-18 · renumbered from CHG-0008 before merge (T06 took CHG-0008 on main); the fallback is removed by CHG-0011 · Yogesh
+
+### CHG-0011 — M6 review fixes: fact hits, conflict relevance, fill order, snippets, working memory, model guard
+- **Type:** design
+- **Module(s):** M6 (one test-setup line in `tests/test_m06_retrieve_stub.py`)
+- **Proposed by:** Yogesh (review of T07)
+- **Date:** 2026-10-18
+- **Motivation:** Spec-traced tests appended to `test_m06_retrieve.py` failed in 10 places against §7.5, §7.8, §7.9, §8 M6, and SETUP §6, and a 20 KB persona at a 256-token budget hung `pam context`. §8 M6 leaves open what "mentioned in the query or hits" means and how the greedy fill treats an item that does not fit.
+- **Proposal:**
+  1. Facts: every active identity/education/work fact (by category, attribute, value), then active fact hits of any category in hit order, capped at `max_facts`.
+  2. Conflicts: relevant when an attribute part (split on `_`, stop words skipped) equals a query word or shares a prefix of at least 4 letters with it (`work` ~ `works_at`), or when the conflict fact is a keyword (FTS) hit. Relevant conflicts fill first; the others fill last, after snippets ("only if budget remains").
+  3. Fill: order relevant conflicts → working memory → facts → projects → snippets → other conflicts, counting the whole rendered bundle each time. After the first item that does not fit, the rest of its section is still tried, but no lower section is (§7.9 "lower-priority items are dropped first").
+  4. Persona: trimmed by a binary search over a text-token limit (identity, then rules, then style), so its section is at most `persona_max_tokens` and the empty bundle fits the budget. `None` only if the bare headings do not fit.
+  5. Snippets: hit chunks of one episode are merged only when their ordinals are consecutive; the `[<title>] ` chunk prefix is removed; snippets keep the order of their best hit.
+  6. Projects: owning a hit episode (best hit first), then other active projects by `last_activity_at`; `ProjectBrief.summary` is the `## Summary (auto)` section only.
+  7. Working memory: `working/<session_id>.md` is read through the §7.10 contract when the session id is `[A-Za-z0-9_-]{1,64}` and the file's `agent` is the requesting agent; otherwise it is left out without an error.
+  8. Index access: read-only (`mode=ro`); a vault without `index.db` returns no hits and loads no model. `meta.embedding_model` different from the config raises `PamError` ("run `pam index --rebuild`", exit 1), as `pam index` does. Queries are embedded through `pam.index.indexer.get_embedder`, the indexer's own embedder; the FastEmbed fallback of CHG-0010 is removed.
+  9. Rendering: project summaries on one line; snippet lines indented two spaces so chat text cannot look like a bundle heading; working memory as `Goal:` / `Decision:` / `Open question:` bullets, each citing its path.
+  10. CLI (SETUP §6): `pam search QUERY [--agent] [-k|--k] [--type episode,fact,…] [--since DATE]`, printing `score (vector r, keyword r) type title`, the path, and a one-line snippet; `pam context QUERY [--agent] [--budget] [--session] [--no-persona]`. A bad `--type`/`--since` exits 2.
+  11. Test setup: `test_m06_retrieve_stub.py` now writes the configured model name into its stub index `meta` (was `fake`), because of item 8; its assertions are unchanged.
+- **Impact:** M6 only, plus the test lines above. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · Yogesh (T07 review)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
