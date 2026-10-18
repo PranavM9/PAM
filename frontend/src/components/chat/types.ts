@@ -1,4 +1,4 @@
-import type { ContextEvent } from '../../types/generated'
+import type { ConnectorCard, ContextEvent } from '../../types/generated'
 
 /** How memory reaches the model: injected into the prompt, or fetched through tool calls. */
 export type Mode = 'injection' | 'tool'
@@ -16,7 +16,7 @@ export type Message =
       error?: { message: string; retryable: boolean; prompt: string }
     }
   | { id: string; kind: 'switch'; model: string }
-  | { id: string; kind: 'tool'; name: string; args: string; summary: string }
+  | { id: string; kind: 'tool'; name: string; args: string; summary: string; cards?: ConnectorCard[] }
 
 /** A chat session as remembered by this browser (the API has no session list). */
 export interface StoredSession {

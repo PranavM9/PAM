@@ -32,6 +32,7 @@ import type {
   WriteResult,
 } from '../../types/generated'
 import { ApiError, type AgentUpsert, type CheckResult, type Health, type KeyStatus, type VaultFile, type VaultTree } from '../client'
+import { mockConnectorCalls, mockConnectorRequest } from './connectors'
 import {
   ALL_TOOLS,
   MODELS,
@@ -675,6 +676,13 @@ export async function mockRequest(method: string, url: string, body?: unknown): 
     case 'POST /sync':
     case 'GET /sync':
       return { schema_version: '1.0.0', dirty_paths: [], reindexed: 0, commit_sha: null } satisfies SyncReport
+    case 'GET /connectors':
+    case 'PUT /connectors':
+    case 'POST /connectors': {
+      const result = mockConnectorRequest(method, parts, query, body)
+      if (result !== undefined) return result
+      break
+    }
   }
   throw notFound(`route ${method} ${path}`)
 }
@@ -728,7 +736,8 @@ function compose(session: WorkingMemory, message: string, bundle: ContextBundle,
  * Behavior:
  *     Validates the model (400 before streaming), loads or creates the session,
  *     records a model switch and the user turn, emits `context` (plus a
- *     `tool_call` in tool mode), streams the answer as tokens and ends with one
+ *     `tool_call` in tool mode, plus the connector calls from `mockConnectorCalls`
+ *     for a phone or plan question), streams the answer as tokens and ends with one
  *     `done`. A message containing `/fail` ends with a retryable `error` after a
  *     few tokens and records no assistant turn.
  * Exceptions:
@@ -787,6 +796,11 @@ export async function mockChatStream(req: ChatRequest, emit: (e: ChatEvent) => v
       result_summary: `${bundle.projects.length} projects, ${bundle.facts.length} facts, ${bundle.episodes.length} snippets · ${bundle.tokens_used} tokens`,
     })
     await sleep(300, signal)
+  }
+  for (const call of mockConnectorCalls(agent.name, req.message, model.supports_tools ?? false)) {
+    if (signal?.aborted) return
+    emit(call)
+    await sleep(250, signal)
   }
 
   const fail = req.message.includes('/fail')
