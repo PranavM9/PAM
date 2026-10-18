@@ -1599,6 +1599,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Tests: offline topic embedder (fixture topics on fixed dimensions); fixtures give >= 2 projects incl. Immich; cluster twice is a no-op; `--rebuild` keeps ids; < `min_cluster_size` gives none; a noise episode stays unassigned; agent project never renamed; rebuild-unmatched project goes dormant with a note; dormancy by `now`; c-TF-IDF hand corpus; naming rules; GraphData endpoints, facts flag, restricted agent; CLI `--json` and `graph export --out`.
   - Risks: HDBSCAN on tiny inputs returns all noise; a second run assigning the first run's noise would break "cluster twice is a no-op" (both handled in CHG-0016).
 - **Result (➕):** 2026-10-18 · PASS (local) · macOS scratch venv (uv CPython 3.12, `onnxruntime<1.20`): `test_m05_cluster.py` 27 passed; full suite 645 passed, 2 skipped. With the real bge model on the Claude + ChatGPT fixtures: 3 projects (Immich, Tailscale, CSE · CDS), second `pam cluster` and `pam cluster --rebuild` make no commit, `pam graph export --out g.json` validates. Tailscale is `dormant` (last episode 2026-09-06, more than `dormant_after_days` ago). Not yet run: backend container; real 65-episode export (Pranav).
+- **Result (➕):** 2026-10-18 · PASS · B-04 (CHG-0019): on the 3 fixtures with the real bge model (macOS 12, uv CPython 3.12 venv, `onnxruntime<1.20`), `pam cluster` named the university project "Day" before the fix and now gives Immich, CSE · CDS, Tailscale (17 assigned); the offline test embedder gives Immich, Tailscale, CSE · Jobs, Checklist · Day Hike. `test_m05_cluster.py` 32 passed; full suite 707 passed, 2 skipped. Rebased on main (T13).
 
 #### T11 · Working memory (≈ 0.75 h)
 - **Module:** M9
@@ -2017,6 +2018,19 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M12 only. No contract changes. T14 calls `run_turn(vault, req, mcp_url=...)`, returns 400 for `UnknownModel` and maps the other exceptions raised before the first event to 404/400/409.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 rest)
+
+### CHG-0019 — M5 naming: generic title n-grams never name a project (B-04)
+- **Type:** fix
+- **Module(s):** M5 (`cluster/naming.py`)
+- **Proposed by:** agent (bug B-04 on T10), rule chosen by Pranav
+- **Date:** 2026-10-18
+- **Motivation:** With the bge model, the 3 fixtures put "What should I pack for a rainy day hike?" into the university project, so `day` was in 2 of its 6 titles and passed both title rules: the project was named "Day". Titles like "Untitled conversation 2026-10-17" could likewise give "2026-10". CHG-0016 and CHG-0017 are taken on the T10, T15 and T16 branches and CHG-0018 on main, so this entry is CHG-0019.
+- **Proposal:**
+  1. `project_name` ignores title n-grams made only of `GENERIC_TITLE_WORDS` (chat, conversation, day, discussion, help, new, notes, project, question, questions, untitled) or numbers, then applies the 30% / 2-title rule to the rest; if none qualifies, the name is the top 2 keywords as §8 M5 says. A partly generic n-gram (`day hike`) still counts.
+  2. One-word names stay allowed (`Immich`, `Tailscale`): requiring 2+ words would rename those to `Immich · Backup` and `Caddy · Home`.
+- **Impact:** M5 naming only. Names are set once at creation (CHG-0016 #5), so existing projects keep theirs; `origin=agent|manual` projects are still never renamed. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (B-04)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

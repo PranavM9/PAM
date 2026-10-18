@@ -15,6 +15,10 @@ TOP_KEYWORDS = 5  # §8 M5: the top 5 terms become `keywords`
 NAME_KEYWORDS = 2  # §8 M5: fallback name joins the top 2 keywords
 TITLE_NGRAM_SHARE = 0.30  # §8 M5: a title n-gram names the project if in >= 30% of member titles
 TITLE_NGRAM_MIN = 2  # and in at least 2 titles, so one title alone never names a project
+GENERIC_TITLE_WORDS = frozenset({
+    "chat", "conversation", "day", "discussion", "help", "new", "notes", "project", "question",
+    "questions", "untitled",
+})  # a title n-gram made only of these (or numbers) never names a project
 SUMMARY_TITLES = 5  # §8 M5: the summary lists the 5 most recent member titles
 NAME_SEPARATOR = " · "
 SUMMARY_HEADING = "## Summary (auto)"
@@ -92,13 +96,18 @@ def display_term(term: str, texts: Sequence[str]) -> str:
     return _title_case(term)
 
 
+def _generic(term: str) -> bool:
+    return all(word in GENERIC_TITLE_WORDS or word.isdigit() for word in term.split())
+
+
 def project_name(titles: Sequence[str], keywords: Sequence[str], texts: Sequence[str] = ()) -> str:
     """Choose a project name from member titles and c-TF-IDF keywords.
 
     Behavior:
         Counts in how many member titles each title unigram or bigram (English stop words removed)
-        appears. The most frequent one names the project when it appears in at least 30% of the
-        titles and in at least 2 of them; ties prefer a term ranked higher in `keywords`, then a
+        appears, ignoring n-grams made only of `GENERIC_TITLE_WORDS` or numbers (e.g. `day`,
+        `untitled 2026`). The most frequent one names the project when it appears in at least 30%
+        of the titles and in at least 2 of them; ties prefer a term ranked higher in `keywords`, then a
         bigram, then alphabetical order. Otherwise the name is the top 2 keywords joined by ` · `.
         Terms are written as in the titles (then `texts`) when that casing has a capital letter,
         and title-cased otherwise (`display_term`).
@@ -119,12 +128,14 @@ def project_name(titles: Sequence[str], keywords: Sequence[str], texts: Sequence
         if present is not None:
             terms = vectorizer.get_feature_names_out()
             rank = {k: i for i, k in enumerate(keywords)}
+            candidates = [i for i in range(len(terms)) if not _generic(str(terms[i]))]
             best = min(
-                range(len(terms)),
+                candidates,
                 key=lambda i: (-present[i], rank.get(terms[i], len(rank)), -len(terms[i].split()), terms[i]),
+                default=None,
             )
             needed = max(TITLE_NGRAM_MIN, math.ceil(TITLE_NGRAM_SHARE * len(usable) - 1e-9))
-            if present[best] >= needed:
+            if best is not None and present[best] >= needed:
                 return display_term(str(terms[best]), usable)
     if keywords:
         sources = [*usable, *texts]

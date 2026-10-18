@@ -43,6 +43,7 @@ from pam.memory import writer
 FIXTURES = Path(__file__).parent / "fixtures"
 CLAUDE = FIXTURES / "claude" / "export.zip"
 CHATGPT = FIXTURES / "chatgpt" / "export.zip"
+GEMINI = FIXTURES / "gemini" / "export.zip"
 NOW = datetime(2026, 10, 18, 12, tzinfo=UTC)
 runner = CliRunner()
 
@@ -186,6 +187,39 @@ def test_name_needs_two_titles_and_keeps_capitals():
     assert naming.project_name(["Finding winter jobs", "Course prep", "Visa check"], ["cse", "cds"],
                                ["I take CSE and CDS"]) == "CSE · CDS"
     assert naming.project_name(["UW CS prep", "UW CS jobs", "Other"], []) == "UW CS"
+
+
+def test_name_rejects_generic_title_fragment():
+    # Members of the bge-clustered university project: "day" is in 2 of 6 titles.
+    titles = [
+        "Intensive 15-day course prep for UW CS", "Finding on-campus winter break jobs",
+        "F1 visa check-in and service record requirements", "What should I pack for a rainy day hike?",
+        "Suggest a simple meal plan with lentils.", "Untitled conversation 2026-10-17",
+    ]
+    keywords = ["cse", "cds", "winter", "break", "jobs"]
+    assert naming.project_name(titles, keywords, ["I take CSE and CDS"]) == "CSE · CDS"
+
+
+def test_name_keeps_multiword_title_ngram():
+    titles = ["Immich backup verification", "Immich backup restore", "Router reset"]
+    assert naming.project_name(titles, ["photos"]) == "Immich backup"
+
+
+def test_name_generic_titles_only_fall_back_to_keywords():
+    titles = ["New chat", "New chat", "Help question", "Untitled conversation 2026-10-17",
+              "Untitled conversation 2026-10-18"]
+    assert naming.project_name(titles, ["sqlite vec", "rag pipeline"]) == "Sqlite Vec · Rag Pipeline"
+
+
+def test_three_fixtures_give_no_generic_project_name(vault):
+    _invoke(vault.root, "import", "run", str(GEMINI))
+    _invoke(vault.root, "index")
+    run_cluster(vault)
+    names = [p.name for p, _ in _projects(vault).values()]
+    assert len(names) >= 2
+    for name in names:
+        words = re.findall(r"\w+", name.lower())
+        assert not all(w in naming.GENERIC_TITLE_WORDS or w.isdigit() for w in words), name
 
 
 def test_replace_summary_keeps_notes_byte_exact():
