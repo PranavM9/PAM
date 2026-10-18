@@ -38,6 +38,16 @@ MAX_TOOL_ROUNDS = 5
 TOOL_SUMMARY_CHARS = 200
 DEFAULT_AGENT = "default"
 
+TOOLS_NOTE = (
+    "You can call PAM's memory tools. When the user asks you to remember something, call add_fact "
+    "(or update_project / add_skill for projects and skills) and say it is saved only after the tool "
+    "result reports success."
+)
+NO_TOOLS_NOTE = (
+    "You have no tools in this chat, so you cannot save or change memory. Never claim to have "
+    "remembered, saved or updated anything; if the user asks, say so and suggest a model with tool support."
+)
+
 
 class ToolRoundLimit(PamError):
     """The model still asked for tools after `MAX_TOOL_ROUNDS` rounds of tool calls."""
@@ -66,7 +76,10 @@ async def run_turn(
         Starts a session when `req.session_id` is `None`; otherwise continues it, using the
         session's agent when `req.agent` is `"default"`. Records the user turn (a new model adds a
         `ModelSwitch`), then: injection mode emits a `ContextEvent` from MCP `get_context` and
-        sends `PAM_PREAMBLE` plus the rendered bundle as the system prompt; tool mode emits a
+        sends `PAM_PREAMBLE`, a tools note and the rendered bundle as the system prompt. A model with
+        `supports_tools` also gets the agent's MCP tools in injection mode (same loop and cap as tool
+        mode), so memory writes work by default; a model without them is told it cannot save memory
+        (CHG-0024). Tool mode emits a
         persona-only `ContextEvent`, fails for a model without `supports_tools`, and otherwise lets
         the model call the agent's MCP tools for at most `MAX_TOOL_ROUNDS` rounds. History is the
         session's `recent_turns` before the current message. Tokens stream as `TokenEvent`s; a
@@ -104,7 +117,7 @@ async def run_turn(
             )
             if not model.supports_tools:
                 raise ToolsUnsupported(f"model {model.id} does not support tools; use --mode injection")
-            system = "\n\n".join((PAM_PREAMBLE, INSTRUCTIONS, rendered))
+            system = "\n\n".join((PAM_PREAMBLE, TOOLS_NOTE, INSTRUCTIONS, rendered))
             async with open_session(v, agent, mcp_url) as mcp:
                 async for event in _tool_loop(model, [_system(system), *turns], mcp, reply):
                     yield event
@@ -113,8 +126,13 @@ async def run_turn(
                 bundle = await mcp_client.get_context(mcp, req.message, sid)
                 context_sent = True
                 yield _context_event(sid, bundle)
-                messages = [_system(f"{PAM_PREAMBLE}\n\n{bundle.rendered}"), *turns]
-                async for event in _stream(model, messages, None, reply):
+                note = TOOLS_NOTE if model.supports_tools else NO_TOOLS_NOTE
+                messages = [_system(f"{PAM_PREAMBLE}\n\n{note}\n\n{bundle.rendered}"), *turns]
+                if model.supports_tools:
+                    events = _tool_loop(model, messages, mcp, reply)
+                else:
+                    events = _stream(model, messages, None, reply)
+                async for event in events:
                     yield event
         if reply.text:
             await asyncio.to_thread(session.record_turn, v, sid, "assistant", reply.text, model.id)

@@ -2178,6 +2178,19 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - 2026-10-18 · PROPOSED · agent (Settings task)
   - 2026-10-18 · IMPLEMENTED · agent (Settings task; plan approved by Yogesh in session). Provider error messages are masked with `keystore.redact`; `last4` is empty for values shorter than 12 characters.
 
+### CHG-0024 — M12: tools by default in injection mode, and a no-tools honesty note
+- **Type:** design
+- **Module(s):** M12 (`chat/orchestrator.py`)
+- **Proposed by:** agent (chat tools fix), decisions confirmed by Yogesh
+- **Date:** 2026-10-18
+- **Motivation:** "Remember that my name is Jerry" wrote nothing. The vault's only model had `supports_tools = false`, injection mode (the API and UI default) never passed tools, and the model replied "I've updated my working memory" without any tool call. §8 M12 step 2 gave injection mode no tools.
+- **Proposal:**
+  1. Injection mode with a `supports_tools` model runs the same tool loop as tool mode (all of the agent's MCP tools, the 5-round cap, `ToolCallEvent`s) after injecting `get_context`; memory writes work without switching mode. `mode` values and the `ChatRequest` contract are unchanged.
+  2. Tool-capable models get `TOOLS_NOTE` (call `add_fact` etc.; say "saved" only after a successful result), also in tool mode. Models without tool support get `NO_TOOLS_NOTE` (cannot save memory; never claim to have; suggest a tool-capable model). The system prompt is `PAM_PREAMBLE`, the note, then the rendered bundle.
+  3. Tool mode still errors for a model without `supports_tools`. The flag stays the user's declaration (Settings page `Tools` checkbox / `pam.toml`).
+- **Impact:** M12 only. No contract, vault layout or schema change. A model declared `supports_tools` that the provider rejects with tools now fails in injection mode too (an `ErrorEvent`).
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (chat tools fix)
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
 
