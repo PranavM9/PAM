@@ -1525,7 +1525,9 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   4. `pam search`, `pam context` (`--json`, `--budget`, `--agent`).
 - **Done when:** the M6 acceptance criteria pass, including the scope property test.
 - **Agent plan (➕):**
+  - Added `retrieve/_index.py` as the read-only seam, with T06 helper delegation and a local sqlite-vec/FastEmbed fallback. Implemented hybrid retrieval, context assembly/rendering, CLI commands, and `tests/test_m06_retrieve_stub.py`; this suite builds its own small §7.8 database with deterministic embeddings. T06-dependent indexed acceptance remains pending its merge.
 - **Result (➕):**
+  - 2026-10-17 · PASS (pre-T06) · In WSL (`uv run`): pure helpers via `pytest -q tests/test_m06_retrieve.py -k 'rrf_fuse or recency_multiplier or sanitize_fts'` → 10 passed; `test_m06_retrieve_stub.py` → 7 passed; `test_m06_retrieve.py` → 10 passed, 22 skipped; full backend `pytest -q` → 351 passed, 25 skipped. Stub-indexed `pam search --json` and `pam context --json` validate as their contracts. Real-index acceptance, the skipped indexed tests, and the in-container run remain pending T06.
 
 #### T08 · Rule extractor & persona (≈ 2 h)
 - **Module:** M3
@@ -1810,6 +1812,17 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - 2026-10-17 · IMPLEMENTED · agent (T06)
 
 ---
+
+### CHG-0008 — M6 index seam and FTS query sanitization
+- **Type:** design
+- **Module(s):** M6
+- **Proposed by:** agent (task T07)
+- **Date:** 2026-10-17
+- **Motivation:** T07 starts before T06 merges, so retrieval needs a stable boundary to read the future index without creating or changing M4 files. Raw user syntax also cannot be passed directly to FTS5.
+- **Proposal:** Keep all M4 access in `pam.retrieve._index` with `connect`, `embed_query`, and `doc_token_counts`. Delegate to `pam.index.db` and `pam.index.embedder` when available; otherwise use a read-only SQLite connection, sqlite-vec, and a cached FastEmbed model. Sanitize FTS input by tokenizing, double-quoting every term with embedded quotes escaped, and joining with `OR`; an empty input yields an empty phrase.
+- **Impact:** M6 retrieval only. The seam is read-only and can drop its fallback after T06 merges; no schema or contract changes.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · agent (task T07)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
