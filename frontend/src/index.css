@@ -81,13 +81,27 @@ body {
   margin: 0;
   color: rgb(var(--fg));
   background-color: rgb(var(--bg));
-  background-image: var(--atmosphere);
-  background-attachment: fixed;
   font-family: var(--font-ui);
   font-feature-settings: 'tnum' 0;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * The atmosphere is painted once on its own fixed GPU layer. A fixed body
+ * background gets re-rasterized in strips when anything changes, and the glass
+ * panels' backdrop blur picked those strips up as a tint and a vertical seam
+ * on the panel beside the one being hovered.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--atmosphere);
+  pointer-events: none;
+  transform: translateZ(0);
 }
 
 /* Typography plugin colors follow the theme tokens. */
@@ -146,16 +160,17 @@ body {
 }
 
 @layer components {
-  /* Glass surfaces: translucent fill, hairline border, top highlight, soft shadow. */
   /*
-   * Each glass surface is its own stacking context and GPU layer, so a hover
-   * effect inside one panel cannot re-layer its neighbours and change how their
-   * backdrop blur is drawn.
+   * Glass surfaces: translucent fill, hairline border, top highlight, soft shadow.
+   * Panels sit on a smooth gradient, so they need no live backdrop blur (a blurred
+   * gradient looks the same). Chrome redraws backdrop blur only inside the
+   * damaged area, which left a tint and a vertical seam on the panel next to
+   * the one being hovered. Real blur is opt-in with `.glass-blur`, for surfaces
+   * that float over detailed content (drawers over the page).
    */
   .glass,
   .glass-strong {
     isolation: isolate;
-    transform: translateZ(0);
   }
   .glass {
     background: linear-gradient(
@@ -166,8 +181,6 @@ body {
     );
     border: 1px solid rgb(var(--edge) / var(--glass-border-alpha));
     box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
-    -webkit-backdrop-filter: blur(28px) saturate(145%);
-    backdrop-filter: blur(28px) saturate(145%);
   }
   .glass-strong {
     background: linear-gradient(
@@ -177,8 +190,12 @@ body {
     );
     border: 1px solid rgb(var(--edge) / calc(var(--glass-border-alpha) + 0.03));
     box-shadow: inset 0 1px 0 var(--glass-highlight), 0 12px 40px rgba(3, 1, 14, 0.22);
-    -webkit-backdrop-filter: blur(24px) saturate(150%);
-    backdrop-filter: blur(24px) saturate(150%);
+  }
+  /* Live frosted blur for overlays that float over detailed content. */
+  .glass-blur {
+    background-color: rgb(var(--panel) / 0.72);
+    -webkit-backdrop-filter: blur(28px) saturate(145%);
+    backdrop-filter: blur(28px) saturate(145%);
   }
   /* Quiet inset surface for content inside a glass panel (no extra blur). */
   .well {
@@ -318,10 +335,7 @@ body {
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .glass,
-  .glass-strong,
-  .card,
-  .panel {
+  .glass-blur {
     background: var(--glass-fallback);
   }
 }

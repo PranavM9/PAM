@@ -55,7 +55,7 @@ export function SidePanel({
   }, [open, onClose])
 
   const drawer = open
-    ? `fixed inset-y-3 z-40 flex w-[min(21rem,calc(100vw-1.5rem))] ${side === 'left' ? 'left-3' : 'right-3'}`
+    ? `glass-blur fixed inset-y-3 z-40 flex w-[min(21rem,calc(100vw-1.5rem))] ${side === 'left' ? 'left-3' : 'right-3'}`
     : 'hidden'
   return (
     <>

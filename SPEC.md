@@ -2008,6 +2008,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** `frontend/` only. No contract changes.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T15)
+  - 2026-10-18 · IMPLEMENTED · agent (T15) · item 1 revised: the panel-next-to-hover tint and seam came from Chrome redrawing `backdrop-filter` only inside the damaged area. Panels no longer use live backdrop blur (they sit on a smooth gradient, so the look is unchanged); blur is opt-in with `.glass-blur` for drawers that float over the page, and the atmosphere gradient is painted on its own fixed layer instead of a fixed body background. Home hero shows the PAM wordmark.
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

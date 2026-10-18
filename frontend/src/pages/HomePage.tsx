@@ -89,7 +89,8 @@ function Stat({ value, label, note }: { value: ReactNode; label: string; note?: 
  *
  * Behavior:
  *     A cinematic, centered landing page in the style of a product homepage:
- *     a glowing memory gem as the focal point, a large headline with two calls
+ *     a glowing memory gem as the focal point, the PAM wordmark spelled out as
+ *     Portable Agent Memory, a tagline with two calls
  *     to action, a band of numbers (vault counts are live from `GET /graph` and
  *     `GET /models`; the token saving is the demo vault's example), three
  *     feature statements, four steps that link to the matching pages with their
@@ -109,16 +110,19 @@ export default function HomePage() {
           <Reveal>
             <MemoryGem size={220} />
           </Reveal>
-          <Reveal delay={120} className="mt-14">
-            <p className="eyebrow text-[13px]">Portable Agent Memory</p>
-            <h1
-              id="home-title"
-              className="mt-4 text-[44px] font-semibold leading-[1.04] tracking-[-0.035em] text-fg sm:text-[64px] lg:text-[76px]"
-            >
-              Pick up where you left off.
-              <br />
-              <span className="bg-gradient-to-r from-fg via-accent to-[#f0abfc] bg-clip-text text-transparent">With any AI.</span>
+          <Reveal delay={120} className="mt-12">
+            <h1 id="home-title" className="flex flex-col items-center">
+              <span className="bg-gradient-to-b from-fg via-fg to-accent bg-clip-text text-[88px] font-semibold leading-none tracking-[-0.05em] text-transparent sm:text-[120px] lg:text-[144px]">
+                PAM
+              </span>
+              <span className="mt-3 text-[15px] font-medium uppercase tracking-[0.32em] text-accent sm:text-[17px]">
+                Portable Agent Memory
+              </span>
             </h1>
+            <p className="mt-8 text-[34px] font-semibold leading-[1.08] tracking-[-0.03em] text-fg sm:text-[44px] lg:text-[52px]">
+              Pick up where you left off.{' '}
+              <span className="bg-gradient-to-r from-fg via-accent to-[#f0abfc] bg-clip-text text-transparent">With any AI.</span>
+            </p>
           </Reveal>
           <Reveal delay={240}>
             <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted sm:text-[19px]">
@@ -222,6 +226,7 @@ export default function HomePage() {
             <h2 id="home-cta" className="text-[40px] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[56px]">
               Stop starting over.
             </h2>
+            <p className="mt-3 text-[15px] font-medium text-accent">Start with PAM.</p>
             <p className="mx-auto mt-4 max-w-md text-[17px] leading-relaxed text-muted">
               Bring your history in once. Every model you use after that already knows you.
             </p>
