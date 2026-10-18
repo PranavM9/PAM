@@ -4,12 +4,13 @@ services:
     build: ./backend
     container_name: pam-backend
     # `pam api serve` refuses an uninitialised vault, so create one on first run. `pam init`
-    # runs only when /vault has no pam.toml and itself refuses a non-empty folder that is not
-    # a vault, so an existing vault is never touched. A failure exits the container (B-05).
+    # runs when /vault has no git repo (a stray pam.toml alone is not a vault: init finishes it
+    # and keeps its settings) and refuses a folder with other content, so an existing vault is
+    # never touched. A failure exits the container (B-05).
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        if [ ! -f /vault/pam.toml ]; then pam init; fi &&
+        if [ ! -d /vault/.git ]; then pam init; fi &&
         exec pam api serve --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"

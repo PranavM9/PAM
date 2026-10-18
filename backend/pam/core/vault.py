@@ -37,6 +37,9 @@ PERSONA_TEMPLATE = (
 )
 GITATTRIBUTES = "* text eol=lf\n"
 GITIGNORE = ".pam/\n"
+# Top-level names `init_vault` creates; a folder holding only these (and no `.git`) is a half-made vault.
+INIT_NAMES = frozenset({CONFIG_FILE, ".pam", ".gitattributes", ".gitignore", "agent", "connectors", "imports",
+                        "memory", "skills", "working"})
 
 _override: Path | None = None
 
@@ -115,10 +118,16 @@ class Vault:
         return self.pam_dir / "write.lock"
 
     def is_initialized(self) -> bool:
-        return self.config_path.is_file()
+        """Whether this folder is a vault: it has a `pam.toml` and its own git repo.
+
+        Behavior:
+            A `pam.toml` alone (for example left by an interrupted `pam init`) is not a vault, so
+            `init_vault` can still finish it and writers never commit into a folder without git.
+        """
+        return self.config_path.is_file() and (self.root / ".git").exists()
 
     def require_initialized(self) -> Vault:
-        """Return this vault if it has a `pam.toml`.
+        """Return this vault if it has a `pam.toml` and a git repo.
 
         Exceptions:
             VaultNotFound: The folder is not an initialized vault.
@@ -126,7 +135,7 @@ class Vault:
             This vault.
         """
         if not self.is_initialized():
-            raise VaultNotFound(f"{self.root} is not a PAM vault (no {CONFIG_FILE}); run `pam init`")
+            raise VaultNotFound(f"{self.root} is not a PAM vault (needs {CONFIG_FILE} and a git repo); run `pam init`")
         return self
 
     # -- §6 path helpers ---------------------------------------------------------------------
@@ -245,16 +254,20 @@ def init_vault(path: str | os.PathLike | None = None) -> InitResult:
         `connectors/.gitkeep` (CHG-0027), and
         `agent/default/` (manifest plus empty persona files), then runs `git init -b main`, sets
         `core.autocrlf=false`, and commits as `PAM <pam@local>`. Does nothing if the vault exists.
+        A half-made vault (no `.git`, and only names `init_vault` creates, e.g. a stray `pam.toml`
+        or `.pam/secrets.json`) is finished instead of refused: existing files are kept and
+        committed, and only missing files are written. An existing `pam.toml` must load.
     Exceptions:
         VaultNotFound: No vault path is given or configured.
-        PamError: The path is a non-empty folder without `pam.toml`, is a file, or a git command fails.
+        PamError: The path is a file, a git repo without `pam.toml`, a non-empty folder with other
+            content, has an invalid `pam.toml`, or a git command fails.
     Returns:
         The created root, whether anything was created, the commit sha, and the committed files.
     Parameters:
         path: Vault folder, or `None` to resolve from `--vault` / `PAM_VAULT`.
     """
     from pam.contracts.config import PamConfig
-    from pam.core.config import dump_toml
+    from pam.core.config import dump_toml, load
 
     vault = Vault.resolve(path)
     root = vault.root
@@ -262,8 +275,14 @@ def init_vault(path: str | os.PathLike | None = None) -> InitResult:
         return InitResult(root=root, created=False)
     if root.exists() and not root.is_dir():
         raise PamError(f"{root} exists and is not a directory")
-    if root.is_dir() and any(root.iterdir()):
-        raise PamError(f"{root} is not empty and is not a PAM vault (no {CONFIG_FILE}); refusing to init")
+    if (root / ".git").exists():
+        raise PamError(f"{root} is a git repo without {CONFIG_FILE}; refusing to init")
+    if root.is_dir():
+        other = sorted(p.name for p in root.iterdir() if p.name not in INIT_NAMES)
+        if other:
+            raise PamError(f"{root} is not empty and is not a PAM vault ({', '.join(other[:3])}); refusing to init")
+    if vault.config_path.is_file():
+        load(vault)  # a half-made vault keeps its settings, but only if they are valid
 
     for d in (
         vault.pam_dir,
@@ -279,7 +298,8 @@ def init_vault(path: str | os.PathLike | None = None) -> InitResult:
     written: list[Path] = []
 
     def put(p: Path, text: str) -> None:
-        mdio.write_text(p, text)
+        if not p.exists():
+            mdio.write_text(p, text)
         written.append(p)
 
     put(root / ".gitattributes", GITATTRIBUTES)
@@ -291,10 +311,10 @@ def init_vault(path: str | os.PathLike | None = None) -> InitResult:
     for kind in PERSONA_KINDS:
         put(vault.persona_path("default", kind), PERSONA_TEMPLATE)
 
-    files = [vault.rel(p) for p in written]
     _git(root, "init", "-q", "-b", "main")
     _git(root, "config", "core.autocrlf", "false")
-    _git(root, "add", "--", *files)
+    _git(root, "add", "-A")  # also commits what a half-made vault already held; `.pam/` is ignored
+    files = sorted(_git(root, "diff", "--cached", "--name-only").splitlines())
     _git(
         root,
         "-c", f"user.name={GIT_AUTHOR_NAME}",

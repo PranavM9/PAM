@@ -483,6 +483,70 @@ def test_init_refuses_non_empty_non_vault(tmp_path):
     assert not (tmp_path / "pam.toml").exists()
 
 
+HALF_VAULT_TOML = (
+    'schema_version = "1.0.0"\n\n[[models]]\nid = "openrouter/test/model:free"\nlabel = "Test model"\n'
+    'supports_tools = true\n'
+)
+
+
+def test_stray_pam_toml_is_not_a_vault(tmp_path):
+    (tmp_path / "pam.toml").write_text(HALF_VAULT_TOML)
+    v = Vault(tmp_path)
+    assert not v.is_initialized()
+    with pytest.raises(VaultNotFound):
+        v.require_initialized()
+
+
+def test_init_finishes_a_half_made_vault_and_keeps_settings(tmp_path):
+    (tmp_path / "pam.toml").write_text(HALF_VAULT_TOML)
+    (tmp_path / ".pam").mkdir()
+    (tmp_path / ".pam" / "secrets.json").write_text('{"openrouter": "sk-test"}')
+    res = runner.invoke(app, ["init", "--vault", str(tmp_path)])
+    assert res.exit_code == 0, res.output
+    v = Vault(tmp_path)
+    assert v.is_initialized()
+    assert [m.id for m in core_config.load(v).models] == ["openrouter/test/model:free"]
+    assert (tmp_path / ".pam" / "secrets.json").read_text() == '{"openrouter": "sk-test"}'
+    assert len(_git_log(tmp_path)) == 1
+    tracked = subprocess.run(["git", "-C", str(tmp_path), "ls-files"], capture_output=True, text=True,
+                             check=True).stdout.splitlines()
+    assert "pam.toml" in tracked and "agent/default/agent.yaml" in tracked
+    assert not any(t.startswith(".pam/") for t in tracked)
+    clean = subprocess.run(["git", "-C", str(tmp_path), "status", "--porcelain"], capture_output=True, text=True,
+                           check=True).stdout
+    assert clean == ""
+
+
+def test_init_keeps_existing_persona_files(tmp_path):
+    persona = tmp_path / "agent" / "default" / "identity.md"
+    persona.parent.mkdir(parents=True)
+    persona.write_text("## Custom\nmine\n")
+    assert init_vault(tmp_path).created
+    assert persona.read_text() == "## Custom\nmine\n"
+
+
+def test_init_refuses_invalid_half_vault_toml(tmp_path):
+    (tmp_path / "pam.toml").write_text("models = [\n")
+    res = runner.invoke(app, ["init", "--vault", str(tmp_path)])
+    assert res.exit_code != 0
+    assert not (tmp_path / ".git").exists()
+
+
+def test_init_refuses_git_repo_without_pam_toml(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    res = runner.invoke(app, ["init", "--vault", str(tmp_path)])
+    assert res.exit_code == 1
+    assert not (tmp_path / "pam.toml").exists()
+
+
+def test_init_refuses_half_vault_with_other_files(tmp_path):
+    (tmp_path / "pam.toml").write_text(HALF_VAULT_TOML)
+    (tmp_path / "notes.txt").write_text("x")
+    res = runner.invoke(app, ["init", "--vault", str(tmp_path)])
+    assert res.exit_code == 1
+    assert not (tmp_path / ".git").exists()
+
+
 def test_init_uses_global_vault_option_and_env(tmp_path, monkeypatch):
     res = runner.invoke(app, ["--vault", str(tmp_path / "a"), "init"])
     assert res.exit_code == 0, res.output

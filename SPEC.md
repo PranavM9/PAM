@@ -2532,6 +2532,21 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T19)
 
+### CHG-0030 — M0/M15: a vault needs a git repo; `pam init` finishes a half-made vault
+- **Type:** design
+- **Module(s):** M0 (`core/vault.py`), M15 (`docker-compose.yml` entrypoint)
+- **Proposed by:** human (Pranav), found on a fresh Docker run
+- **Date:** 2026-10-18
+- **Motivation:** `Vault.is_initialized`, `init_vault` and the backend entrypoint all treated "has `pam.toml`" as "is a vault". A `./vault` holding only a stray `pam.toml` (and `.pam/secrets.json`) therefore skipped `pam init`, the API served it, and the first write failed with `git add -- pam.toml failed: fatal: not a git repository`. `pam init` could not repair it either, because the folder was not empty.
+- **Proposal:**
+  1. `is_initialized` requires `pam.toml` and `.git`; `require_initialized` says so in its message.
+  2. `init_vault` finishes a half-made vault: no `.git`, and only top-level names that init itself creates (`INIT_NAMES`). It keeps every existing file (an existing `pam.toml` must load), writes only missing ones, and commits everything with `git add -A` (`.pam/` stays ignored). It refuses a git repo without `pam.toml` and a folder with any other content, as before.
+  3. The compose entrypoint runs `pam init` when `/vault/.git` is missing (was: when `pam.toml` is missing).
+  4. SETUP §9 gains rows for the `not a git repository` error and Colima's `chown … permission denied` on a missing `./vault`.
+- **Impact:** `backend/pam/core/vault.py`, `backend/tests/test_m00_core.py` (6 tests), `docker-compose.yml`, `SETUP.md`. No contract change; existing vaults are unaffected.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · human (Pranav)
+
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
 
