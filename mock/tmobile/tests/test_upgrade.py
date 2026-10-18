@@ -42,10 +42,12 @@ def test_winner_has_lowest_score_and_every_option_is_explained(maya):
     scored = [o for o in options if o["eligible"]]
     winner = next(o for o in options if o["id"] == maya["data"]["verdict"])
     assert winner["score"] == min(o["score"] for o in scored)
+    explained = {k for r in maya["reasons"] if r["signal"] == "option.score" for k in r["value"]}
     for o in options:
-        assert o["reasons"], f"{o['id']} has no reasons"
+        assert o["why"], f"{o['id']} has no reason"
         if o["eligible"]:
-            assert set(o["money"]) == {"monthly_now", "monthly_after", "once", "total_24m"}
+            assert o["id"] in explained, f"{o['id']} has no score reason"
+            assert {"monthly_after", "once", "total_24m"} <= set(o)
 
 
 def test_option_ids(maya):
@@ -62,7 +64,7 @@ def test_verdict_card_names_the_winner(maya):
 def test_budget_is_respected(maya):
     for o in maya["data"]["options"]:
         if o["eligible"] and o["device_id"]:
-            assert o["money"]["monthly_after"] - o["money"]["monthly_now"] <= 40
+            assert o["monthly_after"] - maya["data"]["monthly_now"] <= 40
 
 
 def test_healthy_phone_without_needs_keeps_phone(client):

@@ -86,3 +86,32 @@ def test_every_tool_maps_to_a_route(client, connector):
     routes = {(m, r.path) for r in client.app.routes for m in getattr(r, "methods", ()) or ()}
     for tool in connector.tools:
         assert (tool.method, tool.path) in routes, tool.name
+
+
+MAX_MODEL_CHARS = 4300  # T17 trims the model's copy to 1500 cl100k tokens; this JSON runs >= 3 chars per token
+
+
+def test_model_facing_result_fits_t17_token_cap(client, catalog):
+    """What T17 hands the model (`{"connector", "tool", "data": body without pam_cards}`) is never truncated."""
+    import json
+
+    def size(tool, res):
+        body = res.json()
+        body.pop("pam_cards")
+        return len(json.dumps({"connector": "tmobile", "tool": tool, "data": body}, ensure_ascii=False))
+
+    sizes = {"search": size("search_devices", client.get("/catalog/devices?query=camera&limit=6")),
+             "plans": size("list_plans", client.get("/catalog/plans?lines=5")),
+             "tradein": size("tradein_value", client.get("/tradein/kestrel-5?months_ahead=24"))}
+    for cid, customer in catalog.customers.items():
+        sizes[cid] = size("get_household", client.get(f"/customers/{cid}"))
+        sizes[cid + " optimize"] = size("optimize_household", client.post(
+            "/recommend/household", json={"customer_id": cid, "include_home_internet": True}))
+        for line in customer["lines"]:
+            sizes[line["id"] + " upgrade"] = size("recommend_upgrade", client.post("/recommend/upgrade", json={
+                "customer_id": cid, "line_id": line["id"], "monthly_budget": 40,
+                "needs": "battery,camera,storage,size"}))
+            sizes[line["id"] + " addons"] = size("suggest_addons", client.post("/recommend/addons", json={
+                "customer_id": cid, "line_id": line["id"], "device_id": "aurora-fold"}))
+    too_big = {k: v for k, v in sizes.items() if v > MAX_MODEL_CHARS}
+    assert not too_big, too_big

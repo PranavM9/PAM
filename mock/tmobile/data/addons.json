@@ -1,0 +1,153 @@
+{
+  "addons": [
+    {
+      "id": "protection",
+      "name": "Device protection",
+      "kind": "protection",
+      "icon": "shield",
+      "price": {
+        "amount": 15,
+        "period": "month"
+      },
+      "eligibility": "Any phone bought in the last 30 days or any foldable.",
+      "image": "images/addons/protection.svg"
+    },
+    {
+      "id": "case",
+      "name": "Everyday case",
+      "kind": "accessory",
+      "icon": "case",
+      "price": {
+        "amount": 39,
+        "period": "once"
+      },
+      "eligibility": "Any phone.",
+      "image": "images/addons/case.svg"
+    },
+    {
+      "id": "charger",
+      "name": "30 W fast charger",
+      "kind": "accessory",
+      "icon": "charger",
+      "price": {
+        "amount": 29,
+        "period": "once"
+      },
+      "eligibility": "Phones sold without a charger.",
+      "image": "images/addons/charger.svg"
+    },
+    {
+      "id": "earbuds",
+      "name": "Wireless earbuds",
+      "kind": "accessory",
+      "icon": "earbuds",
+      "price": {
+        "amount": 129,
+        "period": "once"
+      },
+      "eligibility": "Any phone with Bluetooth.",
+      "image": "images/addons/earbuds.svg"
+    },
+    {
+      "id": "watch-line",
+      "name": "Watch line",
+      "kind": "line",
+      "icon": "watch",
+      "price": {
+        "amount": 10,
+        "period": "month"
+      },
+      "eligibility": "A cellular watch on the account.",
+      "image": "images/addons/watch-line.svg"
+    },
+    {
+      "id": "home-internet",
+      "name": "Home internet",
+      "kind": "service",
+      "icon": "router",
+      "price": {
+        "amount": 50,
+        "period": "month"
+      },
+      "discounted_price": 35,
+      "eligibility": "$35/mo with a Plus or Max line, $50/mo otherwise.",
+      "image": "images/addons/home-internet.svg"
+    },
+    {
+      "id": "bundle-screen",
+      "name": "Screen bundle",
+      "kind": "bundle",
+      "icon": "play",
+      "price": {
+        "amount": 18,
+        "period": "month"
+      },
+      "covers": [
+        "reelhouse",
+        "clipstream"
+      ],
+      "eligibility": "Any account.",
+      "image": "images/addons/bundle-screen.svg"
+    },
+    {
+      "id": "bundle-sound",
+      "name": "Sound bundle",
+      "kind": "bundle",
+      "icon": "play",
+      "price": {
+        "amount": 8,
+        "period": "month"
+      },
+      "covers": [
+        "tunewave"
+      ],
+      "eligibility": "Any account.",
+      "image": "images/addons/bundle-sound.svg"
+    },
+    {
+      "id": "travel-pass",
+      "name": "Travel pass",
+      "kind": "travel",
+      "icon": "plane",
+      "price": {
+        "amount": 5,
+        "period": "once",
+        "note": "per day abroad"
+      },
+      "eligibility": "Lines without international roaming.",
+      "image": "images/addons/travel-pass.svg"
+    },
+    {
+      "id": "battery-service",
+      "name": "Battery replacement",
+      "kind": "service",
+      "icon": "battery",
+      "price": {
+        "amount": 89,
+        "period": "once"
+      },
+      "eligibility": "Phones that still get updates.",
+      "image": "images/addons/battery-service.svg"
+    }
+  ],
+  "streaming_services": [
+    {
+      "id": "reelhouse",
+      "name": "Reelhouse",
+      "kind": "video",
+      "monthly": 15.49
+    },
+    {
+      "id": "tunewave",
+      "name": "Tunewave",
+      "kind": "music",
+      "monthly": 10.99
+    },
+    {
+      "id": "clipstream",
+      "name": "Clipstream",
+      "kind": "video",
+      "monthly": 8.99
+    }
+  ]
+}
