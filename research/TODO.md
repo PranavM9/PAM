@@ -81,7 +81,13 @@
 ## R9 — LLM provider layer 🔴 (blocks M12 / the demo)
 - [ ] LiteLLM: `acompletion(stream=True)`, model string prefixes (`anthropic/`, `openrouter/`, `ollama/`), env var names, tool calling format.
 - [ ] Anthropic API access: confirm whether we have API credits (a Claude subscription is separate from API billing); get the current model ID strings.
-- [ ] OpenRouter free models: pick 2–3 that are currently available and **support tool calling**; note rate limits.
+  - Not verified: `ANTHROPIC_API_KEY` is empty in `.env`. Check console.anthropic.com → Billing. Current IDs: `claude-fable-5-1`, `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` (use `anthropic/` prefix in LiteLLM).
+- [x] OpenRouter free models: pick 2–3 that are currently available and **support tool calling**; note rate limits.
+  - `OPENROUTER_API_KEY` is in `.env` (gitignored). Only call models whose id ends in `:free`.
+  - Each returned a `get_weather` tool call on 2026-10-17: `nvidia/nemotron-3.5-lightning:free` (1M ctx), `nvidia/nemotron-3.5-super-vl:free` (1M ctx), `dots-studio/dots-3-note-preview:free` (512k ctx, preview, may disappear).
+  - Added to local `vault/pam.toml` as `openrouter/<id>` with `supports_tools = true` (vault is gitignored).
+  - Fallback with tools: `google/gemma-4-31b-it:free`.
+  - Rate limits: not measured. OpenRouter's documented free-tier cap is about 20 req/min and 50 req/day without purchased credits; check openrouter.ai/docs/api-reference/limits.
 - [ ] (Optional) Ollama in Docker: a model small enough for our laptops.
 - **Done when:** a script streams a reply from 2 different providers through LiteLLM with the same code.
 
