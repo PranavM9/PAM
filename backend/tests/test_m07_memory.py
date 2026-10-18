@@ -77,6 +77,22 @@ def _facts(vault: Vault) -> list[tuple[Fact, str]]:
     return found
 
 
+def _create_agent(vault: Vault, name: str, write: str) -> None:
+    """Create a custom agent; the writer denies agents that have no manifest."""
+    from typing import get_args
+
+    from pam.agents.manifest import create_agent
+    from pam.contracts.agent import AgentManifest, ReadScope, ToolName
+
+    create_agent(
+        AgentManifest(
+            name=name, display_name=name.title(), origin="custom", created_at="2026-10-01T00:00:00Z",
+            read=ReadScope(), write=write, tools=list(get_args(ToolName)),
+        ),
+        vault,
+    )
+
+
 def _invoke(vault: Vault, *args: str):
     return runner.invoke(app, ["--vault", str(vault.root), *args])
 
@@ -140,6 +156,8 @@ def test_history_is_capped_at_twenty_entries(vault, n):
     [("default", True, "shared"), ("research", False, "research"), ("research", True, "shared")],
 )
 def test_fact_scope_tracks_shared_flag(vault, agent, shared, expected_scope):
+    if agent != "default":
+        _create_agent(vault, agent, write="shared" if shared else "own")
     result = writer.add_fact(vault, _fact_input("UW", shared=shared), agent=agent)
     fact, _ = _facts(vault)[0]
     assert result.ok and fact.scope == expected_scope
@@ -169,7 +187,7 @@ def test_supersede_clears_conflict_and_records_reason(vault):
     fact, _ = _facts(vault)[0]
     conflicted = fact.model_copy(update={
         "status": FactStatus.CONFLICT,
-        "conflict": {"candidate_value": "UW", "detected_by": "extractor",
+        "conflict": {"candidate_value": "UW", "detected_by": "rule",
                      "detected_at": fact.updated_at},
     })
     mdio.write(vault.root / result.path, conflicted, "**school**: WSU\n")
@@ -342,3 +360,324 @@ def test_cli_fact_add_writes_exactly_one_commit(vault):
     assert result.exit_code == 0, result.output
     assert _count_commits(vault) == before + 1
 
+
+
+# -- T09: pipeline, commit messages, reindex, backlinks, extraction route -------------------------
+
+FIXTURE = Path(__file__).parent / "fixtures" / "claude" / "export.zip"
+SESSION = "s_abc123def456"
+
+
+def _subject(vault: Vault) -> str:
+    out = subprocess.run(
+        ["git", "-C", str(vault.root), "log", "-1", "--format=%s"], check=True, capture_output=True, text=True
+    )
+    return out.stdout.strip()
+
+
+def _commit_regex(action: str, session: str | None = None) -> str:
+    suffix = rf", session={session}" if session else ""
+    return rf"^{action}: \S.* \(agent=default{suffix}\)$"
+
+
+def test_commit_message_format_for_every_action(vault):
+    import re
+
+    fact = writer.add_fact(vault, _fact_input("WSU"))
+    assert re.match(_commit_regex("add_fact"), _subject(vault)), _subject(vault)
+    fact_id = fact.doc_id
+
+    writer.supersede_fact(vault, SupersedeFactInput(fact_id=fact_id, new_value="UW", reason="Confirmed"))
+    assert re.match(_commit_regex("supersede_fact"), _subject(vault)), _subject(vault)
+
+    writer.log_episode(vault, _episode_input("Planning", "We chose sqlite."))
+    assert re.match(_commit_regex("log_episode"), _subject(vault)), _subject(vault)
+    writer.log_episode(vault, _episode_input("Planning 2", "We chose fts5."), session_id=SESSION)
+    assert re.match(_commit_regex("log_episode", SESSION), _subject(vault)), _subject(vault)
+
+    writer.update_project(vault, UpdateProjectInput(name="Research"))
+    assert re.match(_commit_regex("update_project"), _subject(vault)), _subject(vault)
+    created = writer.update_project(vault, UpdateProjectInput(name="Other"), session_id=SESSION)
+    assert re.match(_commit_regex("update_project", SESSION), _subject(vault)), _subject(vault)
+    assert created.ok
+
+    writer.add_skill(vault, AddSkillInput(name="Deploy", description="Ship it", steps_markdown="1. Go"))
+    assert re.match(_commit_regex("add_skill"), _subject(vault)), _subject(vault)
+
+
+def test_commit_message_collapses_newlines_and_caps_length(vault):
+    writer.add_fact(vault, _fact_input("University of\nWashington " + "x" * 200))
+    subject = _subject(vault)
+    assert "\n" not in subject and len(subject) < 140
+    assert subject.endswith("(agent=default)")
+
+
+@pytest.fixture
+def index_spy(monkeypatch):
+    calls = []
+    monkeypatch.setattr(writer, "index_paths", lambda v, paths: calls.append((v, list(paths))), raising=False)
+    return calls
+
+
+def test_index_paths_is_called_once_with_the_touched_paths(vault, index_spy):
+    result = writer.add_fact(vault, _fact_input("UW"))
+    assert len(index_spy) == 1
+    assert index_spy[0][0] is vault
+    assert result.path in index_spy[0][1]
+    writer.add_fact(vault, _fact_input("WSU"))
+    assert len(index_spy) == 2
+
+
+def test_log_episode_reindexes_episode_and_facts_in_one_call(vault, index_spy):
+    result = writer.log_episode(vault, _episode_input("Plan", "I attend UW."))
+    assert len(index_spy) == 1
+    paths = index_spy[0][1]
+    assert result.path in paths and any("/facts/" in p for p in paths)
+
+
+def test_index_paths_is_not_called_on_failure_denial_or_noop(vault, index_spy, monkeypatch):
+    from pam.core.errors import VaultBusy
+
+    writer.add_fact(vault, _fact_input("UW"))
+    index_spy.clear()
+    missing = SupersedeFactInput(fact_id=UUID(int=7), new_value="UW", reason="No such fact")
+    assert not writer.supersede_fact(vault, missing).ok
+    assert not writer.add_fact(vault, _fact_input("UW"), agent="ghost").ok
+    assert writer.add_fact(vault, _fact_input("UW")).ok  # exact repeat: nothing to commit
+    monkeypatch.setattr(writer, "vault_write_lock", lambda *a, **k: (_ for _ in ()).throw(VaultBusy("busy")))
+    assert not writer.add_fact(vault, _fact_input("MIT")).ok
+    assert index_spy == []
+
+
+def test_indexer_error_does_not_fail_a_committed_write(vault, monkeypatch):
+    def broken(v, paths):
+        raise RuntimeError("index offline")
+
+    monkeypatch.setattr(writer, "index_paths", broken, raising=False)
+    before = _count_commits(vault)
+    assert writer.add_fact(vault, _fact_input("UW")).ok
+    assert _count_commits(vault) == before + 1
+
+
+def test_mixed_sequence_makes_one_commit_per_successful_write(vault):
+    ghost = _fact_input("UW")
+    steps = [
+        (lambda: writer.add_fact(vault, _fact_input("WSU")), True),
+        (lambda: writer.add_fact(vault, _fact_input("WSU", confidence=0.95)), True),
+        (lambda: writer.add_fact(vault, _fact_input("UW")), True),
+        (lambda: writer.log_episode(vault, _episode_input("Chat", "I attend MIT.")), True),
+        (lambda: writer.update_project(vault, UpdateProjectInput(name="P", note="n1")), True),
+        (lambda: writer.add_skill(vault, AddSkillInput(name="S", description="d", steps_markdown="1. a")), True),
+        (lambda: writer.add_fact(vault, ghost, agent="ghost"), False),
+        (lambda: writer.supersede_fact(vault, SupersedeFactInput(fact_id=UUID(int=3), new_value="x", reason="r")), False),
+        (lambda: writer.update_project(vault, UpdateProjectInput(note="no id and no name")), False),
+    ]
+    for step, should_pass in steps:
+        before = _count_commits(vault)
+        result = step()
+        assert result.ok is should_pass, result.message
+        assert _count_commits(vault) == before + (1 if should_pass else 0)
+        assert (result.commit_sha is not None) is should_pass
+
+
+def test_unchanged_repeat_is_ok_without_a_commit(vault):
+    writer.add_fact(vault, _fact_input("UW", confidence=0.9))
+    before = _count_commits(vault)
+    result = writer.add_fact(vault, _fact_input("UW", confidence=0.4))
+    assert result.ok and result.commit_sha is None and _count_commits(vault) == before
+    assert _facts(vault)[0][0].confidence == pytest.approx(0.9)
+
+
+def test_overwriting_an_imported_episodes_fact_backlinks_it_and_verify_passes(vault):
+    imported = _invoke(vault, "import", "run", str(FIXTURE))
+    assert imported.exit_code == 0, imported.output
+    episode = sorted((vault.root / "memory").glob("*/episodes/*.md"))[0]
+    data, body = mdio.read(episode)
+    ep_id = UUID(str(data["id"]))
+    writer.add_fact(vault, _fact_input("WSU", episode_id=ep_id))
+    before = _count_commits(vault)
+    assert writer.add_fact(vault, _fact_input("UW")).ok
+    assert _count_commits(vault) == before + 1
+    fact = _facts(vault)[0][0]
+    after, after_body = mdio.read(episode)
+    assert str(fact.id) in [str(x) for x in after["superseded_facts"]]
+    assert after_body == body and after["body_sha256"] == data["body_sha256"]
+    verified = _invoke(vault, "episode", "verify")
+    assert verified.exit_code == 0, verified.output
+    assert " 0 failed" in verified.output
+
+
+def test_overwrite_aborts_and_rolls_back_when_the_old_episode_body_was_edited(vault):
+    episode = writer.log_episode(vault, _episode_input("Chat", "I attend WSU."))
+    path = vault.root / episode.path
+    path.write_text(path.read_text(encoding="utf-8") + "tampered\n", encoding="utf-8")
+    snapshot = path.read_bytes()
+    before, head = _count_commits(vault), _subject(vault)
+    result = writer.add_fact(vault, _fact_input("UW"))
+    assert not result.ok and "body_sha256" in result.message
+    assert _count_commits(vault) == before and _subject(vault) == head
+    assert _facts(vault)[0][0].value == "WSU"
+    assert path.read_bytes() == snapshot
+
+
+def test_log_episode_id_format_and_extracted_fact(vault):
+    import re
+
+    from pam.contracts.common import Source
+    from pam.contracts.episode import EpisodeFrontmatter, episode_id
+    from pam.core.ids import sha256_text
+
+    result = writer.log_episode(vault, _episode_input("Plan", "I attend UW."))
+    fm, body = mdio.read_model(vault.root / result.path, EpisodeFrontmatter)
+    assert fm.source is Source.PAM and fm.agent == "default"
+    assert re.fullmatch(r"default:\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ:[0-9a-f]{8}", fm.source_conversation_id)
+    assert fm.id == result.doc_id == episode_id(Source.PAM, fm.source_conversation_id)
+    assert sha256_text(body) == fm.body_sha256
+    (fact, _), = _facts(vault)
+    assert (fact.attribute, fact.value, fact.scope) == ("school", "UW", "shared")
+    assert fact.source_episode == fm.id and fact.extractor.value == "rule"
+
+
+def test_log_episode_by_an_own_scope_agent_skips_shared_fact_extraction(vault):
+    _create_agent(vault, "research", write="own")
+    before = _count_commits(vault)
+    result = writer.log_episode(vault, _episode_input("Chat", "I attend UW."), agent="research")
+    assert result.ok and _count_commits(vault) == before + 1
+    assert result.path.startswith("memory/research/episodes/")
+    assert _facts(vault) == []
+
+
+def test_write_candidates_makes_one_commit_for_many_facts(vault):
+    facts = pytest.importorskip("pam.extract.facts")
+    text = "I attend UW. I work at Microsoft."
+    before = _count_commits(vault)
+    stored = facts.write_candidates(vault, text, agent="default", episode_id=EP1)
+    assert {f.attribute for f in stored} == {"school", "works_at"}
+    assert _count_commits(vault) == before + 1
+    assert _subject(vault) == "derive: +2 ~0 !0"
+    assert facts.write_candidates(vault, text, agent="default", episode_id=EP1) == []
+    assert _count_commits(vault) == before + 1
+
+
+def test_extraction_flags_a_conflict_with_an_agent_written_value(vault):
+    facts = pytest.importorskip("pam.extract.facts")
+    writer.add_fact(vault, _fact_input("WSU"))
+    before = _count_commits(vault)
+    facts.write_candidates(vault, "I attend UW.", agent="default")
+    fact = _facts(vault)[0][0]
+    assert fact.value == "WSU" and fact.status is FactStatus.CONFLICT
+    assert fact.conflict.candidate_value == "UW"
+    assert _count_commits(vault) == before + 1 and _subject(vault) == "derive: +0 ~0 !1"
+
+
+def test_write_candidates_needs_shared_write_permission(vault):
+    facts = pytest.importorskip("pam.extract.facts")
+    from pam.core.errors import PermissionDenied
+
+    _create_agent(vault, "research", write="own")
+    before = _count_commits(vault)
+    with pytest.raises(PermissionDenied):
+        facts.write_candidates(vault, "I attend UW.", agent="research")
+    assert _count_commits(vault) == before and _facts(vault) == []
+
+
+def test_supersede_rejects_multi_valued_facts_without_a_commit(vault):
+    common = {"attribute": "uses_tool", "category": "tooling", "cardinality": "multi"}
+    added = writer.add_fact(vault, _fact_input("Python", **common))
+    before = _count_commits(vault)
+    result = writer.supersede_fact(vault, SupersedeFactInput(fact_id=added.doc_id, new_value="Rust", reason="r"))
+    assert not result.ok and "multi" in result.message
+    assert _count_commits(vault) == before
+
+
+def test_update_project_note_is_one_bullet_in_the_documented_format(vault):
+    import re
+
+    result = writer.update_project(vault, UpdateProjectInput(name="Memory", note="Decided\nto use sqlite-vec"))
+    _, body = mdio.read(vault.root / result.path)
+    bullets = [line for line in body.splitlines() if line.startswith("- ")]
+    assert len(bullets) == 1
+    assert re.fullmatch(r"- \d{4}-\d\d-\d\dT\d\d:\d\dZ \(agent:default\) Decided to use sqlite-vec", bullets[0])
+
+
+def test_an_episode_belongs_to_at_most_one_project(vault):
+    writer.update_project(vault, UpdateProjectInput(name="One", add_episode_ids=[EP1]))
+    before = _count_commits(vault)
+    result = writer.update_project(vault, UpdateProjectInput(name="Two", add_episode_ids=[EP1]))
+    assert not result.ok and "already belongs" in result.message
+    assert _count_commits(vault) == before
+
+
+def test_cli_fact_add_then_supersede_grows_history_with_one_commit_each(vault):
+    import json
+
+    assert _invoke(vault, "fact", "add", "--attribute", "school", "--value", "WSU", "--category", "education").exit_code == 0
+    listing = _invoke(vault, "--json", "fact", "list")
+    fid = json.loads(listing.output)[0]["id"]
+    before = _count_commits(vault)
+    result = _invoke(vault, "fact", "supersede", fid, "--value", "UW", "--reason", "User confirmed")
+    assert result.exit_code == 0, result.output
+    assert _count_commits(vault) == before + 1
+    shown = json.loads(_invoke(vault, "--json", "fact", "show", fid[:8]).output)
+    assert shown["value"] == "UW" and [h["value"] for h in shown["history"]] == ["WSU"]
+    assert shown["history"][0]["reason"] == "User confirmed"
+
+
+@pytest.mark.parametrize(
+    ("args", "code"),
+    [
+        (("fact", "add", "--attribute", "school", "--value", "UW", "--category", "nonsense"), 2),
+        (("fact", "supersede", "99999999", "--value", "UW", "--reason", "r"), 1),
+        (("fact", "add", "--attribute", "school", "--value", "UW", "--category", "education", "--agent", "ghost"), 3),
+        (("fact", "list", "--status", "weird"), 2),
+    ],
+)
+def test_cli_exit_codes(vault, args, code):
+    result = _invoke(vault, *args)
+    assert result.exit_code == code, result.output
+
+
+def test_cli_permission_denied_for_shared_write_and_busy_vault(vault, monkeypatch):
+    from pam.core.errors import VaultBusy
+
+    _create_agent(vault, "research", write="own")
+    denied = _invoke(vault, "fact", "add", "--attribute", "school", "--value", "UW", "--category", "education",
+                     "--agent", "research", "--shared")
+    assert denied.exit_code == 3 and _facts(vault) == []
+    monkeypatch.setattr(writer, "vault_write_lock", lambda *a, **k: (_ for _ in ()).throw(VaultBusy("busy")))
+    busy = _invoke(vault, "fact", "add", "--attribute", "school", "--value", "UW", "--category", "education")
+    assert busy.exit_code == 4
+
+
+def test_cli_project_skill_and_episode_commands_make_one_commit_each(vault, tmp_path):
+    import json
+
+    steps = tmp_path / "steps.md"
+    steps.write_text("1. Review\n2. Tag\n", encoding="utf-8")
+    msgs = tmp_path / "msgs.jsonl"
+    msgs.write_text('{"role": "user", "text": "I attend UW."}\n{"role": "assistant", "text": "Noted."}\n', encoding="utf-8")
+    created = json.loads(_invoke(vault, "--json", "project", "create", "--name", "Research").output)
+    for args in [
+        ("project", "note", created["doc_id"][:8], "Keep tests first."),
+        ("skill", "add", "--name", "Release", "--description", "Ship", "--steps-file", str(steps), "--keywords", "ship,tag"),
+        ("episode", "log", "--title", "Chat", "--messages", str(msgs), "--tags", "a,b"),
+    ]:
+        before = _count_commits(vault)
+        result = _invoke(vault, *args)
+        assert result.exit_code == 0, result.output
+        assert _count_commits(vault) == before + 1, args
+    assert len(_facts(vault)) == 1
+    assert _invoke(vault, "skill", "list").exit_code == 0
+
+
+def test_writes_are_indexed_for_real(vault):
+    from pam.index import indexer
+
+    writer.add_fact(vault, _fact_input("UW"))
+    writer.update_project(vault, UpdateProjectInput(name="Research", note="Indexed."))
+    writer.add_skill(vault, AddSkillInput(name="Deploy", description="Ship", steps_markdown="1. Go"))
+    types = indexer.stats(vault)["types"]
+    assert [types[t]["documents"] for t in ("fact", "project", "skill")] == [1, 1, 1]
+    writer.add_fact(vault, _fact_input("WSU"))
+    report = indexer.index_vault(vault)
+    assert report.documents_indexed == 0 and report.documents_unchanged == 3

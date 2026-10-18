@@ -11,11 +11,15 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
+from pam.cli.fact_cmd import emit_write_result
 from pam.contracts.episode import EpisodeFrontmatter
+from pam.contracts.raw import RawMessage
+from pam.contracts.writes import LogEpisodeInput
 from pam.core import mdio
 from pam.core.errors import PamError
 from pam.core.ids import sha256_text
 from pam.core.vault import Vault
+from pam.memory import writer
 
 app = typer.Typer(help="Inspect and verify imported episodes.", no_args_is_help=True)
 out = Console()
@@ -113,6 +117,40 @@ def verify_cmd(ctx: typer.Context) -> None:
         out.print(f"{ok} OK, {len(bad)} failed", markup=False)
     if bad:
         raise typer.Exit(1)
+
+
+def _read_messages(source: str) -> list[RawMessage]:
+    try:
+        text = typer.get_text_stream("stdin").read() if source == "-" else Path(source).read_text(encoding="utf-8")
+    except OSError as e:
+        raise PamError(f"cannot read messages from {source}: {e}") from e
+    messages = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            messages.append(RawMessage.model_validate_json(line))
+        except ValidationError as e:
+            raise PamError(f"{source}:{number}: not a valid message: {e}", exit_code=2) from e
+    return messages
+
+
+@app.command("log")
+def log_cmd(
+    ctx: typer.Context,
+    title: str = typer.Option(..., "--title", help="Episode title."),
+    messages: str = typer.Option(..., "--messages", help="JSONL of messages {role, text, created_at?} ('-' for stdin)."),
+    summary: str | None = typer.Option(None, "--summary", help="Episode summary."),
+    tags: str = typer.Option("", "--tags", help="Comma-separated tags."),
+    agent: str = typer.Option("default", "--agent", help="Agent that owns the episode."),
+    session: str | None = typer.Option(None, "--session", help="Working-memory session id."),
+) -> None:
+    """Log a conversation as an episode, mine it for facts, and commit once."""
+    data = LogEpisodeInput(
+        title=title, messages=_read_messages(messages), summary=summary,
+        tags=[t.strip() for t in tags.split(",") if t.strip()],
+    )
+    emit_write_result(ctx, writer.log_episode(Vault.resolve().require_initialized(), data, agent, session))
 
 
 def register(root: typer.Typer) -> None:
