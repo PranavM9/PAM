@@ -241,6 +241,11 @@
       "default": 5,
       "title": "Sync Interval Seconds",
       "type": "integer"
+    },
+    "session_idle_minutes": {
+      "default": 30,
+      "title": "Session Idle Minutes",
+      "type": "integer"
     }
   },
   "title": "PamConfig",

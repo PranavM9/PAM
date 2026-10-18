@@ -32,6 +32,9 @@ function saveSessions(sessions: StoredSession[]) {
   }
 }
 
+/** How often open sessions are checked for the server's idle auto-end (CHG-0026). */
+const IDLE_POLL_MS = 30_000
+
 let counter = 0
 const uid = () => `m${Date.now().toString(36)}${(counter++).toString(36)}`
 
@@ -46,7 +49,9 @@ const uid = () => `m${Date.now().toString(36)}${(counter++).toString(36)}`
  *     session, so working memory carries the thread. Retryable errors show a
  *     Retry button. "End session" calls `POST /sessions/{id}/end`. Sessions and
  *     their transcripts are remembered in `localStorage`, since the API only
- *     returns the last 8 turns of a session. From `xl` up the sessions,
+ *     returns the last 8 turns of a session. The server ends a session after
+ *     its idle time and saves an episode; every 30 s the page asks for the
+ *     status of each open session and shows "ended after inactivity". From `xl` up the sessions,
  *     conversation and context sit side by side; below it the sessions and
  *     context columns open as drawers from the conversation header.
  */
@@ -59,6 +64,8 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false)
   const [requestError, setRequestError] = useState<unknown>(null)
   const [ended, setEnded] = useState<WriteResult | null>(null)
+  const [autoEnded, setAutoEnded] = useState<Record<string, string | null>>({})
+  const sessionsRef = useRef(sessions)
   const sessionsPane = usePaneSize({ id: 'chat-sessions', initial: 240, min: 200, max: 360 })
   const contextPane = usePaneSize({ id: 'chat-context', initial: 336, min: 280, max: 560 })
   const [sessionsOpen, setSessionsOpen] = useState(false)
@@ -87,7 +94,32 @@ export default function ChatPage() {
     enabled: Boolean(activeId),
   })
 
-  useEffect(() => saveSessions(sessions), [sessions])
+  useEffect(() => {
+    sessionsRef.current = sessions
+    saveSessions(sessions)
+  }, [sessions])
+
+  useEffect(() => {
+    const sweep = async () => {
+      for (const s of sessionsRef.current.filter((x) => x.id && !x.ended)) {
+        try {
+          const state = await api.getSession(s.id)
+          if (state.status !== 'ended') continue
+          setAutoEnded((m) => ({ ...m, [s.id]: state.promoted_episode_id ?? null }))
+          setSessions((list) => list.map((x) => (x.id === s.id ? { ...x, ended: true } : x)))
+          for (const key of ['session', 'graph', 'vault-tree']) queryClient.invalidateQueries({ queryKey: [key] })
+        } catch {
+          // Unreachable API or unknown session: try again on the next tick.
+        }
+      }
+    }
+    const timer = setInterval(sweep, IDLE_POLL_MS)
+    window.addEventListener('focus', sweep)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', sweep)
+    }
+  }, [queryClient])
 
   useEffect(() => {
     draftRef.current = draft
@@ -311,10 +343,14 @@ export default function ChatPage() {
               <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ok/30 bg-ok/10 px-4 py-3 text-sm">
                 <CheckCircle2 size={16} className="text-ok" aria-hidden />
                 <span className="min-w-0 flex-1">
-                  Session ended
+                  {!ended && activeId && activeId in autoEnded ? 'Session ended after inactivity' : 'Session ended'}
                   {ended?.path ? (
                     <>
                       {' '}and saved as <code className="break-all font-mono text-xs">{ended.path}</code>
+                    </>
+                  ) : activeId && autoEnded[activeId] ? (
+                    <>
+                      {' '}and saved as episode <code className="break-all font-mono text-xs">{autoEnded[activeId]}</code>
                     </>
                   ) : null}
                   .

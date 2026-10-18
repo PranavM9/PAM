@@ -445,3 +445,52 @@ def test_cli_record_on_ended_session_exits_1(vault):
     session.end(vault, sid)
     result = _cli(vault, "session", "record", sid, "--role", "user", "--text", "x", "--model", "a")
     assert result.exit_code == 1 and "already ended" in result.output
+
+
+def _later(minutes: float):
+    from datetime import timedelta  # noqa: PLC0415
+    from pam.core.time import utcnow  # noqa: PLC0415
+
+    return utcnow() + timedelta(minutes=minutes)
+
+
+def test_end_idle_ends_only_idle_sessions_with_turns(vault):
+    idle = session.start(vault, "default", "model-a").session_id
+    session.record_turn(vault, idle, "user", "Plan my backups", "model-a")
+    empty = session.start(vault, "default", "model-a").session_id
+    results = session.end_idle(vault, 30 * 60, now=_later(31))
+    assert [r.ok for r in results] == [True]
+    done = session.show(vault, idle)
+    assert done.status == "ended" and done.promoted_episode_id
+    assert session.show(vault, empty).status == "active"
+    assert "session: auto-end" in _git(vault, "log", "--format=%s", "-n", "1")
+    assert session.end_idle(vault, 30 * 60, now=_later(60)) == []
+
+
+def test_end_idle_keeps_recent_sessions_and_zero_disables(vault):
+    sid = session.start(vault, "default", "model-a").session_id
+    session.record_turn(vault, sid, "user", "Hello there", "model-a")
+    assert session.end_idle(vault, 30 * 60, now=_later(5)) == []
+    assert session.end_idle(vault, 0, now=_later(600)) == []
+    assert session.show(vault, sid).status == "active"
+
+
+def test_cli_end_idle(vault):
+    sid = session.start(vault, "default", "model-a").session_id
+    session.record_turn(vault, sid, "user", "Hello there", "model-a")
+    cfg = vault.config_path
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace("session_idle_minutes = 30", "session_idle_minutes = 1"), encoding="utf-8")
+    from datetime import timedelta  # noqa: PLC0415
+
+    import pam.working.session as mod  # noqa: PLC0415
+
+    real = mod.utcnow
+    mod.utcnow = lambda: real() + timedelta(minutes=5)
+    try:
+        result = _cli(vault, "session", "end", "--idle")
+    finally:
+        mod.utcnow = real
+    assert result.exit_code == 0, result.output
+    assert "Ended 1 of 1" in result.output
+    assert session.show(vault, sid).status == "ended"
+    assert _cli(vault, "session", "end").exit_code != 0

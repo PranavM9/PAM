@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -15,11 +17,40 @@ from pam.api import errors
 from pam.api.jobs import JobRegistry
 from pam.api.routes import agents, chat, graph, health, imports, search, sessions, settings, sync, vault
 from pam.chat import keystore
+from pam.core import config
 from pam.core.vault import Vault
 from pam.mcp_server.server import http_app
+from pam.working import session
 
+log = logging.getLogger(__name__)
 CORS_ORIGINS = ["http://localhost:5173"]
 ROUTERS = (health, imports, vault, search, graph, agents, chat, settings, sessions, sync)
+
+
+def end_idle_once(root: Vault) -> int:
+    """End the sessions that have been idle longer than `session_idle_minutes` (CHG-0026).
+
+    Behavior:
+        Reads the config on every call, so an edit to `pam.toml` applies without a restart. A busy
+        vault or any other failure is logged and retried on the next call.
+    Returns:
+        The number of sessions ended.
+    Parameters:
+        root: The served vault.
+    """
+    try:
+        idle = config.load(root).session_idle_minutes * 60
+        return sum(1 for r in session.end_idle(root, idle) if r.ok)
+    except Exception:  # noqa: BLE001 - the sweeper must survive any single failure
+        log.warning("idle session sweep failed", exc_info=True)
+        return 0
+
+
+async def _end_idle_loop(root: Vault) -> None:
+    """Run `end_idle_once` in a worker thread every `sync_interval_seconds` until cancelled."""
+    while True:
+        await asyncio.to_thread(end_idle_once, root)
+        await asyncio.sleep(max(1, config.load(root).sync_interval_seconds))
 
 
 def create_app(vault_path: str | os.PathLike | None = None, *, mcp_url: str | None = None) -> FastAPI:
@@ -43,9 +74,12 @@ def create_app(vault_path: str | os.PathLike | None = None, *, mcp_url: str | No
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await mcp.start()
+        sweeper = asyncio.create_task(_end_idle_loop(root))
         try:
             yield
         finally:
+            sweeper.cancel()
+            await asyncio.gather(sweeper, return_exceptions=True)
             await mcp.stop()
 
     app = FastAPI(title="PAM API", version=__version__, lifespan=lifespan)

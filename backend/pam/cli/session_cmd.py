@@ -12,6 +12,7 @@ from rich.table import Table
 from pam.cli.fact_cmd import emit_write_result, json_mode
 from pam.contracts.working import WorkingMemory
 from pam.contracts.writes import UpdateWorkingMemoryInput
+from pam.core import config
 from pam.core.vault import Vault
 from pam.working import session
 
@@ -113,11 +114,24 @@ def list_cmd(ctx: typer.Context) -> None:
 @app.command("end")
 def end_cmd(
     ctx: typer.Context,
-    session_id: str = typer.Argument(..., metavar="ID", help="Session id."),
+    session_id: str | None = typer.Argument(None, metavar="ID", help="Session id (omit with --idle)."),
     agent: str | None = typer.Option(None, "--agent", help="Owner of the episode (default: the session's agent)."),
+    idle: bool = typer.Option(False, "--idle", help="End every session idle for session_idle_minutes instead of one ID."),
 ) -> None:
     """Promote the full transcript to an episode and mark the session ended."""
-    emit_write_result(ctx, session.end(Vault.resolve(), session_id, agent))
+    vault = Vault.resolve()
+    if idle:
+        results = session.end_idle(vault, config.load(vault).session_idle_minutes * 60)
+        if json_mode(ctx):
+            typer.echo(json.dumps([r.model_dump(mode="json") for r in results], indent=2))
+        else:
+            typer.echo(f"Ended {sum(r.ok for r in results)} of {len(results)} idle sessions")
+        if any(not r.ok for r in results):
+            raise typer.Exit(1)
+        return
+    if session_id is None:
+        raise typer.BadParameter("give a session ID or --idle")
+    emit_write_result(ctx, session.end(vault, session_id, agent))
 
 
 def register(root: typer.Typer) -> None:
