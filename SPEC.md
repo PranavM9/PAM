@@ -1669,6 +1669,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - **e.** `SearchPage` (hits with score / vec / kw badges, Build context → `ContextBundle` + meter). **f.** `VaultPage` (tree, filter, `?path=` deep links, frontmatter table + `prose`). **g.** `AgentsPage` (list + form, three Custom-section editors with live preview, POST/PUT).
   - Checks: `npm run gen:types && npm run build`, `npm run lint`, headless Chrome walk of §3.3 on mocks. Risks: real API responses differing from the generated types (report as backend bugs); `GET /agents/{name}` returns rendered persona only, so the editors read the text under `## Custom` (CHG-0016).
 - **Result (➕):** 2026-10-17 · draft (mocks) · PASS on mocks. `npm run gen:types && npm run build` → 0 type errors; `npm run lint` (oxlint) → 0 findings; `generated.ts` is reproducible (re-running `gen:types` gives no diff). `VITE_PAM_MOCK=1 npm run dev`, walked in headless Chrome 1440×900: import a Claude zip → stages queued→extract→normalize→derive→index→cluster→done, report 14 found / 14 written → graph grows from 2 to 5 projects → chat "Where did I leave off?" answers with the PAM project, decisions and next steps, panel shows 834 vs 43k tokens → switch model → divider → follow-up continues the thread → `/fail` ends with a retryable error and Retry → End session returns the episode path. All 7 pages render with their CliHint and no console errors; agent create, reserved name (400 shown), tool mode with a `tool_call`, light theme checked. Graph with `?mockNodes=500`: about 60 fps headless during the simulation (Chrome on real hardware still to check). **Mocked endpoints (all of §7.14):** `GET /health`, `POST /imports`, `GET /imports/{id}`, `GET /vault/tree`, `GET /vault/file`, `POST /search`, `POST /context`, `GET /graph`, `GET /agents`, `GET /agents/{name}`, `POST /agents`, `PUT /agents/{name}`, `GET /models`, `POST /chat` (SSE), `GET /sessions/{id}`, `POST /sessions/{id}/end`, `POST /sync`, `GET /sync/status`. Pending (Pranav): the same flow against the real backend after T14, ≥ 50 fps with 500 nodes in Chrome, Windows check after T16.
+  - 2026-10-18 · restyle (lavender glass), home page and resizable panels (CHG-0017) · `npm run build` and `npm run lint` clean; the mock §3.3 flow, all 8 pages, the write paths, panel resizing (clamping, persistence, keyboard), 390 px and light mode re-checked in headless Chrome with no console errors.
 
 #### T16 · Docker hardening & demo (≈ 1 h)
 - **Module:** M15
@@ -1992,6 +1993,21 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** `frontend/` only. No contract changes.
 - **Status log:**
   - 2026-10-17 · IMPLEMENTED · agent (T15)
+
+### CHG-0017 — M14 visual design, home page, resizable panels
+- **Type:** design
+- **Module(s):** M14
+- **Proposed by:** agent (task T15)
+- **Date:** 2026-10-18
+- **Motivation:** The team chose a lavender glass look for the demo, asked for an intro page that explains PAM before the seven working pages, and wanted panel widths adjustable.
+- **Proposal:**
+  1. Theme: dark-first lavender glass tokens in `src/index.css` (RGB triplets; light mode overrides the same tokens). `.glass` / `.panel` / `.card` surfaces get `isolation: isolate` and their own GPU layer, and hover and press styles change color only, so a hover in one panel cannot re-layer a neighbour and tint its backdrop blur. The global `:focus-visible` outline has zero specificity (`:where`), so framed inputs with `outline-none` show their container's focus state instead.
+  2. Home page at `/` (`HomePage.tsx`, nav item "Home"): what PAM is, what it does, and four steps that link to Import, Graph, Agents and Chat, each with its CLI command. Its vault numbers are live (`GET /graph`, `GET /models`); the token figure is the §3.3 example (1.8k vs 46k). Unknown routes now go to `/` instead of `/import`. §3.2's seven pages are unchanged.
+  3. Resizable panels: `ResizeHandle` (pointer, touch and keyboard: arrows ±16 px, Shift ±64, Home/End, Enter or double-click resets) and `usePaneSize` (clamped width, stored in `localStorage` as `pam-pane:<id>`). Applied to the sidebar, import guide, vault tree, search bundle, agents list, guides list, both chat side columns and the graph drawer; each has a min and max so no panel can be collapsed or take over the page. Handles show only where panels sit side by side.
+  4. `VaultTree` lives in `src/components/`, because the root `.gitignore` entry `vault/` also matches `src/components/vault/`.
+- **Impact:** `frontend/` only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T15)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
