@@ -213,34 +213,56 @@ TOOL_SPECS: dict[str, ToolSpec] = {
             "then call supersede_fact.",
             ContextRequest, _get_context, frozenset({"agent"}),
         ),
-        ToolSpec("search_memory", "Search the memory index for relevant chunks.", SearchQuery, _search_memory),
+        ToolSpec(
+            "search_memory",
+            "Search the memory index for relevant chunks. Call it before saying \"I don't know\".",
+            SearchQuery, _search_memory,
+        ),
         ToolSpec(
             "get_episode", "Read one episode's Markdown, truncated from the middle to max_tokens.",
             GetEpisodeInput, _get_episode,
         ),
         ToolSpec("list_agents", "List the agents in this vault.", None, _list_agents),
         ToolSpec(
-            "add_fact", "Record a fact about the user; a different value for the same slot overwrites it.",
+            "add_fact",
+            "Record one fact the user stated about themselves (name, role, preference, location), "
+            "a decision, or a correction; call it at once, without asking permission. The slot is "
+            "subject.attribute, with a stable lowercase noun as attribute (user.name, user.timezone). "
+            "One fact per call. Do not record guesses. "
+            'Example: {"subject":"user","attribute":"name","value":"Jerry","category":"identity"}',
             AddFactInput, _writer_tool("add_fact", AddFactInput),
         ),
         ToolSpec(
-            "supersede_fact", "Replace a fact's value by id after the user confirms, clearing any conflict.",
+            "supersede_fact",
+            "Replace a fact's value by id when the user corrects it and the fact id is shown in the "
+            "context (the UUID in its source path), clearing any conflict. Otherwise use add_fact. "
+            'Example: {"fact_id":"123e4567-e89b-42d3-a456-426614174000","new_value":"Berlin",'
+            '"reason":"user said they moved to Berlin"}',
             SupersedeFactInput, _writer_tool("supersede_fact", SupersedeFactInput),
         ),
         ToolSpec(
-            "log_episode", "Store a conversation as a new episode.",
+            "log_episode",
+            "Store a conversation as a new episode. "
+            'Example: {"title":"Trip planning","messages":[{"role":"user","text":"Plan a trip to Oslo"}]}',
             LogEpisodeInput, _writer_tool("log_episode", LogEpisodeInput),
         ),
         ToolSpec(
-            "update_project", "Create a project, or add a note, episodes or a status to one.",
+            "update_project",
+            "Create a project, or add a note, episodes or a status to one. "
+            'Example: {"name":"Website redesign","note":"Launch moved to May"}',
             UpdateProjectInput, _writer_tool("update_project", UpdateProjectInput),
         ),
         ToolSpec(
-            "add_skill", "Create a skill, or update the skill with the same name.",
+            "add_skill",
+            "Create a skill, or update the skill with the same name. "
+            'Example: {"name":"weekly-report","description":"Write the weekly status report",'
+            '"steps_markdown":"1. Collect updates\\n2. Summarize"}',
             AddSkillInput, _writer_tool("add_skill", AddSkillInput),
         ),
         ToolSpec(
-            "update_working_memory", "Set the goal and append decisions or open questions of a session.",
+            "update_working_memory",
+            "Set the goal and append decisions or open questions of a session. "
+            'Example: {"session_id":"abc123","add_decisions":["Use SQLite"]}',
             UpdateWorkingMemoryInput, _update_working_memory,
         ),
     )
