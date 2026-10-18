@@ -1681,7 +1681,14 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   4. Rehearse twice.
 - **Done when:** the M15 acceptance criteria pass and the demo runs in under 4 minutes.
 - **Agent plan (➕):**
+  - T16a (Docker hardening, step 1): `backend/Dockerfile`, `docker-compose.yml`, `frontend/Dockerfile`, `frontend/nginx.conf` only. SETUP changes are drafted in the PR for human review; `demo/**` and the clean-machine runs are T16b/T16c.
+  - `backend/Dockerfile`: after the dependency-only `uv sync --frozen`, one layer bakes fastembed `BAAI/bge-small-en-v1.5` into `/models`, tiktoken `cl100k_base` into `/models/tiktoken` (`TIKTOKEN_CACHE_DIR`; T01 risk), and checks `import en_core_web_sm` (CHG-0007). It sits before `COPY pam/`, so code edits reuse it. `git config --system --add safe.directory /vault`. ENTRYPOINT/CMD unchanged.
+  - `docker-compose.yml`: backend healthcheck (`python -c urllib…/api/health`, 10 s / 6 retries / 30 s start); frontend `depends_on: backend: condition: service_healthy`; the `pam-models` volume stays and is seeded from the image (CHG-0017).
+  - `frontend/nginx.conf`: proxy settings at server level, inherited by `/api/`, `/api/chat` (`X-Accel-Buffering: no`), `/api/imports` (`client_max_body_size 200m`) and `/mcp`; gzip only in the static `location /`.
+  - `frontend/Dockerfile`: multi-stage as before; drops `.env`, `.env.local`, `.env.*.local` before `npm run build` so no VITE_* secrets are inlined.
+  - Risk: T14 is not on main, so the `|| exec sleep infinity` fallback stays and the healthcheck stays red. Until T14 merges, `docker compose up -d` fails the frontend's `service_healthy` dependency; start it with `docker compose up -d --no-deps frontend`.
 - **Result (➕):**
+  - 2026-10-18 · T16a · PENDING Docker verification · `docker compose config -q` passes; no Docker daemon on the authoring machine, so build, offline model load, `pytest -q` and image size are verified by Pranav on WSL2. Healthcheck pending T14; fallback not removed.
 
 ### 9.4 Cut list (if behind schedule, cut from the top) 🔒
 1. Gemini importer (show that Gemini consumes memory via MCP instead).
@@ -1976,6 +1983,20 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 part 1)
 
+### CHG-0017 — M15 implementation choices: seeded model volume, Python healthcheck, tiktoken baking
+- **Type:** design
+- **Module(s):** M15
+- **Proposed by:** agent (task T16a)
+- **Date:** 2026-10-18
+- **Motivation:** A named volume over `/models` hides the baked models unless Docker seeds it; `python:3.12-slim` has no curl; tiktoken downloads `cl100k_base` on first use, so baking only fastembed still needs the network on the first `pam index`.
+- **Proposal:**
+  1. Model volume: keep `pam-models:/models` (§4) and rely on Docker seeding an empty named volume from the image on first start. An existing volume is not reseeded, so after a model change run `docker compose down -v` (removes only named volumes; the `./vault` bind mount is untouched).
+  2. Healthcheck: `python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=5)"` (a non-2xx response or connection error raises, exit 1); interval 10 s, timeout 6 s, retries 6, start_period 30 s. No curl in the image.
+  3. tiktoken: `TIKTOKEN_CACHE_DIR=/models/tiktoken`, `cl100k_base` baked in the same layer as fastembed.
+  4. nginx: proxy directives at server level so `/api/`, `/api/chat`, `/api/imports` and `/mcp` share them; only `proxy_pass` and per-path settings live in the locations.
+- **Impact:** `backend/Dockerfile`, `docker-compose.yml`, `frontend/Dockerfile`, `frontend/nginx.conf`. No contract changes. Until T14 lands, the frontend's `service_healthy` dependency fails; use `docker compose up -d --no-deps frontend`.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T16a)
 ### CHG-0018 — M12 orchestrator choices: MCP transport, session agent, tool-mode context, round cap, failures
 - **Type:** design
 - **Module(s):** M12 (`chat/mcp_client.py`, `chat/orchestrator.py`, `cli/chat_cmd.py`)
