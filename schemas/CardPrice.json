@@ -1,0 +1,46 @@
+{
+  "properties": {
+    "amount": {
+      "title": "Amount",
+      "type": "number"
+    },
+    "period": {
+      "default": "month",
+      "enum": [
+        "once",
+        "month"
+      ],
+      "title": "Period",
+      "type": "string"
+    },
+    "was": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Was"
+    },
+    "note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Note"
+    }
+  },
+  "required": [
+    "amount"
+  ],
+  "title": "CardPrice",
+  "type": "object"
+}

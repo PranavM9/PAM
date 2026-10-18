@@ -1080,6 +1080,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastembed" },
     { name = "filelock" },
+    { name = "httpx" },
     { name = "ijson" },
     { name = "jinja2" },
     { name = "litellm" },
@@ -1103,7 +1104,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
 ]
 
@@ -1114,6 +1114,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "fastembed", specifier = ">=0.4" },
     { name = "filelock", specifier = ">=3.13" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "ijson", specifier = ">=3.3" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "litellm", specifier = ">=1.50" },
@@ -1136,10 +1137,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "pytest", specifier = ">=8.0" },
-]
+dev = [{ name = "pytest", specifier = ">=8.0" }]
 
 [[package]]
 name = "pillow"

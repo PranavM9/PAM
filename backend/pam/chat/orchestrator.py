@@ -21,10 +21,14 @@ from mcp.client.session import ClientSession
 
 from pam.agents.manifest import load_persona
 from pam.chat import mcp_client
-from pam.chat.llm import MEMORY_GUIDE, PAM_PREAMBLE, LLMError, ToolCall, resolve_model, stream_chat
+from pam.chat.llm import (
+    CONNECTOR_NOTE, MEMORY_GUIDE, PAM_PREAMBLE, LLMError, ToolCall, resolve_model, stream_chat,
+)
 from pam.chat.mcp_client import McpToolError, open_session
+from pam.connectors import executor
 from pam.contracts.api import ChatEvent, ChatRequest, ContextEvent, DoneEvent, ErrorEvent, TokenEvent, ToolCallEvent
-from pam.contracts.config import ModelEntry
+from pam.contracts.config import ModelEntry, PamConfig
+from pam.contracts.connector import ConnectorResult
 from pam.contracts.retrieval import ContextBundle
 from pam.contracts.working import WorkingMemory
 from pam.core import config, tokens
@@ -52,6 +56,19 @@ class ToolsUnsupported(PamError):
 
 
 @dataclass
+class _Connectors:
+    """The connector tools offered this turn, and what running them needs."""
+
+    vault: Vault
+    tools: list[dict[str, Any]] = field(default_factory=list)
+    max_result_tokens: int = 0
+
+    @property
+    def names(self) -> set[str]:
+        return {t["function"]["name"] for t in self.tools}
+
+
+@dataclass
 class _Reply:
     """Text, tool calls and usage gathered from the completions of one turn."""
 
@@ -75,7 +92,10 @@ async def run_turn(
         mode), so memory writes work by default; a model without them is told it cannot save memory
         (CHG-0024). Tool mode emits a
         persona-only `ContextEvent`, fails for a model without `supports_tools`, and otherwise lets
-        the model call the agent's MCP tools for at most `MAX_TOOL_ROUNDS` rounds. History is the
+        the model call the agent's MCP tools for at most `MAX_TOOL_ROUNDS` rounds. Wherever a
+        `supports_tools` model gets tools, it also gets the tools of every connector that lists the
+        agent, and `CONNECTOR_NOTE` follows `MEMORY_GUIDE` when there is at least one (CHG-0027,
+        M16); their calls run as HTTP requests and their `ToolCallEvent`s carry cards. History is the
         session's `recent_turns` before the current message. Tokens stream as `TokenEvent`s; a
         non-empty reply is recorded with its model and a `DoneEvent` closes the turn. Any failure
         after the user turn is recorded ends the turn with one `ErrorEvent` (preceded by an empty
@@ -94,7 +114,8 @@ async def run_turn(
         mcp_url: The `/mcp` endpoint to use, or `None` for an in-process MCP server.
     """
     v = (vault if isinstance(vault, Vault) else Vault.resolve(vault)).require_initialized()
-    model = resolve_model(config.load(v), req.model)
+    cfg = config.load(v)
+    model = resolve_model(cfg, req.model)
     memory = await asyncio.to_thread(_open_session, v, req)
     sid, agent = memory.session_id, memory.agent
     memory = await asyncio.to_thread(session.record_turn, v, sid, "user", req.message, model.id)
@@ -111,19 +132,21 @@ async def run_turn(
             )
             if not model.supports_tools:
                 raise ToolsUnsupported(f"model {model.id} does not support tools; use --mode injection")
-            system = "\n\n".join((PAM_PREAMBLE, MEMORY_GUIDE, rendered))
+            conn = await _connectors(v, agent, cfg)
+            system = "\n\n".join((PAM_PREAMBLE, _memory_note(conn), rendered))
             async with open_session(v, agent, mcp_url) as mcp:
-                async for event in _tool_loop(model, [_system(system), *turns], mcp, reply):
+                async for event in _tool_loop(model, [_system(system), *turns], mcp, reply, conn):
                     yield event
         else:
             async with open_session(v, agent, mcp_url) as mcp:
                 bundle = await mcp_client.get_context(mcp, req.message, sid)
                 context_sent = True
                 yield _context_event(sid, bundle)
-                note = MEMORY_GUIDE if model.supports_tools else NO_TOOLS_NOTE
+                conn = await _connectors(v, agent, cfg) if model.supports_tools else _Connectors(v)
+                note = _memory_note(conn) if model.supports_tools else NO_TOOLS_NOTE
                 messages = [_system(f"{PAM_PREAMBLE}\n\n{note}\n\n{bundle.rendered}"), *turns]
                 if model.supports_tools:
-                    events = _tool_loop(model, messages, mcp, reply)
+                    events = _tool_loop(model, messages, mcp, reply, conn)
                 else:
                     events = _stream(model, messages, None, reply)
                 async for event in events:
@@ -209,21 +232,48 @@ async def _stream(
             reply.completion_tokens = _add(reply.completion_tokens, delta.usage.completion_tokens)
 
 
+async def _connectors(v: Vault, agent: str, cfg: PamConfig) -> _Connectors:
+    """Load the connector tools the agent may use this turn (the store is read on every turn)."""
+    tools = await asyncio.to_thread(executor.tools_for, v, agent)
+    return _Connectors(v, tools, cfg.connectors.max_result_tokens)
+
+
+def _memory_note(conn: _Connectors) -> str:
+    """Return `MEMORY_GUIDE`, followed by `CONNECTOR_NOTE` when connector tools are offered."""
+    return f"{MEMORY_GUIDE}\n\n{CONNECTOR_NOTE}" if conn.tools else MEMORY_GUIDE
+
+
+async def _call_connector(conn: _Connectors, call: ToolCall) -> tuple[str, ToolCallEvent]:
+    """Run one offered connector tool; any failure becomes an error result for the model."""
+    connector_id, tool = executor.split_tool_name(call.name)
+    try:
+        result = await executor.call(conn.vault, connector_id, tool, call.arguments)
+    except PamError as e:
+        result = ConnectorResult(ok=False, latency_ms=0, error={"code": "BAD_ARGUMENTS", "message": str(e)})
+    text = executor.model_message(result, connector_id, tool, conn.max_result_tokens)
+    event = ToolCallEvent(
+        name=call.name, arguments=call.arguments, result_summary=_summary(text, not result.ok), cards=result.cards,
+    )
+    return text, event
+
+
 async def _tool_loop(
-    model: ModelEntry, messages: list[dict], mcp: ClientSession, reply: _Reply
+    model: ModelEntry, messages: list[dict], mcp: ClientSession, reply: _Reply, conn: _Connectors
 ) -> AsyncIterator[TokenEvent | ToolCallEvent]:
-    """Let the model call MCP tools until it answers, for at most `MAX_TOOL_ROUNDS` rounds.
+    """Let the model call MCP and connector tools until it answers, for at most `MAX_TOOL_ROUNDS` rounds.
 
     Behavior:
         Each completion with tool calls appends the assistant message and one `tool` message per
         call (matched by `tool_call_id`) and emits a `ToolCallEvent` per call; a failing tool is an
-        error result for the model, not a failed turn. The model reads the results of the last
-        allowed round; asking for more tools after that fails the turn.
+        error result for the model, not a failed turn. A call is sent to a connector only if that
+        tool was offered this turn; every other name goes to MCP. The model reads the results of the
+        last allowed round; asking for more tools after that fails the turn.
     Exceptions:
         LLMError: A provider call fails.
         ToolRoundLimit: The model asks for tools after `MAX_TOOL_ROUNDS` rounds.
     """
-    tools = await mcp_client.openai_tools(mcp)
+    tools = [*await mcp_client.openai_tools(mcp), *conn.tools]
+    offered = conn.names
     for round_no in range(MAX_TOOL_ROUNDS + 1):
         text_before = len(reply.text)
         async for event in _stream(model, messages, tools, reply):
@@ -237,6 +287,11 @@ async def _tool_loop(
             "tool_calls": [c.as_openai() for c in reply.calls],
         })
         for call in reply.calls:
+            if call.name in offered:
+                text, event = await _call_connector(conn, call)
+                yield event
+                messages.append({"role": "tool", "tool_call_id": call.id, "content": text})
+                continue
             outcome = await mcp_client.call_tool(mcp, call.name, call.arguments)
             summary = _summary(outcome.text, outcome.is_error)
             yield ToolCallEvent(name=call.name, arguments=call.arguments, result_summary=summary)

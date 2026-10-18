@@ -38,12 +38,24 @@ export interface PamContracts {
   AddSkillInput?: AddSkillInput
   AgentManifest?: AgentManifest
   AttachmentRef?: AttachmentRef
+  CardChart?: CardChart
+  CardField?: CardField
+  CardLink?: CardLink
+  CardPrice?: CardPrice
   Cardinality?: Cardinality
+  ChartSeries?: ChartSeries
   ChatEvent?: ChatEvent
   ChatRequest?: ChatRequest
   ChunkCfg?: ChunkCfg
   ClusterCfg?: ClusterCfg
   ClusterReport?: ClusterReport
+  Connector?: Connector
+  ConnectorAuth?: ConnectorAuth
+  ConnectorCard?: ConnectorCard
+  ConnectorParam?: ConnectorParam
+  ConnectorResult?: ConnectorResult
+  ConnectorTool?: ConnectorTool
+  ConnectorsCfg?: ConnectorsCfg
   ContextBundle?: ContextBundle
   ContextCfg?: ContextCfg
   ContextEvent?: ContextEvent
@@ -167,6 +179,51 @@ export interface AttachmentRef {
 }
 /**
  * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "CardChart".
+ */
+export interface CardChart {
+  kind?: 'line' | 'bar'
+  x_label: string
+  y_label: string
+  series: ChartSeries[]
+  marker_x?: number | null
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ChartSeries".
+ */
+export interface ChartSeries {
+  label: string
+  points: [unknown, unknown, ...unknown[]][]
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "CardField".
+ */
+export interface CardField {
+  label: string
+  value: string
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "CardLink".
+ */
+export interface CardLink {
+  label: string
+  url: string
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "CardPrice".
+ */
+export interface CardPrice {
+  amount: number
+  period?: 'once' | 'month'
+  was?: number | null
+  note?: string | null
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
  * via the `definition` "ContextEvent".
  */
 export interface ContextEvent {
@@ -197,6 +254,28 @@ export interface ToolCallEvent {
     [k: string]: unknown
   }
   result_summary: string
+  cards?: ConnectorCard[]
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorCard".
+ */
+export interface ConnectorCard {
+  kind: 'product' | 'plan' | 'verdict' | 'comparison' | 'chart' | 'notice'
+  title: string
+  subtitle?: string | null
+  image_url?: string | null
+  image_alt?: string | null
+  badges?: string[]
+  tone?: 'neutral' | 'positive' | 'caution'
+  price?: CardPrice | null
+  fields?: CardField[]
+  reasons?: string[]
+  columns?: string[]
+  rows?: string[][]
+  chart?: CardChart | null
+  link?: CardLink | null
+  connector_id?: string | null
 }
 /**
  * This interface was referenced by `PamContracts`'s JSON-Schema
@@ -262,6 +341,82 @@ export interface ClusterReport {
   episodes_unassigned: number
   commit_sha: string | null
   duration_ms: number
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "Connector".
+ */
+export interface Connector {
+  schema_version?: string
+  id: string
+  name: string
+  description?: string
+  base_url: string
+  public_base_url?: string | null
+  auth?: ConnectorAuth
+  tools?: ConnectorTool[]
+  enabled?: boolean
+  archived?: boolean
+  agents?: string[]
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorAuth".
+ */
+export interface ConnectorAuth {
+  type?: 'none' | 'api_key' | 'bearer'
+  header?: string | null
+  env_var?: string | null
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorTool".
+ */
+export interface ConnectorTool {
+  name: string
+  description: string
+  method?: 'GET' | 'POST'
+  path: string
+  params?: ConnectorParam[]
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorParam".
+ */
+export interface ConnectorParam {
+  name: string
+  type?: 'string' | 'number' | 'boolean'
+  required?: boolean
+  description?: string
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorResult".
+ */
+export interface ConnectorResult {
+  ok: boolean
+  status?: number | null
+  latency_ms: number
+  data?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | null
+  cards?: ConnectorCard[]
+  error?: {
+    [k: string]: unknown
+  } | null
+}
+/**
+ * This interface was referenced by `PamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorsCfg".
+ */
+export interface ConnectorsCfg {
+  timeout_seconds?: number
+  max_result_tokens?: number
+  max_response_bytes?: number
+  max_tools_per_turn?: number
 }
 /**
  * This interface was referenced by `PamContracts`'s JSON-Schema
@@ -613,6 +768,7 @@ export interface PamConfig {
   models?: ModelEntry[]
   sync_interval_seconds?: number
   session_idle_minutes?: number
+  connectors?: ConnectorsCfg
 }
 /**
  * This interface was referenced by `PamContracts`'s JSON-Schema

@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "url": {
+      "title": "Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "label",
+    "url"
+  ],
+  "title": "CardLink",
+  "type": "object"
+}

@@ -1,0 +1,31 @@
+{
+  "properties": {
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "points": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "title": "Points",
+      "type": "array"
+    }
+  },
+  "required": [
+    "label",
+    "points"
+  ],
+  "title": "ChartSeries",
+  "type": "object"
+}

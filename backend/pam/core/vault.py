@@ -162,6 +162,13 @@ class Vault:
     def working_path(self, session_id: str) -> Path:
         return self.root / "working" / f"{session_id}.md"
 
+    @property
+    def connectors_dir(self) -> Path:
+        return self.root / "connectors"
+
+    def connector_path(self, id: str) -> Path:
+        return self.connectors_dir / f"{id}.yaml"
+
     # -- conversions -------------------------------------------------------------------------
     def rel(self, path: str | os.PathLike) -> str:
         """Convert a path to the vault-relative POSIX form used in contracts.
@@ -234,7 +241,8 @@ def init_vault(path: str | os.PathLike | None = None) -> InitResult:
     """Create a new vault with its git repo and exactly one commit.
 
     Behavior:
-        Creates the §6 folders, `.gitattributes`, `.gitignore`, a default `pam.toml`, and
+        Creates the §6 folders, `.gitattributes`, `.gitignore`, a default `pam.toml`,
+        `connectors/.gitkeep` (CHG-0027), and
         `agent/default/` (manifest plus empty persona files), then runs `git init -b main`, sets
         `core.autocrlf=false`, and commits as `PAM <pam@local>`. Does nothing if the vault exists.
     Exceptions:
@@ -277,6 +285,7 @@ def init_vault(path: str | os.PathLike | None = None) -> InitResult:
     put(root / ".gitattributes", GITATTRIBUTES)
     put(root / ".gitignore", GITIGNORE)
     put(vault.config_path, dump_toml(PamConfig()))
+    put(vault.connectors_dir / ".gitkeep", "")
     manifest = default_manifest().model_dump(mode="json")
     put(vault.manifest_path("default"), yaml.safe_dump(manifest, sort_keys=False, allow_unicode=True))
     for kind in PERSONA_KINDS:

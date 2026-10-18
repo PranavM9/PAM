@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "timeout_seconds": {
+      "default": 10.0,
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "max_result_tokens": {
+      "default": 1500,
+      "title": "Max Result Tokens",
+      "type": "integer"
+    },
+    "max_response_bytes": {
+      "default": 1000000,
+      "title": "Max Response Bytes",
+      "type": "integer"
+    },
+    "max_tools_per_turn": {
+      "default": 20,
+      "title": "Max Tools Per Turn",
+      "type": "integer"
+    }
+  },
+  "title": "ConnectorsCfg",
+  "type": "object"
+}

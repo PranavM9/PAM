@@ -244,6 +244,30 @@ curl -N -X POST localhost:8000/api/chat -H 'content-type: application/json' \
 | `docker compose exec backend pam …` | Run any CLI command |
 | `docker compose down` | Stop (the vault on the host is untouched) |
 
+### M16 — Connectors
+A connector is an outside HTTP API offered to agents as tools (CHG-0027). Each one is a YAML file at `vault/connectors/<id>.yaml`, with one git commit per save or archive. Nothing is deleted: archiving hides and disables a connector.
+
+| Command | Description |
+|---|---|
+| `pam connector list [--all]` | Connectors with state, tool count and agents; invalid files are shown as `INVALID`; `--all` adds archived ones |
+| `pam connector show ID` | The connector as YAML (`--json` for JSON) |
+| `pam connector add FILE.yaml` | Validate and save; no commit if nothing changed |
+| `pam connector archive ID` | `archived: true`, `enabled: false` |
+| `pam connector call ID TOOL --arg k=v …` | One call: status, latency and card titles; `--json` prints the `ConnectorResult`; exits 1 if the call failed |
+
+- **Who gets the tools:** only agents listed under `agents:`, and only on models with `supports_tools`. The `default` agent gets none unless it is listed. The model sees each tool as `<connector_id>__<tool>`.
+- **Secrets:** `auth.env_var` holds only the secret's *name*. Put the value in `.env` (or the environment) under that name. A same-named entry in `vault/.pam/secrets.json` also works, but saving a key on the Settings page currently rewrites that file and drops it, so `.env` is the reliable place.
+- **Safety:** requests stay inside `base_url` (no `/`, `\` or dot segments in path values) and redirects are not followed. Limits come from `[connectors]` in `pam.toml`: `timeout_seconds`, `max_response_bytes`, `max_result_tokens`, `max_tools_per_turn`.
+- **Docker:** a `base_url` such as `http://tmobile-mock:8100` resolves only on the compose network, so run calls inside the container.
+```bash
+docker compose cp mock/tmobile/connector.yaml backend:/tmp/connector.yaml
+pamx connector add /tmp/connector.yaml
+pamx connector call tmobile get_household --arg customer_id=cust-chen
+curl -s localhost:8000/api/connectors
+curl -s -X POST localhost:8000/api/connectors/tmobile/tools/search_devices/call \
+  -H 'content-type: application/json' -d '{"query":"camera"}'
+```
+
 ## 7. Local development without Docker (optional)
 ```bash
 cd backend && uv sync && uv run python -m spacy download en_core_web_sm

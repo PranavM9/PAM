@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Union
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 from .common import Slug
+from .connector import ConnectorCard
 
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -21,6 +22,7 @@ class TokenEvent(BaseModel):
     type: Literal["token"] = "token"; text: str
 class ToolCallEvent(BaseModel):
     type: Literal["tool_call"] = "tool_call"; name: str; arguments: dict; result_summary: str
+    cards: list[ConnectorCard] = []       # CHG-0027: connector display cards; empty for MCP tools
 class DoneEvent(BaseModel):
     type: Literal["done"] = "done"; session_id: str; model: str
     prompt_tokens: int | None; completion_tokens: int | None

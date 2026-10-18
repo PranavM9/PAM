@@ -36,6 +36,8 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "sse-starlette>=2.1",
     "python-multipart>=0.0.9",
+    # M16 connectors (CHG-0027; also the FastAPI TestClient for the M13 tests)
+    "httpx>=0.27",
 ]
 
 [project.scripts]
@@ -44,7 +46,6 @@ pam = "pam.cli.main:app"
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-    "httpx>=0.27",  # FastAPI TestClient (M13 tests)
 ]
 
 [tool.uv.sources]

@@ -1,0 +1,40 @@
+{
+  "properties": {
+    "type": {
+      "default": "none",
+      "enum": [
+        "none",
+        "api_key",
+        "bearer"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "header": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Header"
+    },
+    "env_var": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Env Var"
+    }
+  },
+  "title": "ConnectorAuth",
+  "type": "object"
+}

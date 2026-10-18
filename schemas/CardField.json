@@ -1,0 +1,18 @@
+{
+  "properties": {
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "value": {
+      "title": "Value",
+      "type": "string"
+    }
+  },
+  "required": [
+    "label",
+    "value"
+  ],
+  "title": "CardField",
+  "type": "object"
+}

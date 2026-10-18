@@ -13,7 +13,7 @@ from pydantic import BaseModel, TypeAdapter
 
 CONTRACT_MODULES = (
     "common", "raw", "episode", "fact", "project", "skill", "agent",
-    "retrieval", "working", "writes", "reports", "graph", "config", "api",
+    "retrieval", "working", "writes", "reports", "graph", "config", "api", "connector",
 )
 
 

@@ -26,6 +26,11 @@ from pam.contracts.api import (
     ChatRequest, ContextEvent, DoneEvent, ErrorEvent, TokenEvent, ToolCallEvent,
 )
 from pam.contracts.common import PAM_NAMESPACE, Actor, Source
+from pam.contracts.config import ConnectorsCfg
+from pam.contracts.connector import (
+    CardChart, CardField, CardLink, CardPrice, ChartSeries, Connector, ConnectorAuth, ConnectorCard,
+    ConnectorParam, ConnectorResult, ConnectorTool,
+)
 from pam.contracts.config import (
     ChunkCfg, ClusterCfg, ContextCfg, EmbeddingCfg, ExtractCfg, ModelEntry, PamConfig, RetrievalCfg,
 )
@@ -211,6 +216,26 @@ SAMPLES["GraphData"] = GraphData(agent="default", nodes=[SAMPLES["GraphNode"]], 
                                  generated_at=NOW)
 # ChatEvent is a discriminated union (TypeAdapter); round-trip one member through it.
 SAMPLES["ChatEvent"] = SAMPLES["ContextEvent"]
+# §7.16 connectors (CHG-0027, T17).
+SAMPLES["ConnectorsCfg"] = ConnectorsCfg(timeout_seconds=5.0)
+SAMPLES["ConnectorAuth"] = ConnectorAuth(type="api_key", header="x-api-key", env_var="ACME_KEY")
+SAMPLES["ConnectorParam"] = ConnectorParam(name="customer_id", required=True, description="Customer id")
+SAMPLES["ConnectorTool"] = ConnectorTool(name="get_household", description="Household", path="/customers/{customer_id}",
+                                         params=[SAMPLES["ConnectorParam"]])
+SAMPLES["Connector"] = Connector(id="acme", name="Acme (synthetic)", base_url="http://acme:8100",
+                                 public_base_url="/connectors/acme", auth=SAMPLES["ConnectorAuth"],
+                                 tools=[SAMPLES["ConnectorTool"]], agents=["research"])
+SAMPLES["CardField"] = CardField(label="Battery", value="78%")
+SAMPLES["CardPrice"] = CardPrice(amount=29.17, was=35.0, note="after $350 trade-in, 24 months")
+SAMPLES["CardLink"] = CardLink(label="Details", url="/connectors/acme/devices/x")
+SAMPLES["ChartSeries"] = ChartSeries(label="Trade-in", points=[(0.0, 350.0), (3.0, 300.0)])
+SAMPLES["CardChart"] = CardChart(x_label="Month", y_label="USD", series=[SAMPLES["ChartSeries"]], marker_x=0.0)
+SAMPLES["ConnectorCard"] = ConnectorCard(kind="product", title="Aurora 9", image_url="/connectors/acme/a.svg",
+                                         badges=["Synthetic demo data"], price=SAMPLES["CardPrice"],
+                                         fields=[SAMPLES["CardField"]], chart=SAMPLES["CardChart"],
+                                         link=SAMPLES["CardLink"], connector_id="acme")
+SAMPLES["ConnectorResult"] = ConnectorResult(ok=True, status=200, latency_ms=12, data={"a": [1]},
+                                             cards=[SAMPLES["ConnectorCard"]])
 
 BODY = "# Hi\n\n## Transcript\n\n### user · 2026-10-01T18:04:11Z\nhello  \n\n---\nnot frontmatter\n\n"
 
