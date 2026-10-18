@@ -1598,7 +1598,13 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** FastMCP tools wired to the core, agent-filtered registration, stdio + HTTP app factory, then a test with MCP Inspector.
 - **Done when:** the M11 acceptance criteria pass.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Files: `mcp_server/tools.py` (`TOOL_SPECS` for the ten tools, `Binding`, `make_tool`, `_deps`, `NotAvailable`), `mcp_server/server.py` (`build_server`, `McpHttpApp`, `http_app`), `cli/mcp_cmd.py` (`pam mcp serve|tools`). Tests: `tests/test_m11_mcp.py`.
+  - Each tool is registered with a keyword-only signature copied from its contract model (`get_context` without `agent`), so the advertised schema equals the model's; the handler re-validates with the model, forces `agent` to the bound agent, calls core in a worker thread and returns a `CallToolResult` (structured JSON plus one text block; `rendered` for `get_context`).
+  - `pam.retrieve.*` and `pam.working.session` are imported inside the tool; a missing module returns `NOT_AVAILABLE: <module> not merged yet`. All tools a manifest allows are registered.
+  - HTTP: one ASGI app that answers on any path and picks the server from `?agent=` per request; unknown agent gives 404, `build_server` raises `PamError`.
+  - Tests added: `NOT_AVAILABLE` for a blocked import (read and write tool), `get_context` wiring with a faked retriever, unknown agent (build and HTTP), stdio `initialize` through a subprocess, `update_working_memory` (importorskip).
+  - Risks: the installed SDK is mcp 2.3.0 (`MCPServer`, snake_case result fields), not `FastMCP` of mcp 1.x; the T11 entry point `pam.working.session.update_working_memory(vault, data, agent=)` is assumed.
+- **Result (➕):** 2026-10-17 · PARTIAL · Local run (macOS, Python 3.12 pip venv, no loadable sqlite extension, so the `pam index` step of the `vault` fixture was stubbed outside the repo): `test_m11_mcp.py` 18 passed, 4 skipped (3 wait for T07: `get_context`, `search_memory`, Z-datetimes; 1 waits for T11: `update_working_memory`); full suite 409 passed, 6 skipped, 1 failed (`test_writes_are_indexed_for_real`, the missing sqlite extension). Not yet run: `docker compose exec backend pytest -q`, MCP Inspector, Claude Desktop. PM reruns after T07 and T11 merge.
 
 #### T13 · Chat orchestrator (≈ 1.5 h)
 - **Module:** M12
@@ -1836,6 +1842,23 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-17 · IMPLEMENTED · agent (T09)
   - 2026-10-17 · IMPLEMENTED · agent (T09, after T06 merged) · item 8 now holds without the fallback: the `index_paths` import is hard, and `tests/conftest.py` patches `indexer.get_embedder` with a fake for every module except `test_m04_index.py`.
+
+### CHG-0010 — M11 implementation choices: lazy dependencies, NOT_AVAILABLE, per-connection agent, mcp 2 API
+- **Type:** design
+- **Module(s):** M11 (touches `tests/test_m11_mcp.py`)
+- **Proposed by:** agent (task T12)
+- **Date:** 2026-10-17
+- **Motivation:** §8 M11 does not say what a tool does while M6/M9 are missing, how one HTTP app serves several agents, or which SDK API to use. The locked SDK is mcp 2.3.0, where `FastMCP` is `mcp.server.mcpserver.MCPServer` and results use snake_case fields.
+- **Proposal:**
+  1. Lazy dependencies: `pam.retrieve.context.build_context(vault, ContextRequest)`, `pam.retrieve.search.search(vault, SearchQuery)` and `pam.working.session.update_working_memory(vault, data, agent=)` are imported inside the tool. A missing module (or entry point) returns `NOT_AVAILABLE: <module> not merged yet`: an error result for read tools, a `WriteResult(ok=false, message=...)` for write tools. Only a missing module itself counts; an import error inside an existing module propagates. All ten tools stay registered.
+  2. Registration: a tool is advertised when `can_call(manifest, tool)` holds (the `tools` list, and write tools only if `write != "none"`). `build_server` raises `PamError("cannot serve MCP for agent ...")` for an unknown agent.
+  3. Results: structured content is `model_dump(mode="json")`; the text block is `ContextBundle.rendered` for `get_context`, the truncated Markdown for `get_episode`, JSON otherwise. `list_agents` returns `{"agents": [...]}` because structured content must be an object. Failed writes (`ok=false`) also set `is_error`. `get_episode` truncates the transcript body from the middle with a marker so the result is at most `max_tokens`, and checks `can_read` on the episode's scope.
+  4. HTTP: `http_app(vault)` is one ASGI app that ignores the path (works at `/mcp` and when mounted under it) and builds a server plus session manager per `?agent=` on first use; an unknown agent is a 404. Its lifespan starts the managers; without one (a mount that does not forward it) the first request starts them. Servers are cached, so a manifest edit needs a restart. DNS-rebinding host checks are off, as for the REST API.
+  5. CLI: `pam mcp serve --transport stdio|http --agent --host (127.0.0.1) --port (8765)` and `pam mcp tools --agent` (SETUP §M11).
+  6. Test fixes (assertions unchanged): helpers read `structured_content` / `is_error` (mcp 2 names) as well as the mcp 1 names; the schema test compares `get_context` to `ContextRequest` minus `agent`, which it asserts is absent two lines later.
+- **Impact:** `mcp_server/{server,tools}.py`, `cli/mcp_cmd.py`, `test_m11_mcp.py`. No contract changes. T14 mounts `http_app(vault)` at `/mcp` and forwards its lifespan if it can. Pending T07/T11: the three entry points above.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · agent (T12)
 
 ---
 

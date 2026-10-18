@@ -198,8 +198,18 @@ def _tool_json(tool) -> dict:
     return tool.model_dump(mode="json", by_alias=True)
 
 
+def _structured(result):
+    """Read structured content under the SDK's snake_case (mcp 2) or camelCase (mcp 1) name."""
+    structured = getattr(result, "structured_content", None)
+    return structured if structured is not None else getattr(result, "structuredContent", None)
+
+
+def _is_error(result) -> bool:
+    return bool(getattr(result, "is_error", getattr(result, "isError", False)))
+
+
 def _result_json(result) -> dict:
-    structured = getattr(result, "structuredContent", None)
+    structured = _structured(result)
     if structured is not None:
         return structured if isinstance(structured, dict) else structured.model_dump(mode="json")
     for item in result.content:
@@ -214,7 +224,7 @@ def _result_json(result) -> dict:
 
 
 def _result_value(result):
-    structured = getattr(result, "structuredContent", None)
+    structured = _structured(result)
     if structured is not None:
         if isinstance(structured, (dict, list)):
             return structured
@@ -256,7 +266,7 @@ def test_unadvertised_tool_call_is_rejected(vault):
     except Exception as exc:
         assert "add_fact" in str(exc) or "tool" in str(exc).lower()
     else:
-        assert result.isError
+        assert _is_error(result)
 
 
 def test_instructions_and_get_context_description_direct_conflict_handling(vault):
@@ -292,7 +302,10 @@ def test_input_schemas_match_contract_models_and_bind_agent_on_server(vault):
         "update_working_memory": UpdateWorkingMemoryInput,
     }
     for name, model in expected.items():
-        assert set(schemas[name]["properties"]) == set(model.model_json_schema()["properties"])
+        fields = set(model.model_json_schema()["properties"])
+        if name == "get_context":
+            fields -= {"agent"}  # fixed by the server (SPEC §7.15)
+        assert set(schemas[name]["properties"]) == fields
     assert schemas["list_agents"]["properties"] == {}
     assert "agent" not in schemas["get_context"]["properties"]
     assert "agent" in schemas["search_memory"]["properties"]
@@ -363,7 +376,7 @@ def test_own_write_agent_cannot_add_shared_fact(vault):
     result = _sync(_call_tool(server.build_server(vault, agent="research"), "add_fact", {
         "attribute": "school", "value": "UW", "category": "education", "shared": True,
     }))
-    if result.isError:
+    if _is_error(result):
         assert "PERMISSION_DENIED:" in _text(result)
     else:
         assert _result_json(result).get("message", "").startswith("PERMISSION_DENIED:")
@@ -429,3 +442,105 @@ def test_http_app_accepts_initialize_for_agent_query(vault):
     assert response.status_code == 200, response.text
     assert "initialize" not in response.text or "serverInfo" in response.text
 
+
+
+def _block_import(monkeypatch, module: str) -> None:
+    """Make `import <module>` fail as if its task had not merged."""
+    import importlib  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    for name in [n for n in sys.modules if n == module or n.startswith(module + ".")]:
+        monkeypatch.delitem(sys.modules, name)
+    real = importlib.import_module
+
+    def fake(name, package=None):
+        if name == module or name.startswith(module + "."):
+            raise ModuleNotFoundError(f"No module named {name!r}", name=module)
+        return real(name, package)
+
+    monkeypatch.setattr(importlib, "import_module", fake)
+
+
+def test_missing_retriever_gives_not_available_result(vault, monkeypatch):
+    _block_import(monkeypatch, "pam.retrieve")
+    result = _sync(_call_tool(server.build_server(vault), "get_context", {"query": "anything"}))
+    assert _is_error(result)
+    assert _text(result) == "NOT_AVAILABLE: pam.retrieve.context not merged yet"
+
+
+def test_missing_working_module_gives_not_available_write_result(vault, monkeypatch):
+    _block_import(monkeypatch, "pam.working")
+    result = _sync(_call_tool(server.build_server(vault), "update_working_memory", {
+        "session_id": "s_abcdefghijkl", "goal": "ship T12",
+    }))
+    write_result = WriteResult.model_validate(_result_json(result))
+    assert not write_result.ok and write_result.action == "update_working_memory"
+    assert write_result.message == "NOT_AVAILABLE: pam.working.session not merged yet"
+
+
+def test_update_working_memory_returns_write_result(vault):
+    pytest.importorskip("pam.working.session")
+    result = _sync(_call_tool(server.build_server(vault), "update_working_memory", {
+        "session_id": "s_abcdefghijkl", "goal": "ship T12",
+    }))
+    WriteResult.model_validate(_result_json(result))
+
+
+def test_get_context_binds_agent_and_returns_rendered_text(vault, monkeypatch):
+    import sys  # noqa: PLC0415
+    import types  # noqa: PLC0415
+
+    seen = {}
+
+    def build_context(bound_vault, request):
+        seen["agent"] = request.agent
+        return ContextBundle(
+            agent=request.agent, query=request.query, persona=None, facts=[], conflicts=[], projects=[],
+            episodes=[], working=None, rendered="# Known facts\n- school: UW", tokens_used=6,
+            token_budget=2000, baseline_tokens=0, tokens_saved=0, generated_at=NOW,
+        )
+
+    fake = types.ModuleType("pam.retrieve.context")
+    fake.build_context = build_context
+    monkeypatch.setitem(sys.modules, "pam.retrieve.context", fake)
+    agents.create_agent(_manifest("research", ["get_context"]), vault)
+    result = _sync(_call_tool(server.build_server(vault, agent="research"), "get_context", {"query": "school"}))
+    assert seen["agent"] == "research"
+    assert _text(result) == "# Known facts\n- school: UW"
+    assert ContextBundle.model_validate(_result_json(result)).generated_at == NOW
+
+
+def test_unknown_agent_raises_clear_error_at_build_time(vault):
+    from pam.core.errors import PamError  # noqa: PLC0415
+
+    with pytest.raises(PamError, match="cannot serve MCP for agent 'ghost'"):
+        server.build_server(vault, agent="ghost")
+
+
+def test_http_app_unknown_agent_is_404(vault):
+    pytest.importorskip("starlette.testclient")
+    from starlette.testclient import TestClient  # noqa: PLC0415
+
+    with TestClient(server.http_app(vault)) as client:
+        response = client.post("/mcp?agent=ghost", json={}, headers={"Accept": "application/json, text/event-stream"})
+    assert response.status_code == 404 and "ghost" in response.text
+
+
+def test_stdio_serve_answers_initialize(vault):
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    request = json.dumps({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-06-18", "capabilities": {},
+            "clientInfo": {"name": "pam-test", "version": "1.0.0"},
+        },
+    })
+    code = "from pam.cli.main import app; app()"
+    proc = subprocess.run(
+        [sys.executable, "-c", code, "--vault", str(vault.root), "mcp", "serve", "--transport", "stdio"],
+        input=request + "\n", capture_output=True, text=True, timeout=60,
+    )
+    first = json.loads(proc.stdout.splitlines()[0])
+    assert first["id"] == 1 and "Never invent memories" in first["result"]["instructions"]
