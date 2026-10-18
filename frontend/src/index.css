@@ -2,114 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark-first palette as RGB triplets; light mode overrides via prefers-color-scheme. */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --bg: 13 15 20;
+  --panel: 20 23 31;
+  --raised: 29 33 44;
+  --line: 44 49 63;
+  --fg: 228 231 238;
+  --muted: 140 147 163;
+  --accent: 129 140 248;
+  --accent-fg: 12 14 22;
+  --ok: 52 211 153;
+  --warn: 251 191 36;
+  --bad: 248 113 113;
+  color-scheme: dark;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --bg: 246 247 250;
+    --panel: 255 255 255;
+    --raised: 238 240 245;
+    --line: 218 222 231;
+    --fg: 22 25 34;
+    --muted: 96 104 122;
+    --accent: 79 70 229;
+    --accent-fg: 255 255 255;
+    --ok: 5 150 105;
+    --warn: 180 83 9;
+    --bad: 220 38 38;
+    color-scheme: light;
   }
 }
 
+html,
+body,
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  height: 100%;
 }
 
 body {
   margin: 0;
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+:root .prose {
+  --tw-prose-body: rgb(var(--fg) / 0.9);
+  --tw-prose-headings: rgb(var(--fg));
+  --tw-prose-lead: rgb(var(--muted));
+  --tw-prose-links: rgb(var(--accent));
+  --tw-prose-bold: rgb(var(--fg));
+  --tw-prose-counters: rgb(var(--muted));
+  --tw-prose-bullets: rgb(var(--muted));
+  --tw-prose-hr: rgb(var(--line));
+  --tw-prose-quotes: rgb(var(--fg));
+  --tw-prose-quote-borders: rgb(var(--line));
+  --tw-prose-captions: rgb(var(--muted));
+  --tw-prose-code: rgb(var(--fg));
+  --tw-prose-pre-code: rgb(var(--fg));
+  --tw-prose-pre-bg: rgb(var(--raised));
+  --tw-prose-th-borders: rgb(var(--line));
+  --tw-prose-td-borders: rgb(var(--line));
+  max-width: none;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-raised px-3 py-1.5 text-sm font-medium text-fg transition-colors hover:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply border-accent bg-accent text-accent-fg hover:bg-accent/90;
+  }
+  .input {
+    @apply rounded-md border border-line bg-panel px-2.5 py-1.5 text-sm text-fg placeholder:text-muted;
+  }
+  .card {
+    @apply rounded-lg border border-line bg-panel;
+  }
+  .label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted;
+  }
+  .badge {
+    @apply inline-flex items-center rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted;
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
 }
