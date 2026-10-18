@@ -275,3 +275,15 @@ docker compose exec backend pam index --rebuild   # rebuild derived index only (
 # Full reset (destroys the vault; human-only, never done by agents):
 # docker compose down && rm -rf vault && docker compose up -d && pamx init
 ```
+
+## 11. T-Mobile demo
+A synthetic carrier API (SPEC §8 M17) for the T-Mobile side track. It is fictional data only, and PAM reaches it through the `tmobile` connector (M16, T17).
+```bash
+docker compose up -d --build tmobile-mock                 # healthy at http://localhost:8100/health
+curl -s localhost:8100/customers/cust-chen | head -c 300
+# images through the frontend: http://localhost:5173/connectors/tmobile/images/devices/kestrel-5-slate.svg
+PAM_DOCKER=1 mock/tmobile/demo-setup.sh                   # scratch vault in ./demo/tmobile/vault (needs T17)
+cd mock/tmobile && uv run --frozen pytest -q              # the mock's own tests
+```
+- `MOCK_TODAY` (default `2026-10-18`) fixes "now"; `PUBLIC_BASE` (default `/connectors/tmobile`) prefixes image URLs.
+- The tools, the engines and the API conventions are in `mock/tmobile/README.md`; the 3-minute story is in `mock/tmobile/DEMO.md`.

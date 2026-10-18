@@ -39,6 +39,23 @@ services:
       backend:
         condition: service_healthy
 
+  # SPEC §8 M17: synthetic T-Mobile mock API. The backend calls it at http://tmobile-mock:8100;
+  # the browser loads its images through the frontend at /connectors/tmobile/.
+  tmobile-mock:
+    build: ./mock/tmobile
+    container_name: pam-tmobile-mock
+    environment:
+      MOCK_TODAY: "2026-10-18"
+      PUBLIC_BASE: /connectors/tmobile
+    ports:
+      - "8100:8100"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 10s
+
   ollama:
     image: ollama/ollama
     profiles: [local]

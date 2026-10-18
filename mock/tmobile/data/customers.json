@@ -1,0 +1,1223 @@
+{
+  "customers": [
+    {
+      "id": "cust-chen",
+      "name": "Chen household",
+      "owner_line_id": "chen-mei",
+      "city": "Seattle, WA",
+      "tenure_months": 74,
+      "autopay": true,
+      "watches": 0,
+      "home_internet": {
+        "provider": "elsewhere",
+        "name": "Cable internet",
+        "monthly": 65.0
+      },
+      "services_elsewhere": [
+        "reelhouse",
+        "tunewave"
+      ],
+      "account_addons": [],
+      "promo_credit": {
+        "monthly": 24,
+        "ended": "2026-09-01",
+        "message": "promo.credit_ended"
+      },
+      "lines": [
+        {
+          "id": "chen-mei",
+          "person": {
+            "first_name": "Mei",
+            "age_band": "45-54",
+            "student": false,
+            "avatar": "images/people/chen-mei.svg"
+          },
+          "device_id": "kestrel-7",
+          "device_purchase_date": "2025-10-04",
+          "byod": false,
+          "financing": {
+            "months_left": 12,
+            "balance": 424.5
+          },
+          "plan_id": "max",
+          "tenure_months": 74,
+          "battery_health": 96,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 9.8,
+              "hotspot_gb": 0.5,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 11.2,
+              "hotspot_gb": 1.0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 10.5,
+              "hotspot_gb": 0.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 12.1,
+              "hotspot_gb": 1.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 10.9,
+              "hotspot_gb": 0.6,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 11.6,
+              "hotspot_gb": 0.9,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [
+            {
+              "date": "2026-09-03",
+              "kind": "billing",
+              "message": "contact.billing_promo_ended"
+            },
+            {
+              "date": "2026-10-02",
+              "kind": "billing",
+              "message": "contact.billing_followup"
+            }
+          ],
+          "accessories": [
+            {
+              "addon_id": "case",
+              "date": "2025-10-04"
+            },
+            {
+              "addon_id": "charger",
+              "date": "2025-10-04"
+            }
+          ],
+          "addons": []
+        },
+        {
+          "id": "chen-david",
+          "person": {
+            "first_name": "David",
+            "age_band": "55-64",
+            "student": false,
+            "avatar": "images/people/chen-david.svg"
+          },
+          "device_id": "aurora-x2",
+          "device_purchase_date": "2020-10-10",
+          "byod": false,
+          "financing": {
+            "months_left": 0,
+            "balance": 0.0
+          },
+          "plan_id": "max",
+          "tenure_months": 74,
+          "battery_health": 71,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 1.6,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 2.1,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 1.8,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 2.4,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 1.9,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 2.2,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": []
+        },
+        {
+          "id": "chen-maya",
+          "person": {
+            "first_name": "Maya",
+            "age_band": "18-24",
+            "student": true,
+            "avatar": "images/people/chen-maya.svg"
+          },
+          "device_id": "kestrel-5",
+          "device_purchase_date": "2023-09-12",
+          "byod": false,
+          "financing": {
+            "months_left": 0,
+            "balance": 0.0
+          },
+          "plan_id": "plus",
+          "tenure_months": 74,
+          "battery_health": 78,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 35.2,
+              "hotspot_gb": 5.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 37.9,
+              "hotspot_gb": 6.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 36.4,
+              "hotspot_gb": 5.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 39.8,
+              "hotspot_gb": 6.6,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 41.3,
+              "hotspot_gb": 6.3,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 37.4,
+              "hotspot_gb": 5.8,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [
+            {
+              "date": "2026-08-21",
+              "kind": "device",
+              "message": "contact.battery_drain"
+            }
+          ],
+          "accessories": [
+            {
+              "addon_id": "case",
+              "date": "2023-09-12"
+            }
+          ],
+          "addons": []
+        },
+        {
+          "id": "chen-leo",
+          "person": {
+            "first_name": "Leo",
+            "age_band": "13-17",
+            "student": true,
+            "avatar": "images/people/chen-leo.svg"
+          },
+          "device_id": "lumen-a3",
+          "device_purchase_date": "2025-04-02",
+          "byod": false,
+          "financing": {
+            "months_left": 6,
+            "balance": 62.25
+          },
+          "plan_id": "starter",
+          "tenure_months": 18,
+          "battery_health": 92,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 44.0,
+              "hotspot_gb": 1.5,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 47.5,
+              "hotspot_gb": 2.0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 46.2,
+              "hotspot_gb": 1.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 49.1,
+              "hotspot_gb": 2.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 45.8,
+              "hotspot_gb": 1.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 48.3,
+              "hotspot_gb": 1.6,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [
+            {
+              "date": "2026-09-27",
+              "kind": "network",
+              "message": "contact.slow_video"
+            }
+          ],
+          "accessories": [],
+          "addons": []
+        }
+      ],
+      "taxes_and_fees": 47.25,
+      "bill_history": [
+        {
+          "month": "2026-05",
+          "amount": 212.0
+        },
+        {
+          "month": "2026-06",
+          "amount": 212.0
+        },
+        {
+          "month": "2026-07",
+          "amount": 212.0
+        },
+        {
+          "month": "2026-08",
+          "amount": 212.0
+        },
+        {
+          "month": "2026-09",
+          "amount": 236.0
+        },
+        {
+          "month": "2026-10",
+          "amount": 236.0
+        }
+      ]
+    },
+    {
+      "id": "cust-rivera",
+      "name": "Rivera household",
+      "owner_line_id": "rivera-sofia",
+      "city": "Tacoma, WA",
+      "tenure_months": 9,
+      "autopay": true,
+      "watches": 0,
+      "home_internet": null,
+      "services_elsewhere": [],
+      "account_addons": [],
+      "promo_credit": null,
+      "lines": [
+        {
+          "id": "rivera-sofia",
+          "person": {
+            "first_name": "Sofia",
+            "age_band": "25-34",
+            "student": false,
+            "avatar": "images/people/rivera-sofia.svg"
+          },
+          "device_id": "nimbus-6",
+          "device_purchase_date": "2024-05-01",
+          "byod": true,
+          "financing": {
+            "months_left": 0,
+            "balance": 0.0
+          },
+          "plan_id": "plus",
+          "tenure_months": 9,
+          "battery_health": 88,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 6.2,
+              "hotspot_gb": 0.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 7.4,
+              "hotspot_gb": 1.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 5.9,
+              "hotspot_gb": 0.5,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 8.1,
+              "hotspot_gb": 1.9,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 6.8,
+              "hotspot_gb": 1.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 7.0,
+              "hotspot_gb": 0.7,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [
+            {
+              "addon_id": "case",
+              "date": "2024-05-01"
+            }
+          ],
+          "addons": []
+        }
+      ],
+      "taxes_and_fees": 7.8,
+      "bill_history": [
+        {
+          "month": "2026-05",
+          "amount": 72.8
+        },
+        {
+          "month": "2026-06",
+          "amount": 72.8
+        },
+        {
+          "month": "2026-07",
+          "amount": 72.8
+        },
+        {
+          "month": "2026-08",
+          "amount": 72.8
+        },
+        {
+          "month": "2026-09",
+          "amount": 72.8
+        },
+        {
+          "month": "2026-10",
+          "amount": 72.8
+        }
+      ]
+    },
+    {
+      "id": "cust-okafor",
+      "name": "Okafor household",
+      "owner_line_id": "okafor-ada",
+      "city": "Bellevue, WA",
+      "tenure_months": 96,
+      "autopay": true,
+      "watches": 1,
+      "home_internet": {
+        "provider": "carrier",
+        "name": "Home internet",
+        "monthly": 35.0
+      },
+      "services_elsewhere": [],
+      "account_addons": [
+        "home-internet"
+      ],
+      "promo_credit": null,
+      "lines": [
+        {
+          "id": "okafor-ada",
+          "person": {
+            "first_name": "Ada",
+            "age_band": "45-54",
+            "student": false,
+            "avatar": "images/people/okafor-ada.svg"
+          },
+          "device_id": "aurora-one-pro",
+          "device_purchase_date": "2026-09-20",
+          "byod": false,
+          "financing": {
+            "months_left": 23,
+            "balance": 1053.21
+          },
+          "plan_id": "plus",
+          "tenure_months": 96,
+          "battery_health": 100,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 24.1,
+              "hotspot_gb": 3.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 26.8,
+              "hotspot_gb": 4.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 25.5,
+              "hotspot_gb": 3.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 29.7,
+              "hotspot_gb": 5.0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 27.2,
+              "hotspot_gb": 4.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 26.0,
+              "hotspot_gb": 3.6,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [
+            {
+              "addon_id": "case",
+              "date": "2026-09-20"
+            },
+            {
+              "addon_id": "charger",
+              "date": "2026-09-20"
+            },
+            {
+              "addon_id": "earbuds",
+              "date": "2026-09-20"
+            }
+          ],
+          "addons": [
+            "protection",
+            "watch-line"
+          ]
+        },
+        {
+          "id": "okafor-chidi",
+          "person": {
+            "first_name": "Chidi",
+            "age_band": "45-54",
+            "student": false,
+            "avatar": "images/people/okafor-chidi.svg"
+          },
+          "device_id": "aurora-x5",
+          "device_purchase_date": "2025-09-15",
+          "byod": false,
+          "financing": {
+            "months_left": 11,
+            "balance": 457.88
+          },
+          "plan_id": "max",
+          "tenure_months": 96,
+          "battery_health": 93,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 55.3,
+              "hotspot_gb": 8.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 61.8,
+              "hotspot_gb": 9.5,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 58.2,
+              "hotspot_gb": 7.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 62.4,
+              "hotspot_gb": 10.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 57.9,
+              "hotspot_gb": 8.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 60.1,
+              "hotspot_gb": 9.0,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": [
+            "protection"
+          ]
+        },
+        {
+          "id": "okafor-nneka",
+          "person": {
+            "first_name": "Nneka",
+            "age_band": "18-24",
+            "student": false,
+            "avatar": "images/people/okafor-nneka.svg"
+          },
+          "device_id": "lumen-x",
+          "device_purchase_date": "2026-03-10",
+          "byod": false,
+          "financing": {
+            "months_left": 17,
+            "balance": 707.62
+          },
+          "plan_id": "max",
+          "tenure_months": 48,
+          "battery_health": 98,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 68.4,
+              "hotspot_gb": 12.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 72.9,
+              "hotspot_gb": 14.0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 75.1,
+              "hotspot_gb": 13.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 70.3,
+              "hotspot_gb": 15.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 74.6,
+              "hotspot_gb": 14.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 71.8,
+              "hotspot_gb": 13.0,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": []
+        },
+        {
+          "id": "okafor-obi",
+          "person": {
+            "first_name": "Obi",
+            "age_band": "13-17",
+            "student": true,
+            "avatar": "images/people/okafor-obi.svg"
+          },
+          "device_id": "kestrel-8",
+          "device_purchase_date": "2026-09-28",
+          "byod": false,
+          "financing": {
+            "months_left": 23,
+            "balance": 574.04
+          },
+          "plan_id": "max",
+          "tenure_months": 36,
+          "battery_health": 100,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 52.6,
+              "hotspot_gb": 2.0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 55.0,
+              "hotspot_gb": 2.5,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 58.3,
+              "hotspot_gb": 3.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 54.9,
+              "hotspot_gb": 2.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 56.2,
+              "hotspot_gb": 2.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 57.4,
+              "hotspot_gb": 2.2,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": []
+        },
+        {
+          "id": "okafor-ify",
+          "person": {
+            "first_name": "Ify",
+            "age_band": "18-24",
+            "student": false,
+            "avatar": "images/people/okafor-ify.svg"
+          },
+          "device_id": "lumen-x4",
+          "device_purchase_date": "2025-03-01",
+          "byod": false,
+          "financing": {
+            "months_left": 5,
+            "balance": 197.71
+          },
+          "plan_id": "plus",
+          "tenure_months": 60,
+          "battery_health": 90,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 22.8,
+              "hotspot_gb": 9.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 25.3,
+              "hotspot_gb": 11.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 27.9,
+              "hotspot_gb": 10.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 24.1,
+              "hotspot_gb": 12.0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 26.5,
+              "hotspot_gb": 10.9,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 25.0,
+              "hotspot_gb": 9.7,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": []
+        }
+      ],
+      "taxes_and_fees": 21.36,
+      "bill_history": [
+        {
+          "month": "2026-05",
+          "amount": 467.9
+        },
+        {
+          "month": "2026-06",
+          "amount": 467.9
+        },
+        {
+          "month": "2026-07",
+          "amount": 467.9
+        },
+        {
+          "month": "2026-08",
+          "amount": 467.9
+        },
+        {
+          "month": "2026-09",
+          "amount": 467.9
+        },
+        {
+          "month": "2026-10",
+          "amount": 467.9
+        }
+      ]
+    },
+    {
+      "id": "cust-northwind",
+      "name": "Northwind Bakery",
+      "owner_line_id": "northwind-priya",
+      "city": "Seattle, WA",
+      "tenure_months": 41,
+      "autopay": true,
+      "watches": 0,
+      "business": true,
+      "home_internet": null,
+      "services_elsewhere": [],
+      "account_addons": [],
+      "promo_credit": null,
+      "lines": [
+        {
+          "id": "northwind-priya",
+          "person": {
+            "first_name": "Priya",
+            "age_band": "35-44",
+            "student": false,
+            "avatar": "images/people/northwind-priya.svg"
+          },
+          "device_id": "kestrel-7",
+          "device_purchase_date": "2025-09-30",
+          "byod": false,
+          "financing": {
+            "months_left": 11,
+            "balance": 389.12
+          },
+          "plan_id": "max",
+          "tenure_months": 41,
+          "battery_health": 94,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 14.2,
+              "hotspot_gb": 2.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 16.8,
+              "hotspot_gb": 2.8,
+              "intl_days": 4
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 15.1,
+              "hotspot_gb": 1.9,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 13.9,
+              "hotspot_gb": 2.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 18.4,
+              "hotspot_gb": 3.0,
+              "intl_days": 6
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 15.6,
+              "hotspot_gb": 2.2,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": []
+        },
+        {
+          "id": "northwind-marcus",
+          "person": {
+            "first_name": "Marcus",
+            "age_band": "25-34",
+            "student": false,
+            "avatar": "images/people/northwind-marcus.svg"
+          },
+          "device_id": "lumen-a3",
+          "device_purchase_date": "2025-04-20",
+          "byod": false,
+          "financing": {
+            "months_left": 6,
+            "balance": 62.25
+          },
+          "plan_id": "max",
+          "tenure_months": 41,
+          "battery_health": 89,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 4.1,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 5.3,
+              "hotspot_gb": 0.4,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 4.8,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 6.0,
+              "hotspot_gb": 0.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 5.5,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 4.9,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [
+            {
+              "date": "2026-07-14",
+              "kind": "device",
+              "message": "contact.screen_repair"
+            }
+          ],
+          "accessories": [],
+          "addons": []
+        },
+        {
+          "id": "northwind-elena",
+          "person": {
+            "first_name": "Elena",
+            "age_band": "25-34",
+            "student": false,
+            "avatar": "images/people/northwind-elena.svg"
+          },
+          "device_id": "nimbus-6",
+          "device_purchase_date": "2024-05-02",
+          "byod": false,
+          "financing": {
+            "months_left": 0,
+            "balance": 0.0
+          },
+          "plan_id": "max",
+          "tenure_months": 30,
+          "battery_health": 84,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 11.3,
+              "hotspot_gb": 2.8,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 12.9,
+              "hotspot_gb": 3.6,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 13.8,
+              "hotspot_gb": 3.1,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 12.2,
+              "hotspot_gb": 4.2,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 14.1,
+              "hotspot_gb": 3.9,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 13.0,
+              "hotspot_gb": 3.3,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [],
+          "addons": []
+        }
+      ],
+      "taxes_and_fees": 19.8,
+      "bill_history": [
+        {
+          "month": "2026-05",
+          "amount": 230.55
+        },
+        {
+          "month": "2026-06",
+          "amount": 230.55
+        },
+        {
+          "month": "2026-07",
+          "amount": 230.55
+        },
+        {
+          "month": "2026-08",
+          "amount": 230.55
+        },
+        {
+          "month": "2026-09",
+          "amount": 230.55
+        },
+        {
+          "month": "2026-10",
+          "amount": 230.55
+        }
+      ]
+    },
+    {
+      "id": "cust-hale",
+      "name": "Hale household",
+      "owner_line_id": "hale-ruth",
+      "city": "Olympia, WA",
+      "tenure_months": 132,
+      "autopay": true,
+      "watches": 1,
+      "home_internet": null,
+      "services_elsewhere": [],
+      "account_addons": [],
+      "promo_credit": null,
+      "lines": [
+        {
+          "id": "hale-ruth",
+          "person": {
+            "first_name": "Ruth",
+            "age_band": "65+",
+            "student": false,
+            "avatar": "images/people/hale-ruth.svg"
+          },
+          "device_id": "aurora-x5",
+          "device_purchase_date": "2025-10-01",
+          "byod": false,
+          "financing": {
+            "months_left": 12,
+            "balance": 499.5
+          },
+          "plan_id": "max",
+          "tenure_months": 132,
+          "battery_health": 95,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 2.4,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 2.9,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 2.2,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 3.1,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 2.6,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 2.8,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [
+            {
+              "addon_id": "case",
+              "date": "2025-10-01"
+            }
+          ],
+          "addons": []
+        },
+        {
+          "id": "hale-walter",
+          "person": {
+            "first_name": "Walter",
+            "age_band": "65+",
+            "student": false,
+            "avatar": "images/people/hale-walter.svg"
+          },
+          "device_id": "kestrel-6",
+          "device_purchase_date": "2024-09-20",
+          "byod": false,
+          "financing": {
+            "months_left": 0,
+            "balance": 0.0
+          },
+          "plan_id": "max",
+          "tenure_months": 132,
+          "battery_health": 86,
+          "tradein_eligible": true,
+          "usage": [
+            {
+              "month": "2026-05",
+              "data_gb": 1.2,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-06",
+              "data_gb": 1.5,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-07",
+              "data_gb": 1.1,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-08",
+              "data_gb": 1.8,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-09",
+              "data_gb": 1.4,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            },
+            {
+              "month": "2026-10",
+              "data_gb": 1.3,
+              "hotspot_gb": 0,
+              "intl_days": 0
+            }
+          ],
+          "support_contacts": [],
+          "accessories": [
+            {
+              "addon_id": "case",
+              "date": "2024-09-20"
+            }
+          ],
+          "addons": []
+        }
+      ],
+      "taxes_and_fees": 18.0,
+      "bill_history": [
+        {
+          "month": "2026-05",
+          "amount": 209.62
+        },
+        {
+          "month": "2026-06",
+          "amount": 209.62
+        },
+        {
+          "month": "2026-07",
+          "amount": 209.62
+        },
+        {
+          "month": "2026-08",
+          "amount": 209.62
+        },
+        {
+          "month": "2026-09",
+          "amount": 209.62
+        },
+        {
+          "month": "2026-10",
+          "amount": 209.62
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "plans": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "tagline": "The basics for light users.",
+      "price_per_line": [
+        45,
+        40,
+        30,
+        25,
+        22
+      ],
+      "premium_data_gb": 15,
+      "hotspot_gb": 3,
+      "streaming_perks": [],
+      "international": false,
+      "autopay_discount": 5,
+      "student_only": false,
+      "eligibility": "Anyone.",
+      "image": "images/plans/starter.svg"
+    },
+    {
+      "id": "plus",
+      "name": "Plus",
+      "tagline": "More data and Reelhouse included.",
+      "price_per_line": [
+        70,
+        60,
+        45,
+        38,
+        34
+      ],
+      "premium_data_gb": 50,
+      "hotspot_gb": 15,
+      "streaming_perks": [
+        "reelhouse"
+      ],
+      "international": false,
+      "autopay_discount": 5,
+      "student_only": false,
+      "eligibility": "Anyone.",
+      "image": "images/plans/plus.svg"
+    },
+    {
+      "id": "max",
+      "name": "Max",
+      "tagline": "Unlimited premium data, travel and two streaming services.",
+      "price_per_line": [
+        90,
+        80,
+        60,
+        50,
+        45
+      ],
+      "premium_data_gb": null,
+      "hotspot_gb": 50,
+      "streaming_perks": [
+        "reelhouse",
+        "tunewave"
+      ],
+      "international": true,
+      "autopay_discount": 5,
+      "student_only": false,
+      "eligibility": "Anyone.",
+      "image": "images/plans/max.svg"
+    },
+    {
+      "id": "student",
+      "name": "Student",
+      "tagline": "Plenty of data at a student price.",
+      "price_per_line": [
+        35,
+        30,
+        25,
+        22,
+        20
+      ],
+      "premium_data_gb": 50,
+      "hotspot_gb": 10,
+      "streaming_perks": [],
+      "international": false,
+      "autopay_discount": 5,
+      "student_only": true,
+      "eligibility": "Students aged 13 to 24.",
+      "image": "images/plans/student.svg"
+    }
+  ]
+}

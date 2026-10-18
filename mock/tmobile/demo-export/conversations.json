@@ -1,0 +1,112 @@
+[
+  {
+    "title": "Data structures assignment: AVL tree rotations",
+    "topic": "other",
+    "created_at": "2026-09-08T19:12:00Z",
+    "messages": [
+      {"role": "user", "text": "I'm working on my CSE 332 assignment and I keep getting the AVL rotations wrong. When do I do a double rotation instead of a single one?"},
+      {"role": "assistant", "text": "Look at the balance factors on the path you just inserted into. If the unbalanced node and its heavy child lean the same way (left-left or right-right), one rotation fixes it. If they lean opposite ways (left-right or right-left), rotate the child first and then the node, which is the double rotation."},
+      {"role": "user", "text": "Ok so for left-right I rotate the left child left, then the root right?"},
+      {"role": "assistant", "text": "Exactly. Rotate the left child to the left so the case becomes left-left, then rotate the unbalanced node to the right. Update the heights bottom-up after each rotation, and your insert stays O(log n)."}
+    ]
+  },
+  {
+    "title": "Pho broth for a small kitchen",
+    "topic": "other",
+    "created_at": "2026-09-12T02:40:00Z",
+    "messages": [
+      {"role": "user", "text": "I want to make pho in my apartment this weekend but I only have one big pot and no oven. Is that enough?"},
+      {"role": "assistant", "text": "One big pot is enough. Char the onion and ginger directly over the stove flame or in a dry pan, toast star anise, cinnamon, cloves and coriander seeds, then simmer them with beef bones for about three hours, skimming early so the broth stays clear."},
+      {"role": "user", "text": "What do I do if I don't have fish sauce?"},
+      {"role": "assistant", "text": "Use a little soy sauce and extra salt, and add a squeeze of lime at the table. It won't taste exactly the same, but the spices carry most of the flavour."}
+    ]
+  },
+  {
+    "title": "Phone battery dies by 2pm and cracked screen corner",
+    "topic": "phones-and-money",
+    "created_at": "2026-09-16T21:05:00Z",
+    "messages": [
+      {"role": "user", "text": "My phone is getting annoying: my battery dies by 2pm every day now, even when I barely use it in lectures. It's a Kestrel 5 and I've had it for three years. Also the screen corner is cracked from when I dropped it at the bus stop. Should I just get a new phone?"},
+      {"role": "assistant", "text": "A three-year-old phone that dies by early afternoon usually has a worn battery rather than a broken phone. Check the battery health in settings: under about 80% is when most people notice it. A battery replacement is often under $100, and a small crack in the corner is cosmetic unless it spreads or the touch stops working there."},
+      {"role": "user", "text": "It says battery health 78%. I don't want to waste money on a phone if I don't have to."},
+      {"role": "assistant", "text": "78% explains the 2pm problem. Replacing the battery is the cheapest fix and would give you most of your day back. If you also want a better camera or the crack gets worse, compare the battery cost with what a new phone would cost each month after trading in the Kestrel 5."}
+    ]
+  },
+  {
+    "title": "Hackathon project: portable memory for AI chats",
+    "topic": "other",
+    "created_at": "2026-09-20T17:30:00Z",
+    "messages": [
+      {"role": "user", "text": "For the hackathon we're building an app that imports your chat history and gives each AI agent only the memory it should see. What's a good way to split the work across three people?"},
+      {"role": "assistant", "text": "Split it along the data flow: one person owns import and normalization, one owns indexing and retrieval, and one owns the frontend and the demo. Agree on the data contracts first so everyone can work against mocks until the real pieces land."},
+      {"role": "user", "text": "We're using FastAPI and React. Should retrieval be vector search or keyword search?"},
+      {"role": "assistant", "text": "Use both and merge the rankings. Keyword search catches exact names and ids, vector search catches paraphrases, and a simple reciprocal-rank fusion is easy to explain to judges."}
+    ]
+  },
+  {
+    "title": "Budget for a new phone until my internship",
+    "topic": "phones-and-money",
+    "created_at": "2026-09-24T03:15:00Z",
+    "messages": [
+      {"role": "user", "text": "If I do get a new phone, I can spend about $40 a month until my internship in June. After that I'll have more. Is $40 a month realistic for a decent phone with a good camera and battery?"},
+      {"role": "assistant", "text": "$40 a month over 24 months is about $960 of phone, before any trade-in credit, so it covers most mid-range phones and some flagships. Trading in your current phone lowers the monthly cost a bit, and carrier promotions can lower it more."},
+      {"role": "user", "text": "My parents pay the family plan, so the $40 is just for the phone itself. I'd rather not go over budget."},
+      {"role": "assistant", "text": "Then keep the phone payment itself at $40 a month or less and treat the plan as separate. It's also worth checking whether waiting a few months for a promotion or a new model would get you a better phone for the same monthly price."}
+    ]
+  },
+  {
+    "title": "Apartment search near campus",
+    "topic": "other",
+    "created_at": "2026-09-27T23:50:00Z",
+    "messages": [
+      {"role": "user", "text": "I'm looking for a studio near the U District for winter quarter. What should I ask landlords before signing?"},
+      {"role": "assistant", "text": "Ask what utilities are included, how the deposit is returned, whether the lease can be broken or sublet, and how maintenance requests are handled. Visit at night too, so you know how loud the street is."},
+      {"role": "user", "text": "One place wants an application fee and a holding deposit before I see it."},
+      {"role": "assistant", "text": "Don't pay anything for a place you haven't seen in person or on a live video tour. Ask for the fee policy in writing and make sure the deposit is refundable if you don't sign."}
+    ]
+  },
+  {
+    "title": "Leo wants a better phone camera for his photo class",
+    "topic": "phones-and-money",
+    "created_at": "2026-10-01T20:22:00Z",
+    "messages": [
+      {"role": "user", "text": "My brother Leo wants a better camera for his photo class. He's 16 and has a cheap Lumen phone on our family plan. He also watches a ton of video and says it's slow at night."},
+      {"role": "assistant", "text": "For a photo class, the main camera and night mode matter more than the number of lenses. Mid-range phones from this year take good photos in daylight; for low light, look at the camera summaries and night-mode reviews. The slow video at night sounds like his plan's premium data running out, which is a plan issue rather than a phone issue."},
+      {"role": "user", "text": "So his plan might be the wrong one too?"},
+      {"role": "assistant", "text": "Possibly. If he regularly uses more data than his plan's premium allowance, he gets slowed down. Compare his monthly usage with what each plan on the account includes before buying a new phone."}
+    ]
+  },
+  {
+    "title": "Running plan for a first 10K",
+    "topic": "other",
+    "created_at": "2026-10-04T14:05:00Z",
+    "messages": [
+      {"role": "user", "text": "I can run 5K comfortably and want to do a 10K in December. How should I train?"},
+      {"role": "assistant", "text": "Run three or four times a week: one long run that grows by about 1 km a week, one easier short run, and one session with a few faster intervals. Keep most runs at a pace where you can still talk."},
+      {"role": "user", "text": "My shins hurt after the long runs."},
+      {"role": "assistant", "text": "Hold the long run at the same distance for a week, run on softer surfaces when you can, and check that your shoes are not worn out. If the pain is sharp or stays the next day, rest and see someone."}
+    ]
+  },
+  {
+    "title": "Is our family plan too expensive?",
+    "topic": "phones-and-money",
+    "created_at": "2026-10-09T01:30:00Z",
+    "messages": [
+      {"role": "user", "text": "Mom asked me to check if our family plan is too expensive. The bill went from $212 to $236 and she called the carrier twice about it. We have four lines: Mom, Dad, me and Leo, and we also pay for streaming and cable internet separately."},
+      {"role": "assistant", "text": "A jump like that often comes from a promotional credit ending. To see if the plan is too expensive, compare each line's actual data and hotspot use with what its plan includes: people with light use are often on plans with far more than they need, and the streaming services you pay for separately may already be included in one of the plans."},
+      {"role": "user", "text": "Dad barely uses data and he's on the most expensive plan. I'm a student, so maybe there's a student plan?"},
+      {"role": "assistant", "text": "Those are the two biggest levers: move light users to a smaller plan and check whether you and Leo qualify for a student plan. Keep any line whose usage really needs the larger plan where it is, and see if one plan's streaming perk replaces what you pay for separately."}
+    ]
+  },
+  {
+    "title": "Resume for a software internship",
+    "topic": "other",
+    "created_at": "2026-10-12T18:45:00Z",
+    "messages": [
+      {"role": "user", "text": "Can you help me tighten my resume for summer software internships? I have two class projects, a hackathon and a part-time campus job."},
+      {"role": "assistant", "text": "Lead with the projects, since they show the skills recruiters screen for. For each, write one line on what you built, one on the hardest technical problem, and a number if you have one, like users, speed-up or test coverage."},
+      {"role": "user", "text": "Should the campus job go on it even though it's not technical?"},
+      {"role": "assistant", "text": "Yes, keep it short. It shows reliability and working with people, and one line about handling busy shifts or training new staff is enough."}
+    ]
+  }
+]
