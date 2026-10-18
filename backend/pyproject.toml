@@ -18,8 +18,9 @@ dependencies = [
     "python-dateutil>=2.9",
     "beautifulsoup4>=4.12",
     "ijson>=3.3",
-    # M3 extractor (en_core_web_sm is downloaded at image build time)
+    # M3 extractor (en_core_web_sm comes from the wheel URL in [tool.uv.sources], CHG-0007)
     "spacy>=3.7,<4",
+    "en-core-web-sm",
     "jinja2>=3.1",
     # M4 indexer / M6 retriever
     "sqlite-vec>=0.1.6",
@@ -45,6 +46,10 @@ dev = [
     "pytest>=8.0",
     "httpx>=0.27",  # FastAPI TestClient (M13 tests)
 ]
+
+[tool.uv.sources]
+# spaCy models are not on PyPI; `spacy download` needs pip, which the uv venv lacks.
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
 
 [build-system]
 requires = ["hatchling"]

@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import json
+import shlex
+import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict
 
 import typer
@@ -25,22 +29,54 @@ def _json_mode(ctx: typer.Context) -> bool:
     return bool((ctx.find_root().obj or {}).get("json"))
 
 
+@contextmanager
+def _warnings_to_stderr() -> Iterator[None]:
+    """Print warnings raised inside the block as plain `Warning:` lines on stderr.
+
+    Behavior:
+        Each distinct message is printed once when the block exits, also when it raises, without
+        the source path and code line that Python's default handler adds. Stdout stays clean for
+        `--json`.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        try:
+            yield
+        finally:
+            for message in dict.fromkeys(str(w.message) for w in caught):
+                typer.echo(f"Warning: {message}", err=True)
+
+
+def _count(n: int, noun: str) -> str:
+    return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
 def derive_command(
     ctx: typer.Context,
     episode: str | None = typer.Option(None, "--episode", metavar="ID", help="Only this episode (id or unique prefix)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Report what would change without writing."),
 ) -> None:
     """Extract facts and rules, render the default persona, and commit the result once."""
-    report = derive(episode=episode, dry_run=dry_run)
+    with _warnings_to_stderr():
+        report = derive(episode=episode, dry_run=dry_run)
     if _json_mode(ctx):
         typer.echo(report.model_dump_json(indent=2))
         return
-    commit = report.commit_sha[:7] if report.commit_sha else "none"
-    suffix = " (dry run)" if dry_run else ""
-    typer.echo(
-        f"derive: +{report.facts_created} ~{report.facts_updated} !{report.conflicts_flagged}; "
-        f"{report.rules_derived} rules; commit {commit}; {report.duration_ms} ms{suffix}"
+    facts_part = (
+        f"{_count(report.facts_created, 'new fact')} ({report.facts_updated} updated, "
+        f"{_count(report.conflicts_flagged, 'conflict')})"
     )
+    rules_part = _count(report.rules_derived, "derived rule")
+    if dry_run:
+        typer.echo(f"Would derive {facts_part}; the default persona would have {rules_part} (dry run, nothing written)")
+    elif report.commit_sha is None:
+        typer.echo(f"No changes; the default persona has {rules_part}")
+    else:
+        root = shlex.quote(str(Vault.resolve().root))
+        typer.echo(f"Derived {facts_part}; the default persona has {rules_part}")
+        typer.echo(f"commit {report.commit_sha[:7]} · {report.duration_ms / 1000:.1f}s")
+        typer.echo(f"See the persona:   pam --vault {root} persona show")
+        typer.echo(f"See what changed:  git -C {root} show --stat {report.commit_sha[:7]}")
 
 
 @patterns_app.command("list")
@@ -64,8 +100,9 @@ def test_cmd(
     sentence: str = typer.Argument(..., metavar="SENTENCE", help="Text to match as a user message."),
 ) -> None:
     """Show which patterns fire on a sentence, and why other matches were skipped."""
-    candidates = scan_text(sentence, "user")
-    rules = extract_rules(sentence, "user")
+    with _warnings_to_stderr():
+        candidates = scan_text(sentence, "user")
+        rules = extract_rules(sentence, "user")
     if _json_mode(ctx):
         typer.echo(json.dumps({"facts": [asdict(c) for c in candidates], "rules": rules}, indent=2))
         return

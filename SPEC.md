@@ -1538,6 +1538,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Tests: the existing `test_m03_extract.py` (64 sentence cases, 13 pattern ids, rules, fixture acceptance) runs unedited with no skips.
   - Risks: `en_core_web_sm` is not in the image, so the regex splitter and capitalization heuristic must pass the same table (the spaCy path is the one more likely to differ); a second `derive` must be a no-op, which needs processed episodes remembered outside the vault history (see CHG-0005); the fixture has no "I live in Seattle" sentence until the follow-up fixture PR, so one is planted here.
 - **Result (➕):** 2026-10-17 · PASS · WSL2 checkout, locally (`uv run --frozen`) and in the backend container: `pytest -q tests/test_m03_extract.py` → 109 passed (104 tests-first + 5 review regressions, no skips); full `pytest -q` → 331 passed, 1 skipped (`test_m07_memory.py`, waits for T09), after merging main (T03 follow-up). On the Claude fixture: `pam derive` → `+3 ~0 !0; 1 rules`, one commit (school=UW with WSU in history and a backlink on the WSU episode, location=Seattle, role=international student; rule `Don't use bullet points.` with evidence=2); `--dry-run` writes nothing; a second run and `--episode <done id>` make no commit; `--episode zzzz` exits 1; a held lock exits 4; a `## Custom` rule survives a full re-run with `derive_state.json` deleted; `pam episode verify` → 9 OK. spaCy's `en_core_web_sm` is not installed (local or image), so only the regex/capitalization fallback was exercised. Review fixes logged as CHG-0006.
+- **Result (➕):** 2026-10-17 · PASS · Follow-up (CHG-0007): readable `pam derive` output, warnings as plain `Warning:` lines on stderr, and `en_core_web_sm` installed by `uv sync`. WSL2 checkout, locally and in the rebuilt backend container (model loads): `pytest -q tests/test_m03_extract.py` → 112 passed (3 new); full `pytest -q` → 334 passed, 1 skipped. On the Claude fixture with spaCy loaded: same result as above (`+3 ~0 !0`, 1 rule); `--dry-run` prints `Would derive …`, a rerun prints `No changes; …`.
 
 #### T09 · Memory writer (≈ 1.5 h)
 - **Module:** M7
@@ -1765,6 +1766,20 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M3 only (`extract/rules.py`, `extract/facts.py`), plus 5 tests appended to `tests/test_m03_extract.py`. No contract changes.
 - **Status log:**
   - 2026-10-17 · IMPLEMENTED · Yogesh (T08 review)
+
+### CHG-0007 — M3 CLI output, warnings, and the spaCy model as a uv dependency
+- **Type:** dependency, design
+- **Module(s):** M3 (touches T00's `backend/pyproject.toml` and `uv.lock`; overlaps T16's model baking)
+- **Proposed by:** Yogesh (manual testing of T08)
+- **Date:** 2026-10-17
+- **Motivation:** `pam derive` printed a raw Python `RuntimeWarning` (source path and code line) and a terse `derive: +3 ~0 !0; 1 rules; …` line. The spaCy model was never installed, and SETUP §7's `uv run python -m spacy download en_core_web_sm` cannot work because `spacy download` calls pip and the uv venv has no pip.
+- **Proposal:**
+  1. Dependency: `en-core-web-sm` is a project dependency, pinned in `[tool.uv.sources]` to the `en_core_web_sm-3.8.0` wheel URL (hatchling rejects direct references in `[project]`). `uv sync` installs it locally and in the image, so the regex fallback only runs when the model is genuinely missing. The fallback warning now says to run `uv sync`.
+  2. Output follows the other commands (a plain sentence, then `commit <sha> · <time>`): `Derived N new facts (U updated, K conflicts); the default persona has R derived rules`, plus two hints (`pam --vault <root> persona show`, `git -C <root> show --stat <sha>`). A dry run prints `Would derive …(dry run, nothing written)`, and a run with no commit prints `No changes; …`. `--json` is unchanged; the commit message stays `derive: +c ~u !k`.
+  3. Warnings raised during `pam derive` and `pam patterns test` print once each on stderr as `Warning: <message>`, with no source location.
+- **Impact:** `backend/pyproject.toml`, `backend/uv.lock`, `extract/text.py` (warning text), `cli/derive_cmd.py`, plus 3 tests appended to `tests/test_m03_extract.py`. No contract changes. Needs human edits outside T08's paths: SETUP §7 should drop the `spacy download` step, and the `backend/Dockerfile` header comment ("T16 bakes the spaCy … models") is now only true for fastembed.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · Yogesh (T08 follow-up)
 
 ---
 
