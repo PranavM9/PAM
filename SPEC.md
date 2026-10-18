@@ -1674,7 +1674,15 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - **g.** Agent editor (0.35 h)
 - **Done when:** the M14 acceptance criteria pass.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Draft against mocks (T14 not merged); T14 later only runs without `VITE_PAM_MOCK`. Order a→g, one commit per subtask, one PR.
+  - **a.** `npm run gen:types` (`src/types/gen-types.mjs`): merges `../schemas/*.json` and their `$defs` into one root, drops property titles and `$ref` siblings, compiles once to `src/types/generated.ts` (59 types, no duplicates). `src/api/client.ts`: `api.*` for every §7.14 endpoint, `ApiError(status, code, message)` from `{"error": {...}}`, `chatStream(req, onEvent, signal)` over `@microsoft/fetch-event-source` (POST), `event: <type>` + JSON data → `ChatEvent`. `src/api/mocks/` (`world.ts` seed vault, `index.ts` handlers), switched only by `VITE_PAM_MOCK=1`. `vite.config.ts` proxies `/api`, `/mcp` → `:8000`. `Layout` (7 routes, health dot), dark-first CSS variables with a light `prefers-color-scheme` override, `CliHint` + `lib/cliHints.ts`.
+  - **b.** `ImportPage` (source radio → `guides/export-<source>.md` → dropzone → `POST /imports` → poll every 1 s → stepper → report → View graph), `guides/*.md` (Claude, ChatGPT, Gemini, Claude Desktop), `guides.ts` (`import.meta.glob`), `GuidesPage`.
+  - **c.** `GraphPage` (react-force-graph-2d, palette hashed from `cluster_id`, hover neighbours, drag pins, drawer with `VaultFileView`, facts toggle, fly-to search, charge -60 / distance 30·60 / 150 ticks).
+  - **d.** `ChatPage` (session list, streamed Markdown, model dropdown + "switched to X" divider, injection/tool toggle gated on `supports_tools`, context panel with `TokenMeter`, End session, Retry on retryable errors).
+  - **e.** `SearchPage` (hits with score / vec / kw badges, Build context → `ContextBundle` + meter). **f.** `VaultPage` (tree, filter, `?path=` deep links, frontmatter table + `prose`). **g.** `AgentsPage` (list + form, three Custom-section editors with live preview, POST/PUT).
+  - Checks: `npm run gen:types && npm run build`, `npm run lint`, headless Chrome walk of §3.3 on mocks. Risks: real API responses differing from the generated types (report as backend bugs); `GET /agents/{name}` returns rendered persona only, so the editors read the text under `## Custom` (CHG-0016).
+- **Result (➕):** 2026-10-17 · draft (mocks) · PASS on mocks. `npm run gen:types && npm run build` → 0 type errors; `npm run lint` (oxlint) → 0 findings; `generated.ts` is reproducible (re-running `gen:types` gives no diff). `VITE_PAM_MOCK=1 npm run dev`, walked in headless Chrome 1440×900: import a Claude zip → stages queued→extract→normalize→derive→index→cluster→done, report 14 found / 14 written → graph grows from 2 to 5 projects → chat "Where did I leave off?" answers with the PAM project, decisions and next steps, panel shows 834 vs 43k tokens → switch model → divider → follow-up continues the thread → `/fail` ends with a retryable error and Retry → End session returns the episode path. All 7 pages render with their CliHint and no console errors; agent create, reserved name (400 shown), tool mode with a `tool_call`, light theme checked. Graph with `?mockNodes=500`: about 60 fps headless during the simulation (Chrome on real hardware still to check). **Mocked endpoints (all of §7.14):** `GET /health`, `POST /imports`, `GET /imports/{id}`, `GET /vault/tree`, `GET /vault/file`, `POST /search`, `POST /context`, `GET /graph`, `GET /agents`, `GET /agents/{name}`, `POST /agents`, `PUT /agents/{name}`, `GET /models`, `POST /chat` (SSE), `GET /sessions/{id}`, `POST /sessions/{id}/end`, `POST /sync`, `GET /sync/status`. Pending (Pranav): the same flow against the real backend after T14, ≥ 50 fps with 500 nodes in Chrome, Windows check after T16.
+  - 2026-10-18 · restyle (lavender glass), home page and resizable panels (CHG-0017) · `npm run build` and `npm run lint` clean; the mock §3.3 flow, all 8 pages, the write paths, panel resizing (clamping, persistence, keyboard), 390 px and light mode re-checked in headless Chrome with no console errors.
 
 #### T16 · Docker hardening & demo (≈ 1 h)
 - **Module:** M15
@@ -2010,6 +2018,39 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T10)
 
+### CHG-0016 — M14 implementation choices: type generation, inline API shapes, mock mode, session list
+- **Type:** design
+- **Module(s):** M14 (expectations on M13/T14 listed in item 6)
+- **Proposed by:** agent (task T15)
+- **Date:** 2026-10-17
+- **Motivation:** §8 M14 names the libraries and pages but not how 54 per-model schema files become one TS module, where the §7.14 inline response shapes live, how the UI runs before T14, or how the chat page lists sessions when no endpoint returns them.
+- **Proposal:**
+  1. `npm run gen:types` runs `src/types/gen-types.mjs`: every `schemas/*.json` and its `$defs` are merged into one root `$defs` map (identical duplicates collapse; a conflicting duplicate fails the run), property `title`s and `$ref` siblings are dropped, `maxItems` is not expanded into tuples, and the result is compiled once into `src/types/generated.ts`. Fields with a default (e.g. `type` on chat events, `schema_version`) are optional in TS because they are not `required` in the schema.
+  2. The §7.14 shapes that are not schema contracts (`{ok, vault, index_ok}`, `{paths}`, `{path, frontmatter, body}`, `{manifest, persona}`, `{manifest, identity_custom, rules_custom, style_custom}`) are declared once in `client.ts`, built from generated types.
+  3. `VITE_PAM_MOCK=1` makes `client.ts` load `src/api/mocks/` instead of calling `/api`; no other code knows about mock mode. The mock vault is deterministic; the Claude demo set is added by a finished mock import (flag kept in `sessionStorage`); `?mockNodes=N` on `/graph` makes the mock return a synthetic graph for the 500-node check. Mock error codes: `VALIDATION_ERROR` (400), `NOT_FOUND` (404), `CONFLICT` / `SESSION_ENDED` (409).
+  4. `chatStream` emits one synthetic `ErrorEvent{retryable: true}` if a stream closes or fails without `done`/`error`, so the UI always sees exactly one terminal event; a non-2xx response before streaming rejects with `ApiError`.
+  5. The chat session list and full transcripts are kept in `localStorage` (`pam-chat-sessions`), because the API exposes only `GET /sessions/{id}` with the last 8 turns. Graph node positions and pins are kept in memory across refetches and page visits.
+  6. The agent editor fills its three Custom editors from `GET /agents/{name}`: identity and style take the text under the `## Custom` heading of `persona.identity` / `persona.style`; rules take `persona.rules` with `origin == "manual"` as `- ` bullets. T14 should return those rendered sections (§7.7 headings), and accept `vault/file?agent=` (the UI sends it for scope).
+- **Impact:** `frontend/` only. No contract changes.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · agent (T15)
+
+### CHG-0017 — M14 visual design, home page, resizable panels
+- **Type:** design
+- **Module(s):** M14
+- **Proposed by:** agent (task T15)
+- **Date:** 2026-10-18
+- **Motivation:** The team chose a lavender glass look for the demo, asked for an intro page that explains PAM before the seven working pages, and wanted panel widths adjustable.
+- **Proposal:**
+  1. Theme: dark-first lavender glass tokens in `src/index.css` (RGB triplets; light mode overrides the same tokens). `.glass` / `.panel` / `.card` surfaces get `isolation: isolate` and their own GPU layer, and hover and press styles change color only, so a hover in one panel cannot re-layer a neighbour and tint its backdrop blur. The global `:focus-visible` outline has zero specificity (`:where`), so framed inputs with `outline-none` show their container's focus state instead.
+  2. Home page at `/` (`HomePage.tsx`, nav item "Home"): what PAM is, what it does, and four steps that link to Import, Graph, Agents and Chat, each with its CLI command. Its vault numbers are live (`GET /graph`, `GET /models`); the token figure is the §3.3 example (1.8k vs 46k). Unknown routes now go to `/` instead of `/import`. §3.2's seven pages are unchanged.
+  3. Resizable panels: `ResizeHandle` (pointer, touch and keyboard: arrows ±16 px, Shift ±64, Home/End, Enter or double-click resets) and `usePaneSize` (clamped width, stored in `localStorage` as `pam-pane:<id>`). Applied to the sidebar, import guide, vault tree, search bundle, agents list, guides list, both chat side columns and the graph drawer; each has a min and max so no panel can be collapsed or take over the page. Handles show only where panels sit side by side.
+  4. `VaultTree` lives in `src/components/`, because the root `.gitignore` entry `vault/` also matches `src/components/vault/`.
+- **Impact:** `frontend/` only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T15)
+  - 2026-10-18 · IMPLEMENTED · agent (T15) · item 1 revised: the panel-next-to-hover tint and seam came from Chrome redrawing `backdrop-filter` only inside the damaged area. Panels no longer use live backdrop blur (they sit on a smooth gradient, so the look is unchanged); blur is opt-in with `.glass-blur` for drawers that float over the page, and the atmosphere gradient is painted on its own fixed layer instead of a fixed body background. Home hero shows the PAM wordmark.
+  - 2026-10-18 · IMPLEMENTED · agent (T15) · motion added (CSS in `src/index.css`, plus `lib/pressFeedback.ts` and `components/home/CountUp.tsx`): pages fade in with their sections rising in turn, a highlight pill glides between sidebar links, lists cascade in, long Markdown fades up on scroll (scroll-driven, Chromium/Safari), and the home page reveals sections, counts its numbers up and recedes the hero. Buttons press in and spring back with a ripple; cards lift on hover; drawers slide in. Item 1's "color only" hover rule no longer applies, since panels have no backdrop blur. With `prefers-reduced-motion` (also set by Windows "Animation effects: off"), entrances keep their fade but lose travel, scale and blur. Agents page: the new-agent title is "NEW AGENT" with no subtitle.
 ### CHG-0017 — M15 implementation choices: seeded model volume, Python healthcheck, tiktoken baking
 - **Type:** design
 - **Module(s):** M15
