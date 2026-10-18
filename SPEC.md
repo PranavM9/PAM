@@ -1602,7 +1602,11 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Depends on:** T09
 - **Done when:** the M9 acceptance criteria pass (`pam chat` is stubbed until T13; test with `pam session record`).
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `pam/working/session.py`: `start(vault, agent, model) -> WorkingMemory`, `record_turn(vault, session_id, role, text, model) -> WorkingMemory`, `update(vault, UpdateWorkingMemoryInput, agent="default") -> WriteResult` (alias `update_working_memory`, the name M11 imports), `show(vault, id)`, `list(vault)` / `list_sessions`, `end(vault, session_id, agent=None) -> WriteResult`, `transcript_path`, `render_body`. Every write holds `vault_write_lock`; the transcript is never `git add`ed.
+  - `pam/cli/session_cmd.py`: `pam session start --agent --model`, `record ID --role user|assistant --text --model`, `show ID`, `update ID [--goal] [--decision ...] [--question ...]`, `list`, `end ID [--agent]`; `--json` prints the contract models.
+  - `tests/test_m09_working.py`: id format; 8-turn window; 2 models + 4 turns; no commit per turn; 1 commit each for start, goal, update; append-only decisions; transcript order; `pam sync` after 4 turns makes no commit and leaves the jsonl untracked; end → `source=pam` episode with every turn, `promoted_episode_id`, `pam episode verify`; ending twice; contract round-trip; CLI acceptance.
+  - Risks: per-turn state vs. sync (CHG-0014 item 1); `end` is two commits (item 3).
+- **Result (➕):** 2026-10-18 · PASS · WSL2 checkout, locally (`uv run --frozen`) and in the backend container: `pam session start`, 4 `pam session record` on two models, then `pam session show` lists 2 models and 4 turns, and `pam session end` creates a `source=pam` episode with every turn (`pam episode verify` OK); `pam sync` after the turns makes no commit and the transcript stays untracked. `tests/test_m09_working.py` 43 passed; the previously skipped `test_m06_retrieve.py::test_context_includes_working_memory_when_supported` and `test_m11_mcp.py::test_update_working_memory_returns_write_result` now pass. Full `pytest -q`: 596 passed, 2 skipped (T14 app, opt-in perf). See CHG-0014.
 
 #### T12 · MCP server (≈ 1 h)
 - **Module:** M11
@@ -1927,6 +1931,22 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T09b)
   - 2026-10-18 · IMPLEMENTED · agent (T09b) · `working/*.transcript.jsonl` is skipped by sync (neither committed nor reported), per §8 M9 and CHG-0013.
+
+### CHG-0014 — M9 implementation choices: turn state from the transcript, goal commit, two-commit end
+- **Type:** design
+- **Module(s):** M9
+- **Proposed by:** agent (task T11)
+- **Date:** 2026-10-18
+- **Motivation:** §8 M9 keeps `recent_turns` in the tracked `working/<id>.md` but forbids a commit per turn, so a per-turn `.md` write would be committed by `pam sync` as `manual:`. §8 M9 does not say how `end` combines M7's own `log_episode` commit with the `status=ended` change, nor what the episode's title and summary are.
+- **Proposal:**
+  1. Turn state: `record_turn` only appends `{role, text, created_at, model}` (a `RawMessage` plus `model`) to the untracked `working/<id>.transcript.jsonl`. `show`, `record_turn`, and `list` rebuild `recent_turns` (last 8) and `models_used` from the transcript; `models_used[0]` is the `start` model (`from_model=None`). The `.md` is refreshed with that state whenever it is committed (start, goal, update, end), so between commits its `recent_turns` lags behind the transcript (M6 renders only goal, decisions, and questions). Without a transcript (e.g. a fresh clone) the `.md` values are used as stored.
+  2. Commits: `session: start|goal|end (agent=<a>, session=<id>)` and `update_working_memory: <id> (agent=<a>, session=<id>)`. The goal is set once, from the first user message (whitespace collapsed, 200 characters), only if no goal is set yet. `update` with nothing new is `ok` with no commit; blank decisions or questions are dropped.
+  3. `end`: `writer.log_episode` (its own commit) with title = goal or `Session <id>` (200 characters), summary `Goal: ...` plus `Decisions: a; b`, tag `session:<id>`, and every transcript turn; then the `session: end` commit. The `WriteResult` carries the episode's `doc_id` and `path` and the end commit's sha. The episode's owner is the `--agent` given, else the session's agent. `ok=False` (session stays active): `already ended`, no turns, or a failed `log_episode` (its message passed through). The working file and the transcript are kept; the transcript stays untracked.
+  4. No permission checks: any agent may update or end any session (the M8 "own working files" rule is not enforced here); `start` only requires the agent's manifest to exist. Ids are `s_` + 12 `secrets` base36 characters, retried on collision; an id that does not match the pattern is "not found" (no path traversal).
+  5. Errors: `start`, `record_turn`, and `show` raise `PamError` / `VaultBusy`; `update` and `end` return `WriteResult(ok=False)` with the M7 prefixes (`vault busy:`, `validation failed:`), so the CLI exit codes match `pam fact`.
+- **Impact:** M9 only (`working/session.py`, `cli/session_cmd.py`, `tests/test_m09_working.py`). No contract changes. T13 calls `record_turn` per chat turn and `show` for hot-swap context. Once CHG-0013's vault `.gitignore` line lands, the transcript is also ignored by git itself.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T11)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
