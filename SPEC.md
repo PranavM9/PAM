@@ -1630,7 +1630,13 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** a LiteLLM streaming wrapper, then an MCP client session, then injection mode, then tool mode, then `pam chat`, `pam models list|check`.
 - **Done when:** the M12 acceptance criteria pass.
 - **Agent plan (➕):**
+  - Part 1 (LLM layer + models CLI; MCP client, orchestrator and `pam chat` are T13 rest). Files: `chat/llm.py`, `cli/models_cmd.py`, `tests/test_m12_chat.py`.
+  - `llm.py`: `PAM_PREAMBLE`; `resolve_model(cfg, model_id) -> ModelEntry` (raises `UnknownModel`, exit 2); `async stream_chat(model, messages, tools=None) -> AsyncIterator[LLMDelta]` with `LLMDelta(text, tool_calls: list[ToolCall], finish_reason, usage: Usage)` and `ToolCall(id, name, arguments: dict).as_openai()`; `async ping(model) -> PingResult(ok, latency_ms, error)`; `LLMError(message, retryable)`. Constants `REQUEST_TIMEOUT_S`, `PING_TIMEOUT_S`, `PING_MAX_TOKENS`.
+  - `models_cmd.py`: `pam models list` (`--json`), `pam models check` (concurrent pings, exit 1 only if every model fails or none are configured).
+  - Tests: text join, tool-call fragment assembly (and order, invalid JSON), usage from last chunk, tools only with `supports_tools`, env keys / Ollama base, `UnknownModel`, retryable mapping (rate limit, timeout mid-stream, auth), ping ok/fail, `models list --json`, fresh vault, `models check` exit codes and JSON.
+  - Risks: OpenRouter free models may reject `max_tokens=1` or vanish; the live check shows it.
 - **Result (➕):**
+  - 2026-10-18 · part 1 PASS · `pytest -q tests/test_m12_chat.py` 22 passed, no network (macOS 12 Intel, Python 3.12 pip venv, `onnxruntime<1.20`, litellm 1.106.0). Full suite: 486 passed, 2 skipped, 22 failed, 89 errors; the failing set is identical to main's (no loadable sqlite extension in this Python: test_m04/m06/m07/m10/m11 `pam index` paths). Docker not run (daemon down). `pam models list` on a fresh vault: hint, exit 0. Live `pam models check` on vault/pam.toml: 3/3 OK (nemotron-3.5-lightning 13129 ms, nemotron-3.5-super-vl 728 ms, dots-3-note-preview 962 ms); live `stream_chat` on nemotron-3.5-super-vl streamed text with usage and assembled one `search_memory` tool call. See CHG-0015.
 
 #### T14 · REST API (≈ 1.25 h)
 - **Module:** M13
@@ -1947,6 +1953,21 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M9 only (`working/session.py`, `cli/session_cmd.py`, `tests/test_m09_working.py`). No contract changes. T13 calls `record_turn` per chat turn and `show` for hot-swap context. Once CHG-0013's vault `.gitignore` line lands, the transcript is also ignored by git itself.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T11)
+
+### CHG-0015 — M12 LLM layer choices: delta shape, error mapping, env keys, `models check` exit codes
+- **Type:** design
+- **Module(s):** M12 (part 1: `chat/llm.py`, `cli/models_cmd.py`)
+- **Proposed by:** agent (task T13 part 1)
+- **Date:** 2026-10-18
+- **Motivation:** §8 M12 names LiteLLM streaming and `pam models check` but not the internal stream shape, which failures are retryable, or how keys reach LiteLLM. CHG-0013 is reserved for the vault `.gitignore` change and CHG-0014 is M9, so this entry is CHG-0015.
+- **Proposal:**
+  1. `stream_chat` yields `LLMDelta(text, tool_calls, finish_reason, usage)`. Tool-call fragments merge by `index`; the complete `ToolCall(id, name, arguments: dict)` list is set once, on the delta with `finish_reason` (or a final delta if none arrives). Invalid or non-object JSON arguments raise `LLMError(retryable=True)`. `ToolCall.as_openai()` gives the assistant-message form. Calls pass `stream_options.include_usage` and `drop_params=True`.
+  2. `LLMError(message, retryable)`: rate limit, timeout, connection, 5xx (and any status 429/≥500) are retryable; auth, permission, not-found and bad-request are not. Only LiteLLM/OpenAI/httpx/asyncio timeout errors are mapped; other exceptions propagate. `UnknownModel` exits 2. Both subclass `PamError`.
+  3. Keys: `api_key` from `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` by model prefix, `api_base` from `OLLAMA_BASE_URL` for `ollama/` and `ollama_chat/`; unset vars are not passed. `llm.py` sets `LITELLM_LOCAL_MODEL_COST_MAP=True` (no fetch at import) and `litellm.suppress_debug_info`.
+  4. `ping` never raises; it reports any exception as `error`. `pam models check` exits 1 if every model fails or none are configured, else 0; `--json` prints `[{id, ok, latency_ms, error}]`. `pam models list` on a vault without models prints a hint to stderr and exits 0.
+- **Impact:** T13 rest builds on `stream_chat`, `resolve_model`, `PAM_PREAMBLE`, `LLMError`. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T13 part 1)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
