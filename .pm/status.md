@@ -43,6 +43,9 @@ Gates: chk = Done-when commands pass (PM ran) · reg = earlier tests pass (PM ra
 | T14 | REST API | Yogesh | NEXT (critical path), ready: T10 + T13 merged. No t14 branch on origin at 01:30 | T10, T13 | | | 1.25 | | | | | |
 | T15 | Frontend (a–g) | Aakash | draft a–g + restyle + motion MERGED (PR #40, 01:17; CHG-0016 (M14), CHG-0017 (M14)); real-API wiring after T14 | waiting on T14 (wiring) | 19:50 | | 3.5 | ~3 so far (draft) | mocks pass (build/lint per Result); real API pending | | | |
 | T16 | Docker hardening & demo | T16a Pranav (PR #36 + fixes #38 MERGED, CHG-0017 (M15)); T16b demo kit Pranav; T16c clean-machine runs all three after T14 + wiring | in progress (b, c) | T14/T15 | 23:30 | T16a 00:50 | 1.0 | | T16a PASS on Windows/WSL2 (PM 01:30 on Yogesh's machine: `docker compose build` OK; models load with HF_HUB_OFFLINE=1; container pytest 710 passed, 2 skipped). Image 2.9 GB (aim < 2.5). Healthcheck still waits on T14 | pass | | |
+| T17 | Connectors backend (M16) | Yogesh | BLOCKED on CHG-0027 APPROVED (Pranav) | CHG-0027 | | | 2.0 | | | | | |
+| T18 | Connectors UI + chat cards (M14) | Yogesh | BLOCKED on CHG-0027 APPROVED; real API after T17 | T17 | | | 1.5 | | | | | |
+| T19 | T-Mobile mock API + data + demo (M17) | Pranav (Yogesh verifies) | BLOCKED on CHG-0027 APPROVED | CHG-0027 | | | 2.5 | | | | | |
 
 ## Critical path (with 3 people in parallel)
 T00 → T01 → T03 → T04 → {T06 ∥ T08} → T09 → T11 → T12 → T13 → T14 → T15 → T16
