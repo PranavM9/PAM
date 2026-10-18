@@ -20,6 +20,8 @@ def _vault() -> Vault:
 
 
 def _resolve_project(vault: Vault, ref: str) -> UUID:
+    if not ref.strip():
+        raise PamError("project id must not be empty")
     ids = sorted({p.stem for p in vault.root.glob("memory/*/projects/*.md") if p.stem.startswith(ref.lower())})
     if not ids:
         raise PamError(f"project {ref} not found")

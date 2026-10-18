@@ -349,3 +349,11 @@ def test_cli_verify_detects_tampered_body(vault, export):
     result = cli(vault, "episode", "verify")
     assert result.exit_code == 1
     assert "1 OK, 1 failed" in result.output and "mismatch" in result.output
+
+
+@pytest.mark.parametrize("ref", ["", "  "])
+def test_cli_episode_show_rejects_empty_id(vault, export, ref):
+    """An empty id is rejected instead of prefix-matching the only episode."""
+    write_episodes(vault, [conv("a", title="Alpha")], Source.CLAUDE, export)
+    result = cli(vault, "episode", "show", ref)
+    assert result.exit_code == 1 and "must not be empty" in result.output

@@ -485,3 +485,14 @@ def test_missing_spacy_model_warning_says_how_to_install():
 
     with pytest.warns(RuntimeWarning, match=r"'no_such_model_pam'.*uv sync"):
         assert load_nlp.__wrapped__("no_such_model_pam") is None
+
+
+def test_cli_derive_rejects_empty_episode_id(derived):
+    """`pam derive --episode ""` fails with a clear message instead of matching every episode."""
+    from typer.testing import CliRunner
+
+    from pam.cli.main import app
+
+    vault, _ = derived
+    res = CliRunner().invoke(app, ["--vault", str(vault), "derive", "--episode", "", "--dry-run"])
+    assert res.exit_code == 1 and "must not be empty" in res.output

@@ -40,6 +40,8 @@ def _episode_files(vault: Vault, agent: str | None = None) -> list[Path]:
 
 
 def _find(vault: Vault, episode_id: str) -> Path:
+    if not episode_id.strip():
+        raise PamError("episode id must not be empty")
     matches = [p for p in _episode_files(vault) if p.stem.startswith(episode_id.lower())]
     if not matches:
         raise PamError(f"no episode with id {episode_id}")

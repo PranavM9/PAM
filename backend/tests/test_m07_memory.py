@@ -28,7 +28,7 @@ from typer.testing import CliRunner
 writer = pytest.importorskip("pam.memory.writer")
 
 from pam.cli.main import app  # noqa: E402
-from pam.contracts.fact import Fact, FactStatus  # noqa: E402
+from pam.contracts.fact import Fact, FactConflict, FactStatus  # noqa: E402
 from pam.contracts.project import Project  # noqa: E402
 from pam.contracts.skill import Skill  # noqa: E402
 from pam.contracts.writes import (  # noqa: E402
@@ -187,8 +187,8 @@ def test_supersede_clears_conflict_and_records_reason(vault):
     fact, _ = _facts(vault)[0]
     conflicted = fact.model_copy(update={
         "status": FactStatus.CONFLICT,
-        "conflict": {"candidate_value": "UW", "detected_by": "rule",
-                     "detected_at": fact.updated_at},
+        "conflict": FactConflict(candidate_value="UW", detected_by="rule",
+                                 detected_at=fact.updated_at),
     })
     mdio.write(vault.root / result.path, conflicted, "**school**: WSU\n")
     before = _count_commits(vault)
@@ -681,3 +681,19 @@ def test_writes_are_indexed_for_real(vault):
     writer.add_fact(vault, _fact_input("WSU"))
     report = indexer.index_vault(vault)
     assert report.documents_indexed == 0 and report.documents_unchanged == 3
+
+
+@pytest.mark.parametrize("args", [
+    ("project", "note", " ", "Note."),
+    ("project", "add-episodes", "", str(EP1)),
+    ("fact", "show", ""),
+    ("fact", "supersede", "", "--value", "WSU", "--reason", "Typo"),
+])
+def test_cli_empty_id_is_rejected_without_commit(vault, args):
+    """An empty id never resolves to the only project or fact."""
+    writer.update_project(vault, UpdateProjectInput(name="Research"))
+    writer.add_fact(vault, _fact_input("UW"))
+    before = _count_commits(vault)
+    result = _invoke(vault, *args)
+    assert result.exit_code == 1 and "must not be empty" in result.output, result.output
+    assert _count_commits(vault) == before
