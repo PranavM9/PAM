@@ -78,14 +78,29 @@ def _load_episodes(v: Vault, scope: str) -> dict[str, _Episode]:
 
 
 def _load_projects(v: Vault, scope: str) -> list[_ProjectFile]:
+    """Read every project file of the scope, oldest first.
+
+    Behavior:
+        An unreadable file stops the run instead of being skipped: its members would otherwise look
+        unassigned and be moved into another project, leaving them in two projects once the file
+        is fixed (§7.5: an episode belongs to at most one project).
+    Exceptions:
+        PamError: Some project file cannot be read; the message names each one.
+    """
     files: list[_ProjectFile] = []
+    broken: list[str] = []
     for path in sorted(v.memory_dir(scope).glob("projects/*.md")):
         try:
             project, body = mdio.read_model(path, Project)
         except (PamError, ValidationError, ValueError) as exc:
-            warnings.warn(f"skipping {v.rel(path)}: {exc}")
+            broken.append(f"{v.rel(path)} ({str(exc).splitlines()[0]})")
             continue
         files.append(_ProjectFile(path, project, body, [str(e) for e in project.episode_ids]))
+    if broken:
+        raise PamError(
+            "cannot read project files; fix or restore them (`git checkout -- <file>`) before clustering: "
+            + "; ".join(broken)
+        )
     return sorted(files, key=lambda f: (f.project.created_at, str(f.project.id)))
 
 
@@ -254,8 +269,8 @@ def run_cluster(
     Exceptions:
         VaultNotFound: The vault is not initialized.
         VaultBusy: The write lock is not acquired within 10 s.
-        PamError: The agent does not exist, the index cannot be opened, or git fails (files are
-            restored before raising).
+        PamError: The agent does not exist, a project file of the scope cannot be read (nothing is
+            changed), the index cannot be opened, or git fails (files are restored before raising).
     Returns:
         The `ClusterReport`; `episodes_assigned` counts episodes placed in a project by this run and
         `episodes_unassigned` the scope's episodes in no project afterwards.

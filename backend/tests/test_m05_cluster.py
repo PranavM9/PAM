@@ -20,6 +20,7 @@ from uuid import UUID, uuid4
 
 import numpy as np
 import pytest
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from pam.agents.manifest import create_agent
@@ -36,6 +37,7 @@ from pam.contracts.raw import RawMessage
 from pam.contracts.reports import ClusterReport
 from pam.contracts.writes import LogEpisodeInput, UpdateProjectInput
 from pam.core import mdio
+from pam.core.errors import PamError
 from pam.core.vault import Vault, init_vault
 from pam.index import embedder, indexer
 from pam.memory import writer
@@ -489,3 +491,40 @@ def test_agent_note_counts_as_activity(tmp_path):
     after, body = _projects(vault)[str(project.id)]
     assert after.last_activity_at == noted.last_activity_at and "still on it" in body
     assert report.projects_updated == 0 and report.commit_sha is None
+
+
+# -- review fixes (CHG-0019) -------------------------------------------------------------------
+
+def test_unreadable_project_file_stops_cluster(tmp_path):
+    vault = _new_vault(tmp_path)
+    for t, x in IMMICH:
+        _log(vault, t, x)
+    run_cluster(vault)
+    (path,) = vault.memory_dir("default").glob("projects/*.md")
+    path.write_text("---\nid: broken\n---\nbody\n", encoding="utf-8")
+    _log(vault, "Immich albums", "Immich album sharing for photo backup.")
+    head = _head(vault)
+    with pytest.raises(PamError, match="cannot read project files.*projects/"):
+        run_cluster(vault)
+    with pytest.raises(PamError):
+        run_cluster(vault, rebuild=True)
+    assert _head(vault) == head
+    assert list(vault.memory_dir("default").glob("projects/*.md")) == [path]
+    result = runner.invoke(app, ["--vault", str(vault.root), "cluster"])
+    assert result.exit_code == 1 and "cannot read project files" in result.output
+    assert not isinstance(result.exception, ValidationError)
+
+
+def test_graph_export_out_creates_missing_folders(vault, tmp_path):
+    run_cluster(vault)
+    target = tmp_path / "new" / "deeper" / "g.json"
+    _invoke(vault.root, "graph", "export", "--out", str(target))
+    GraphData.model_validate_json(target.read_text())
+
+
+def test_graph_export_unwritable_out_is_a_clean_error(vault, tmp_path):
+    folder = tmp_path / "taken"
+    folder.mkdir()
+    result = runner.invoke(app, ["--vault", str(vault.root), "graph", "export", "--out", str(folder)])
+    assert result.exit_code == 1 and "cannot write" in result.output
+    assert not isinstance(result.exception, OSError)

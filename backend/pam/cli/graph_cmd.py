@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 
 from pam.cluster.graph import build_graph
+from pam.core.errors import PamError
 from pam.core.vault import Vault
 
 graph_app = typer.Typer(help="Export the project / episode graph.", no_args_is_help=True)
@@ -19,7 +20,7 @@ def export(
     facts: bool = typer.Option(False, "--facts", help="Include fact nodes and derived_from links."),
     out: Path | None = typer.Option(None, "--out", help="Write GraphData JSON here (default: stdout)."),
 ) -> None:
-    """Write the agent's `GraphData` as JSON."""
+    """Write the agent's `GraphData` as JSON; `--out` creates missing parent folders."""
     vault = Vault.resolve().require_initialized()
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -30,7 +31,11 @@ def export(
     if out is None:
         typer.echo(text)
         return
-    out.write_text(text + "\n", encoding="utf-8")
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text + "\n", encoding="utf-8")
+    except OSError as exc:
+        raise PamError(f"cannot write {out}: {exc.strerror or exc}") from exc
     counts = {t: sum(n.type == t for n in graph.nodes) for t in ("project", "episode", "fact")}
     typer.echo(
         f"{out}: {counts['project']} projects, {counts['episode']} episodes, {counts['fact']} facts, "

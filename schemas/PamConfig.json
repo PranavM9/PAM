@@ -26,7 +26,7 @@
           "type": "integer"
         },
         "assign_threshold": {
-          "default": 0.6,
+          "default": 0.7,
           "title": "Assign Threshold",
           "type": "number"
         },
@@ -216,7 +216,7 @@
       "$ref": "#/$defs/ClusterCfg",
       "default": {
         "min_cluster_size": 3,
-        "assign_threshold": 0.6,
+        "assign_threshold": 0.7,
         "similar_link_threshold": 0.75,
         "similar_links_per_node": 3,
         "rebuild_match_jaccard": 0.5,

@@ -864,7 +864,7 @@ class ContextCfg(_C):
     default_budget: int = 2000; persona_max_tokens: int = 300
     max_facts: int = 12; max_projects: int = 3
 class ClusterCfg(_C):
-    min_cluster_size: int = 3; assign_threshold: float = 0.60
+    min_cluster_size: int = 3; assign_threshold: float = 0.70
     similar_link_threshold: float = 0.75; similar_links_per_node: int = 3
     rebuild_match_jaccard: float = 0.5; dormant_after_days: int = 30
 class ExtractCfg(_C):
@@ -1600,6 +1600,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Risks: HDBSCAN on tiny inputs returns all noise; a second run assigning the first run's noise would break "cluster twice is a no-op" (both handled in CHG-0016).
 - **Result (➕):** 2026-10-18 · PASS (local) · macOS scratch venv (uv CPython 3.12, `onnxruntime<1.20`): `test_m05_cluster.py` 27 passed; full suite 645 passed, 2 skipped. With the real bge model on the Claude + ChatGPT fixtures: 3 projects (Immich, Tailscale, CSE · CDS), second `pam cluster` and `pam cluster --rebuild` make no commit, `pam graph export --out g.json` validates. Tailscale is `dormant` (last episode 2026-09-06, more than `dormant_after_days` ago). Not yet run: backend container; real 65-episode export (Pranav).
 - **Result (➕):** 2026-10-18 · PASS · B-04 (CHG-0019): on the 3 fixtures with the real bge model (macOS 12, uv CPython 3.12 venv, `onnxruntime<1.20`), `pam cluster` named the university project "Day" before the fix and now gives Immich, CSE · CDS, Tailscale (17 assigned); the offline test embedder gives Immich, Tailscale, CSE · Jobs, Checklist · Day Hike. `test_m05_cluster.py` 32 passed; full suite 707 passed, 2 skipped. Rebased on main (T13).
+- **Result (➕):** 2026-10-18 · PASS · T10 review (Yogesh), WSL2 checkout, locally (`uv run --frozen`) and in the backend container: CHG-0020 (an unreadable project file stops `pam cluster` instead of its episodes moving to another project; `graph export --out` creates folders, no traceback) and CHG-0021 (`assign_threshold` 0.70). With the real bge model on the 3 fixtures: Immich 7, Tailscale 4, CSE · CDS 4, lentils and hike unassigned; second `pam cluster` and `--rebuild` make no commit; `graph export --out` validates. `test_m05_cluster.py` and the full suite pass (counts in PR #35).
 
 #### T11 · Working memory (≈ 0.75 h)
 - **Module:** M9
@@ -2031,6 +2032,43 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M5 naming only. Names are set once at creation (CHG-0016 #5), so existing projects keep theirs; `origin=agent|manual` projects are still never renamed. No contract changes.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (B-04)
+
+### CHG-0020 — M5 review fixes: unreadable project files stop `pam cluster`; `graph export --out` errors
+- **Type:** design
+- **Module(s):** M5 (`cluster/cluster.py`, `cli/graph_cmd.py`)
+- **Proposed by:** agent (T10 review, Yogesh)
+- **Date:** 2026-10-18
+- **Motivation:** Testing PR #35 on the three fixtures found two problems. (1) `pam cluster` skipped a project file it could not read (bad frontmatter) with a warning; that project's episodes then looked unassigned and were moved into another project (all 7 Immich episodes went into Tailscale and were committed), so once the file was fixed they belonged to two projects, against §7.5 "an episode belongs to at most one project". (2) `pam graph export --out` into a folder that does not exist ended in a raw `FileNotFoundError` traceback.
+- **Proposal:**
+  1. `run_cluster` (incremental and `--rebuild`) raises `PamError` (exit 1) naming every unreadable `memory/<agent>/projects/*.md` file before it changes anything; the message says to fix or `git checkout -- <file>` it. Unreadable episode files are still skipped with a warning (they only stay unassigned). `build_graph` keeps skipping unreadable files with a warning, since it writes nothing.
+  2. `pam graph export --out FILE` creates missing parent folders; any other write failure (e.g. `FILE` is a folder) is a `PamError` "cannot write FILE: <reason>" (exit 1) instead of a traceback.
+  3. Tests: `test_unreadable_project_file_stops_cluster`, `test_graph_export_out_creates_missing_folders`, `test_graph_export_unwritable_out_is_a_clean_error` (all three fail on the code before this change).
+- **Impact:** M5 only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T10 review)
+
+### CHG-0021 — `ClusterCfg.assign_threshold` default 0.60 → 0.70 for bge-small
+- **Type:** contract
+- **Module(s):** contracts (`config.py` `ClusterCfg`), M5
+- **Proposed by:** agent (T10 review, Yogesh)
+- **Date:** 2026-10-18
+- **Motivation:** With `BAAI/bge-small-en-v1.5` (decision 6 in §11), unrelated episodes are already similar: over the 17 Claude + ChatGPT + Gemini fixture episodes the pairwise cosine is min 0.44, **median 0.60**, max 0.84. The default `assign_threshold` 0.60 therefore lets off-topic episodes join a project: Gemini's "Suggest a simple meal plan with lentils." (0.68) and "What should I pack for a rainy day hike?" (0.72) join the UW CS / CSE project. CHG-0019 (B-04) stops that project being named "Day"; this change keeps the off-topic episodes out of it. Measured with a `pam.toml` override on the fixtures, in one run and incrementally (Claude + ChatGPT, then Gemini):
+  - 0.60 and 0.65: lentils and hike join the CSE project.
+  - **0.70:** Immich 7, Tailscale 4 (incl. "Explain what a reverse proxy does."), CSE · CDS 4; lentils and hike unassigned; identical result and names both ways.
+  - 0.75: real members drop out ("Photo library issue", the reverse-proxy episode) and a weak "Checklist · Day Hike" project forms.
+- **Proposal:** change the default only (vaults with a `pam.toml` keep their value; users can set it per vault). New code for `backend/pam/contracts/config.py`:
+  ```python
+  class ClusterCfg(_C):
+      min_cluster_size: int = 3; assign_threshold: float = 0.70
+      similar_link_threshold: float = 0.75; similar_links_per_node: int = 3
+      rebuild_match_jaccard: float = 0.5; dormant_after_days: int = 30
+  ```
+  The same line in §7.13, then `pam schema export`. `frontend/src/types/generated.ts` carries no defaults, so it is unchanged.
+- **Impact:** contracts + regenerated schemas (`PamConfig.json`, `ClusterCfg.json`); M5 behaviour on new vaults. Existing vaults: no change until their `pam.toml` is edited.
+- **Status log:**
+  - 2026-10-18 · PROPOSED · agent (T10 review)
+  - 2026-10-18 · APPROVED · Yogesh
+  - 2026-10-18 · IMPLEMENTED · agent (T10 review): contract, §7.13 and schemas updated; full suite passes at 0.70
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
