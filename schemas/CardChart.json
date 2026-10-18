@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "ChartSeries": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "points"
+      ],
+      "title": "ChartSeries",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "kind": {
+      "default": "line",
+      "enum": [
+        "line",
+        "bar"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "x_label": {
+      "title": "X Label",
+      "type": "string"
+    },
+    "y_label": {
+      "title": "Y Label",
+      "type": "string"
+    },
+    "series": {
+      "items": {
+        "$ref": "#/$defs/ChartSeries"
+      },
+      "title": "Series",
+      "type": "array"
+    },
+    "marker_x": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Marker X"
+    }
+  },
+  "required": [
+    "x_label",
+    "y_label",
+    "series"
+  ],
+  "title": "CardChart",
+  "type": "object"
+}

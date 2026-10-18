@@ -1808,7 +1808,15 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Full `pytest -q` is green locally and in the backend container; `/docs` lists the new routes.
 
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Contracts: `contracts/connector.py` = the CHG-0027 §7.16 code verbatim (added to `CONTRACT_MODULES`); `ToolCallEvent.cards`; `ConnectorsCfg` + `PamConfig.connectors`; `SCHEMA_VERSION` 1.1.0. `PamConfig.schema_version`'s own default stays "1.0.0" (`config.py` is open to T17 for `ConnectorsCfg` only; a minor mismatch is accepted on read). `pam schema export`, `npm run gen:types`.
+  - `core/vault.py`: `connectors_dir`, `connector_path(id)`; `init_vault` writes `connectors/.gitkeep` in its single commit (CHG-0027 item 5).
+  - `connectors/store.py`: `list_connectors(vault, include_archived=False)`, `get_connector(vault, id)`, `save_connector(vault, c) -> sha | None`, `archive_connector(vault, id) -> sha | None`, plus `scan_connectors(vault)` (valid and invalid files, for the CLI) and `ConnectorNotFound` (404 in the API).
+  - `connectors/executor.py`: `tools_for(vault, agent)`, `async call(vault, connector_id, tool, args) -> ConnectorResult`, `model_message(result, id, tool, max_tokens)`, `split_tool_name(name)`. `connectors/cards.py`: `extract_cards(body, connector)`, `resolve_url(url, public_base_url)`.
+  - `chat/keystore.py`: `lookup_secret(name, vault)` (store entry `name`, then env `name`). `chat/llm.py`: `CONNECTOR_NOTE`. `chat/orchestrator.py`: connector tools join the MCP tools in `_tool_loop` for `supports_tools` models (both modes); only offered names are dispatched to `executor.call`; `ToolCallEvent.cards`; `CONNECTOR_NOTE` after `MEMORY_GUIDE`.
+  - `api/routes/connectors.py` (5 routes) + `api/app.py` `ROUTERS`; `cli/connector_cmd.py` (`list`, `show`, `add`, `archive`, `call`); `httpx` moves to runtime dependencies; SETUP §6 "M16 — Connectors".
+  - Tests (`test_m16_connectors.py`, local `ThreadingHTTPServer`, scripted fake LLM, no internet): every Done-when bullet, plus the M17 envelope from the local server so the T19 interface is checked early. `test_m00_core.py` gains samples for the 12 new models (lines added only).
+  - Decisions (with Yogesh): see CHG-0028.
+- **Result (➕):** 2026-10-18 · PASS (live T19 check pending) · WSL2 checkout. `pytest -q tests/test_m16_connectors.py` 88 passed; full `pytest -q` 917 passed, 1 skipped, locally and in the backend container (`docker compose build backend`). Container smoke on a scratch vault with a static stand-in service: `pam connector add|list|call` print as specified (`ok  HTTP 200  76 ms  1 cards`, card titles; `../x` refused with `BAD_ARGUMENTS`, exit 1, no request); all 5 `/api/connectors` routes answer as M16 says (400 on id mismatch, 404 unknown connector/tool, archive hides from the list); `/openapi.json` lists the 4 connector paths. `generated.ts` regenerated, frontend `tsc` clean. Pending T19 (no T19 branch yet): `pam connector add mock/tmobile/connector.yaml` and `call tmobile get_household` against `tmobile-mock`. CHG-0027 approved by Pranav per Yogesh; its APPROVED line is not in SPEC yet.
 
 #### T18 · Connectors UI wiring and rich cards (≈ 1.5 h)
 - **Module:** M14
@@ -2486,6 +2494,27 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · PROPOSED · human (Yogesh). Approver: Pranav. T17, T18 and T19 start only after APPROVED (T19 adds the `mock/` folder, a §5 change).
 
+### CHG-0028 — M16 implementation choices (T17)
+- **Type:** design + dependency
+- **Module(s):** M16, M12, M13, CHG-0023 keystore
+- **Proposed by:** agent (T17), each point decided by Yogesh
+- **Date:** 2026-10-18
+- **Motivation:** M16 leaves a few behaviours open, and a plain reading of two rules would not meet the T17 tests.
+- **Proposal (as implemented):**
+  1. **Path escape.** URL-encoding alone turns `../x` into `..%2Fx`, which still starts with `base_url`. So a path value with `/`, `\`, or equal to `.`/`..` is refused, and the final URL must have the same scheme and host, a path under the `base_url` path, and no dot segment after percent-decoding. All of these are `BAD_ARGUMENTS`, with no request sent.
+  2. **Other codes.** A 3xx response is `HTTP_3xx` (not followed). A JSON body that is not an object or array is `BAD_RESPONSE`. An optional argument sent as `null` counts as absent. An api_key connector with no `auth.header` sends `X-API-Key`.
+  3. **Trimming.** A tool message over `connectors.max_result_tokens` is cut to the budget and ends with `... (truncated)`. The model gets `{"connector", "tool", "data"}` or `{"connector", "tool", "error"}`.
+  4. **Card URLs.** A relative `image_url`/`link.url` is joined to `public_base_url` the way a browser joins links, so both `images/x.svg` and `/connectors/tmobile/images/x.svg` work. A relative URL with no `public_base_url` is removed. A link whose URL is removed is dropped. At most 6 valid cards are kept (`cards.MAX_CARDS`).
+  5. **Store additions.** `scan_connectors` (valid and invalid files, for `pam connector list`) and `ConnectorNotFound` (404). `save_connector`/`archive_connector` return the commit sha, or `None` when the bytes are unchanged. A file whose `id` differs from its file name is invalid.
+  6. **Chat.** Connector tools join the MCP tools wherever a `supports_tools` model gets tools (injection and tool mode). A model call to a connector name not offered this turn goes to MCP and fails there, so it never reaches the service. A connector that vanishes mid-turn gives a `BAD_ARGUMENTS` result.
+  7. **Secrets.** `keystore.lookup_secret(name, vault)` reads the settings store entry `name` (through a private `_read_all`; `read_store` is unchanged in behaviour), then the environment variable `name`. The executor masks the resolved secret in error text and in a response body that echoes it, then applies `keystore.redact`. **Known limit:** `keystore.set_value` (Settings page) rewrites `secrets.json` with provider keys only, so a hand-added connector secret there is dropped on the next Settings save. SETUP says to put connector secrets in `.env`.
+  8. **CLI.** `--arg k=v` values are converted to the parameter's declared type (`number` → int or float, `boolean` → true/false/1/0/yes/no); anything else stays a string and is refused by the executor. `pam connector call` exits 1 when the result is not ok. `--json` works both globally and on `call`.
+  9. **REST.** `POST /tools/{tool}/call` works for disabled and archived connectors too (it is the Connectors page test panel), and answers 200 with `ok: false` for argument and service errors.
+  10. `init_vault` writes `connectors/.gitkeep` (CHG-0027 item 5), although the T17 allowed-paths line names only the two helpers (decided by Yogesh). `PamConfig.schema_version`'s default stays "1.0.0".
+  - **Dependency:** `httpx>=0.27` moved from the dev group to `[project].dependencies`; `uv.lock` updated (as CHG-0027 lists).
+- **Impact:** only the T17 paths. `tests/test_m00_core.py` gains samples for the new models (added lines only).
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T17)
 ### CHG-0029 — M17 implementation choices (T19)
 - **Type:** design
 - **Module(s):** M17 (`mock/tmobile/`), with the M16 executor (T17) as its caller

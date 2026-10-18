@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID, NAMESPACE_URL, uuid5
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 PAM_NAMESPACE: UUID = uuid5(NAMESPACE_URL, "https://pam.local/v1")   # never change
 
 Slug = Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9-]{0,39}$")]

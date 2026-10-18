@@ -1,0 +1,200 @@
+{
+  "$defs": {
+    "ConnectorAuth": {
+      "properties": {
+        "type": {
+          "default": "none",
+          "enum": [
+            "none",
+            "api_key",
+            "bearer"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "header": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Header"
+        },
+        "env_var": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Env Var"
+        }
+      },
+      "title": "ConnectorAuth",
+      "type": "object"
+    },
+    "ConnectorParam": {
+      "properties": {
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ConnectorParam",
+      "type": "object"
+    },
+    "ConnectorTool": {
+      "properties": {
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,22}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "method": {
+          "default": "GET",
+          "enum": [
+            "GET",
+            "POST"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "path": {
+          "pattern": "^/[A-Za-z0-9_\\-/{}.]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "params": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConnectorParam"
+          },
+          "title": "Params",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "path"
+      ],
+      "title": "ConnectorTool",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "base_url": {
+      "title": "Base Url",
+      "type": "string"
+    },
+    "public_base_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Public Base Url"
+    },
+    "auth": {
+      "$ref": "#/$defs/ConnectorAuth",
+      "default": {
+        "type": "none",
+        "header": null,
+        "env_var": null
+      }
+    },
+    "tools": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConnectorTool"
+      },
+      "title": "Tools",
+      "type": "array"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "archived": {
+      "default": false,
+      "title": "Archived",
+      "type": "boolean"
+    },
+    "agents": {
+      "default": [],
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9-]{0,39}$",
+        "type": "string"
+      },
+      "title": "Agents",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "base_url"
+  ],
+  "title": "Connector",
+  "type": "object"
+}

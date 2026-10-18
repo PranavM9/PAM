@@ -15,7 +15,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pam import __version__
 from pam.api import errors
 from pam.api.jobs import JobRegistry
-from pam.api.routes import agents, chat, graph, health, imports, search, sessions, settings, sync, vault
+from pam.api.routes import (
+    agents, chat, connectors, graph, health, imports, search, sessions, settings, sync, vault,
+)
 from pam.chat import keystore
 from pam.core import config
 from pam.core.vault import Vault
@@ -24,7 +26,7 @@ from pam.working import session
 
 log = logging.getLogger(__name__)
 CORS_ORIGINS = ["http://localhost:5173"]
-ROUTERS = (health, imports, vault, search, graph, agents, chat, settings, sessions, sync)
+ROUTERS = (health, imports, vault, search, graph, agents, chat, settings, sessions, sync, connectors)
 
 
 def end_idle_once(root: Vault) -> int:

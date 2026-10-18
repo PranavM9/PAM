@@ -26,6 +26,9 @@ class ModelEntry(_C):
     id: str                               # LiteLLM model string, e.g. "openrouter/<org>/<model>:free"
     label: str
     supports_tools: bool = False
+class ConnectorsCfg(_C):                  # CHG-0027 (M16)
+    timeout_seconds: float = 10.0; max_result_tokens: int = 1500
+    max_response_bytes: int = 1_000_000; max_tools_per_turn: int = 20
 class PamConfig(_C):
     schema_version: str = "1.0.0"
     embedding: EmbeddingCfg = EmbeddingCfg(); chunking: ChunkCfg = ChunkCfg()
@@ -34,3 +37,4 @@ class PamConfig(_C):
     models: list[ModelEntry] = Field(default_factory=list)
     sync_interval_seconds: int = 5
     session_idle_minutes: int = 30            # CHG-0026: idle sessions are ended; 0 turns it off
+    connectors: ConnectorsCfg = ConnectorsCfg()   # CHG-0027

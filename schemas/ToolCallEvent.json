@@ -1,4 +1,326 @@
 {
+  "$defs": {
+    "CardChart": {
+      "properties": {
+        "kind": {
+          "default": "line",
+          "enum": [
+            "line",
+            "bar"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "x_label": {
+          "title": "X Label",
+          "type": "string"
+        },
+        "y_label": {
+          "title": "Y Label",
+          "type": "string"
+        },
+        "series": {
+          "items": {
+            "$ref": "#/$defs/ChartSeries"
+          },
+          "title": "Series",
+          "type": "array"
+        },
+        "marker_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Marker X"
+        }
+      },
+      "required": [
+        "x_label",
+        "y_label",
+        "series"
+      ],
+      "title": "CardChart",
+      "type": "object"
+    },
+    "CardField": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ],
+      "title": "CardField",
+      "type": "object"
+    },
+    "CardLink": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "url"
+      ],
+      "title": "CardLink",
+      "type": "object"
+    },
+    "CardPrice": {
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "period": {
+          "default": "month",
+          "enum": [
+            "once",
+            "month"
+          ],
+          "title": "Period",
+          "type": "string"
+        },
+        "was": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Was"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "CardPrice",
+      "type": "object"
+    },
+    "ChartSeries": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "points"
+      ],
+      "title": "ChartSeries",
+      "type": "object"
+    },
+    "ConnectorCard": {
+      "properties": {
+        "kind": {
+          "enum": [
+            "product",
+            "plan",
+            "verdict",
+            "comparison",
+            "chart",
+            "notice"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "subtitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subtitle"
+        },
+        "image_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Url"
+        },
+        "image_alt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Alt"
+        },
+        "badges": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Badges",
+          "type": "array"
+        },
+        "tone": {
+          "default": "neutral",
+          "enum": [
+            "neutral",
+            "positive",
+            "caution"
+          ],
+          "title": "Tone",
+          "type": "string"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardPrice"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fields": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CardField"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "columns": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "rows": {
+          "default": [],
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "chart": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardChart"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "link": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardLink"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "connector_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Connector Id"
+        }
+      },
+      "required": [
+        "kind",
+        "title"
+      ],
+      "title": "ConnectorCard",
+      "type": "object"
+    }
+  },
   "properties": {
     "type": {
       "const": "tool_call",
@@ -18,6 +340,14 @@
     "result_summary": {
       "title": "Result Summary",
       "type": "string"
+    },
+    "cards": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConnectorCard"
+      },
+      "title": "Cards",
+      "type": "array"
     }
   },
   "required": [

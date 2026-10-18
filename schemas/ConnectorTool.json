@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "ConnectorParam": {
+      "properties": {
+        "name": {
+          "pattern": "^[a-z][a-z0-9_]{0,39}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ConnectorParam",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "name": {
+      "pattern": "^[a-z][a-z0-9_]{0,22}$",
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "method": {
+      "default": "GET",
+      "enum": [
+        "GET",
+        "POST"
+      ],
+      "title": "Method",
+      "type": "string"
+    },
+    "path": {
+      "pattern": "^/[A-Za-z0-9_\\-/{}.]*$",
+      "title": "Path",
+      "type": "string"
+    },
+    "params": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConnectorParam"
+      },
+      "title": "Params",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "path"
+  ],
+  "title": "ConnectorTool",
+  "type": "object"
+}

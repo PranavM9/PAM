@@ -61,6 +61,11 @@ def read_store(vault: Vault) -> dict[str, str]:
     Parameters:
         vault: The vault that owns the store.
     """
+    return {k: v for k, v in _read_all(vault).items() if k in PROVIDERS and v}
+
+
+def _read_all(vault: Vault) -> dict[str, str]:
+    """Read every entry of the store, provider or not (`{}` when the file does not exist)."""
     path = store_path(vault)
     if not path.is_file():
         return {}
@@ -70,7 +75,7 @@ def read_store(vault: Vault) -> dict[str, str]:
         raise PamError(f"unreadable settings store {path.name}: {type(e).__name__}") from None
     if not isinstance(data, dict) or not all(isinstance(v, str) for v in data.values()):
         raise PamError(f"unreadable settings store {path.name}: not an object of strings")
-    return {k: v for k, v in data.items() if k in PROVIDERS and v}
+    return data
 
 
 def set_value(vault: Vault, provider: str, value: str | None) -> None:
@@ -128,6 +133,26 @@ def lookup(provider: str, vault: Vault | None = None) -> tuple[str | None, Sourc
     if env := os.environ.get(ENV_VARS.get(provider, "")):
         return env, "env"
     return None, "none"
+
+
+def lookup_secret(name: str, vault: Vault | None = None) -> str | None:
+    """Find a secret by its own name, such as a connector's `auth.env_var` (CHG-0027).
+
+    Behavior:
+        The settings store entry `name` wins over the environment variable `name`. Vault
+        resolution is the same as in `lookup`.
+    Exceptions:
+        PamError: The settings store is unreadable.
+    Returns:
+        The secret, or `None` when neither is set.
+    Parameters:
+        name: The secret's name, used as both the store key and the environment variable.
+        vault: The vault to read, or `None` for the current one.
+    """
+    v = vault or _current_vault()
+    if v is not None and (stored := _read_all(v).get(name)):
+        return stored
+    return os.environ.get(name) or None
 
 
 def last4(value: str) -> str:

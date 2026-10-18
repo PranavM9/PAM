@@ -54,6 +54,33 @@
       "title": "ClusterCfg",
       "type": "object"
     },
+    "ConnectorsCfg": {
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "default": 10.0,
+          "title": "Timeout Seconds",
+          "type": "number"
+        },
+        "max_result_tokens": {
+          "default": 1500,
+          "title": "Max Result Tokens",
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "default": 1000000,
+          "title": "Max Response Bytes",
+          "type": "integer"
+        },
+        "max_tools_per_turn": {
+          "default": 20,
+          "title": "Max Tools Per Turn",
+          "type": "integer"
+        }
+      },
+      "title": "ConnectorsCfg",
+      "type": "object"
+    },
     "ContextCfg": {
       "additionalProperties": false,
       "properties": {
@@ -246,6 +273,15 @@
       "default": 30,
       "title": "Session Idle Minutes",
       "type": "integer"
+    },
+    "connectors": {
+      "$ref": "#/$defs/ConnectorsCfg",
+      "default": {
+        "timeout_seconds": 10.0,
+        "max_result_tokens": 1500,
+        "max_response_bytes": 1000000,
+        "max_tools_per_turn": 20
+      }
     }
   },
   "title": "PamConfig",
