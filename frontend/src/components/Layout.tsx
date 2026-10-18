@@ -5,16 +5,17 @@ import {
   FolderTree,
   Home,
   MessagesSquare,
-  Moon,
+  // Moon, // light mode disabled for now
   Network,
+  Plug,
   Search,
   Settings,
   Sparkles,
-  Sun,
+  // Sun, // light mode disabled for now
   Upload,
   type LucideIcon,
 } from 'lucide-react'
-import { useLayoutEffect, useRef, useState, type PointerEvent } from 'react'
+import { useLayoutEffect, useRef, type PointerEvent } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { MOCK, api } from '../api/client'
 import { ResizeHandle } from './Resizable'
@@ -27,6 +28,7 @@ const ROUTES: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/vault', label: 'Vault', icon: FolderTree },
   { to: '/search', label: 'Search', icon: Search },
   { to: '/agents', label: 'Agents', icon: Bot },
+  { to: '/connectors', label: 'Connectors', icon: Plug },
   { to: '/chat', label: 'Chat', icon: MessagesSquare },
   { to: '/guides', label: 'Guides', icon: BookOpen },
   { to: '/settings', label: 'Settings', icon: Settings },
@@ -44,7 +46,8 @@ const ROUTES: { to: string; label: string; icon: LucideIcon }[] = [
  *     (`.page-enter` in index.css).
  */
 export function Layout() {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+  // Light mode disabled for now; restore with the toggle buttons below and main.tsx.
+  // const [theme, setTheme] = useState<'dark' | 'light'>(() => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
   const health = useQuery({ queryKey: ['health'], queryFn: api.health, refetchInterval: 15_000 })
   const status = health.isError ? 'Backend offline' : !health.data ? 'Checking backend…' : health.data.index_ok ? 'Vault ready' : 'Index stale'
   const sidebar = usePaneSize({ id: 'sidebar', initial: 224, min: 196, max: 320 })
@@ -58,16 +61,16 @@ export function Layout() {
     document.documentElement.style.setProperty('--pointer-y', `${event.clientY}px`)
   }
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    document.documentElement.dataset.theme = next
-    try {
-      localStorage.setItem('pam-theme', next)
-    } catch {
-      // The in-memory theme still applies when browser storage is unavailable.
-    }
-  }
+  // const toggleTheme = () => {
+  //   const next = theme === 'dark' ? 'light' : 'dark'
+  //   setTheme(next)
+  //   document.documentElement.dataset.theme = next
+  //   try {
+  //     localStorage.setItem('pam-theme', next)
+  //   } catch {
+  //     // The in-memory theme still applies when browser storage is unavailable.
+  //   }
+  // }
 
   // Move the pill onto the active link, and follow it when the sidebar is resized.
   useLayoutEffect(() => {
@@ -144,17 +147,17 @@ export function Layout() {
           </div>
           {health.data?.vault && <div className="truncate font-mono text-[11px] text-muted">{health.data.vault}</div>}
           {MOCK && <div className="text-warn">Mock data: demo responses, no backend</div>}
-          <button type="button" className="btn-ghost w-full justify-start" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+          {/* <button type="button" className="btn-ghost w-full justify-start" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          </button>
+          </button> */}
         </div>
         <div className="flex shrink-0 items-center gap-2 px-2 text-xs text-muted lg:hidden" title={status}>
           <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
           {MOCK && <span className="text-warn">mock</span>}
-          <button type="button" className="icon-btn h-8 w-8" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+          {/* <button type="button" className="icon-btn h-8 w-8" onClick={toggleTheme} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
             {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
+          </button> */}
         </div>
       </nav>
       <ResizeHandle pane={sidebar} side="before" label="Resize sidebar" />

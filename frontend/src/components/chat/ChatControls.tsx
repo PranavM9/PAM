@@ -2,7 +2,6 @@ import { Check, ChevronDown, Cpu } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import type { ModelEntry } from '../../types/generated'
-import type { Mode } from './types'
 
 /**
  * Model picker for the conversation header.
@@ -107,46 +106,6 @@ export function ModelSelect({ models, loaded = false, value, onChange }: { model
           })}
         </div>
       )}
-    </div>
-  )
-}
-
-/**
- * Segmented control choosing between context injection and tool mode.
- *
- * Behavior:
- *     Tool mode is disabled, with an explanatory tooltip, when the selected
- *     model does not support tool calls.
- * Parameters:
- *     mode: The active mode.
- *     onChange: Called with the chosen mode.
- *     toolsSupported: Whether the selected model supports tool calls.
- */
-export function ModeToggle({ mode, onChange, toolsSupported }: { mode: Mode; onChange: (m: Mode) => void; toolsSupported: boolean }) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Context mode"
-      className="inline-flex shrink-0 rounded-control border border-edge/10 bg-bg/30 p-0.5 text-[13px]"
-    >
-      {(['injection', 'tool'] as const).map((m) => (
-        <button
-          key={m}
-          type="button"
-          role="radio"
-          aria-checked={mode === m}
-          disabled={m === 'tool' && !toolsSupported}
-          title={m === 'tool' && !toolsSupported ? 'This model does not support tool calls' : undefined}
-          onClick={() => onChange(m)}
-          className={`min-h-[2rem] rounded-[11px] px-3 capitalize transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-40 ${
-            mode === m
-              ? 'bg-accent/15 font-medium text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.14)]'
-              : 'text-muted hover:text-fg'
-          }`}
-        >
-          {m}
-        </button>
-      ))}
     </div>
   )
 }

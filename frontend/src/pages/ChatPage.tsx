@@ -3,17 +3,15 @@ import { CheckCircle2, History, Loader2, MessageSquarePlus, PanelRight } from 'l
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, chatStream } from '../api/client'
 import { AgentSelect } from '../components/AgentSelect'
-import { CliHint } from '../components/CliHint'
 import { ErrorNote } from '../components/ErrorNote'
 import { ResizeHandle } from '../components/Resizable'
 import { usePaneSize } from '../lib/usePaneSize'
-import { ModeToggle, ModelSelect } from '../components/chat/ChatControls'
+import { ModelSelect } from '../components/chat/ChatControls'
 import { Composer } from '../components/chat/Composer'
 import { ContextPanel } from '../components/chat/ContextPanel'
 import { AssistantAvatar, EmptyChat, MessageView } from '../components/chat/MessageView'
 import { SessionList } from '../components/chat/SessionList'
 import type { Message, Mode, StoredSession } from '../components/chat/types'
-import { cliHints } from '../lib/cliHints'
 import type { WriteResult } from '../types/generated'
 
 const STORE_KEY = 'pam-chat-sessions'
@@ -62,7 +60,6 @@ export default function ChatPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState<StoredSession>(() => blank('default'))
   const [pickedModel, setModel] = useState<string>('')
-  const [pickedMode, setMode] = useState<Mode>('injection')
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [requestError, setRequestError] = useState<unknown>(null)
@@ -89,8 +86,7 @@ export default function ChatPage() {
     agent?.default_model && modelList.some((m) => m.id === agent.default_model) ? agent.default_model : modelList[0]?.id ?? ''
   const model = pickedModel || fallbackModel
   const current = modelList.find((m) => m.id === model)
-  const mode: Mode = pickedMode === 'tool' && !current?.supports_tools ? 'injection' : pickedMode
-  const lastPrompt = [...session.messages].reverse().find((m) => m.kind === 'user')?.text
+  const mode: Mode = current?.supports_tools ? 'tool' : 'injection'
 
   const working = useQuery({
     queryKey: ['session', activeId],
@@ -304,7 +300,6 @@ export default function ChatPage() {
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <AgentSelect value={agentName} onChange={(name) => update(activeId, (s) => ({ ...s, agent: name }))} />
             <ModelSelect models={modelList} loaded={models.isSuccess} value={model} onChange={pickModel} />
-            <ModeToggle mode={mode} onChange={setMode} toolsSupported={Boolean(current?.supports_tools)} />
             <button
               type="button"
               className="btn"
@@ -375,9 +370,6 @@ export default function ChatPage() {
             canSend={Boolean(model)}
             ended={session.ended}
           />
-          <div className="mx-auto max-w-3xl">
-            <CliHint command={cliHints.chat(lastPrompt, model || undefined, activeId ?? undefined)} />
-          </div>
         </footer>
       </section>
 
