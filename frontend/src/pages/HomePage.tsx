@@ -7,7 +7,6 @@ import {
   Network,
   BookOpen,
   Repeat2,
-  ShieldCheck,
   Upload,
   type LucideIcon,
 } from 'lucide-react'
@@ -114,22 +113,16 @@ export default function HomePage() {
           </Reveal>
           <Reveal delay={120} className="mt-12">
             <h1 id="home-title" className="flex flex-col items-center">
-              <span className="bg-gradient-to-b from-fg via-fg to-accent bg-clip-text text-[88px] font-semibold leading-none tracking-[-0.05em] text-transparent sm:text-[120px] lg:text-[144px]">
+              <span className="display-type text-[108px] leading-[0.85] text-fg sm:text-[144px] lg:text-[168px]">
                 PAM
               </span>
               <span className="mt-3 text-[15px] font-medium uppercase tracking-[0.32em] text-accent sm:text-[17px]">
                 Portable Agent Memory
               </span>
             </h1>
-            <p className="mt-8 text-[34px] font-semibold leading-[1.08] tracking-[-0.03em] text-fg sm:text-[44px] lg:text-[52px]">
+            <p className="display-type mt-8 text-[42px] leading-[1.02] text-fg sm:text-[56px] lg:text-[68px]">
               Pick up where you left off.{' '}
-              <span className="bg-gradient-to-r from-fg via-accent to-[#f0abfc] bg-clip-text text-transparent">With any AI.</span>
-            </p>
-          </Reveal>
-          <Reveal delay={240}>
-            <p className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted sm:text-[19px]">
-              PAM turns your Claude, ChatGPT and Gemini history into one private memory that any model can read, so a
-              new chat never starts from zero.
+              <span className="text-accent">With any AI.</span>
             </p>
           </Reveal>
           <Reveal delay={360} className="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -140,27 +133,13 @@ export default function HomePage() {
               See it remember
             </Link>
           </Reveal>
-          <Reveal delay={480}>
-            <p className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] text-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck size={14} strokeWidth={1.75} aria-hidden /> Local-first
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <FolderGit2 size={14} strokeWidth={1.75} aria-hidden /> Markdown + git
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Repeat2 size={14} strokeWidth={1.75} aria-hidden /> Any model, via MCP
-              </span>
-            </p>
-          </Reveal>
         </section>
 
-        <Reveal as="section" className="panel grid grid-cols-2 divide-edge/[0.08] lg:grid-cols-4 lg:divide-x">
+        <Reveal as="section" className="panel grid grid-cols-1 divide-edge/[0.08] sm:grid-cols-3 sm:divide-x">
           <h2 className="sr-only">PAM in numbers</h2>
-          <Stat value={<CountUp value={96} suffix="%" />} label="fewer tokens per answer" note="1.8k briefing vs 46k replay" />
-          <Stat value={live(count('episode'))} label="conversations remembered" note="in your vault now" />
-          <Stat value={live(count('project'))} label="projects found for you" note="clustered automatically" />
-          <Stat value={live(models.data?.length)} label="models ready to chat" note="switch any time" />
+          <Stat value={live(count('episode'))} label="conversations remembered" />
+          <Stat value={live(count('project'))} label="projects found for you" />
+          <Stat value={live(models.data?.length)} label="models ready to chat" />
         </Reveal>
 
         <section className="py-24 text-center sm:py-32" aria-labelledby="home-problem">

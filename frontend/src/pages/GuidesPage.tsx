@@ -44,7 +44,6 @@ export default function GuidesPage() {
     <div ref={page} className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
       <PageHeader
         title="Guides"
-        subtitle="How to export from each provider and connect MCP clients."
         cli={cliHints.mcpServe()}
       />
       <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">

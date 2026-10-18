@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronRight, FileSearch, Loader2, Search } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, FileSearch, FolderTree, Info, Loader2, Search, X } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { AgentSelect } from '../components/AgentSelect'
 import { ErrorNote } from '../components/ErrorNote'
@@ -35,8 +35,10 @@ export default function VaultPage() {
   const agent = params.get('agent') || 'default'
   const [filter, setFilter] = useState('')
   const [treeOpen, setTreeOpen] = useState(true)
+  const [showStructure, setShowStructure] = useState(false)
   const [open, setOpen] = useState<Set<string>>(() => new Set(['memory', 'memory/default', ...(selected ? ancestors(selected) : [])]))
   const tree = useQuery({ queryKey: ['vault-tree', agent], queryFn: () => api.vaultTree(agent) })
+  const navigate = useNavigate()
 
   const nodes = useMemo(() => {
     const paths = tree.data?.paths ?? []
@@ -64,18 +66,22 @@ export default function VaultPage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden">
       <PageHeader
         title="Vault"
-        subtitle="Every file PAM keeps: plain Markdown and YAML in a git repo."
         cli={cliForPath(selected)}
         actions={
-          <AgentSelect
-            value={agent}
-            onChange={(name) => {
-              const next = new URLSearchParams(params)
-              if (name === 'default') next.delete('agent')
-              else next.set('agent', name)
-              setParams(next)
-            }}
-          />
+          <>
+            <button type="button" className="btn" onClick={() => setShowStructure(true)} aria-label="About the vault structure">
+              <Info size={16} aria-hidden /> Vault guide
+            </button>
+            <AgentSelect
+              value={agent}
+              onChange={(name) => {
+                const next = new URLSearchParams(params)
+                if (name === 'default') next.delete('agent')
+                else next.set('agent', name)
+                setParams(next)
+              }}
+            />
+          </>
         }
       />
       <div className="flex flex-col gap-4 pb-1 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
@@ -156,12 +162,51 @@ export default function VaultPage() {
               </div>
               <div>
                 <p className="text-[17px] font-medium text-fg">Pick a file</p>
-                <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">Choose a file in the tree to view its frontmatter and body.</p>
+                <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">Choose a file to view it.</p>
               </div>
             </div>
           )}
         </article>
       </div>
+      {showStructure && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-bg/70 p-4 backdrop-blur-sm" onClick={() => setShowStructure(false)} onKeyDown={(event) => event.key === 'Escape' && setShowStructure(false)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="vault-guide-title" onClick={(event) => event.stopPropagation()} className="glass-blur panel w-full max-w-2xl p-5 shadow-2xl sm:p-7">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="eyebrow">A map of your memory</p>
+                <h2 id="vault-guide-title" className="display-type mt-1 text-3xl">Inside the vault</h2>
+              </div>
+              <button autoFocus type="button" className="icon-btn" onClick={() => setShowStructure(false)} aria-label="Close vault guide"><X size={18} /></button>
+            </div>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {[
+                ['agent/', 'Agent settings and persona notes.'],
+                ['imports/', 'Original exports kept as received.'],
+                ['memory/shared/facts/', 'Facts available across agents.'],
+                ['memory/<agent>/episodes/', 'Imported conversations, one file each.'],
+                ['memory/<agent>/projects/', 'Groups of related conversations.'],
+                ['memory/<agent>/facts/', 'Facts scoped to one agent.'],
+                ['skills/<agent>/', 'Reusable instructions for an agent.'],
+                ['working/', 'Short term context for active chats.'],
+                ['.pam/', 'Search index and other rebuildable data.'],
+              ].map(([folder, summary]) => {
+                const sample = tree.data?.paths.find((path) => path.startsWith(folder.replace('<agent>', 'default')))
+                return (
+                  <li key={folder}>
+                    <button type="button" disabled={!sample} onClick={() => { if (sample) { select(sample); setShowStructure(false) } }} className="well h-full w-full rounded-xl p-3 text-left transition hover:bg-fg/[0.06] disabled:cursor-default disabled:opacity-60">
+                      <span className="flex items-center gap-2 font-mono text-xs text-accent"><FolderTree size={14} />{folder}</span>
+                      <span className="mt-1 block text-sm text-fg/85">{summary}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            <button type="button" className="btn-ghost mt-5" onClick={() => { setShowStructure(false); navigate('/guides?g=vault-structure') }}>
+              <BookOpen size={15} /> Read the full guide
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

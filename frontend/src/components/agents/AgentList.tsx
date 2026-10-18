@@ -55,7 +55,7 @@ export function AgentList({
                 aria-current={active ? 'true' : undefined}
                 className={`press group flex w-full min-w-[11rem] items-center gap-3 rounded-control px-3 py-2.5 text-left lg:min-w-0 ${
                   active
-                    ? 'bg-gradient-to-r from-accent/25 to-accent/10 shadow-[inset_0_1px_0_var(--glass-highlight)]'
+                    ? 'bg-accent/15 shadow-[inset_0_1px_0_var(--glass-highlight)]'
                     : 'hover:bg-fg/[0.06]'
                 }`}
               >

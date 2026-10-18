@@ -45,7 +45,7 @@ export function VaultTree({
                 title={node.path}
                 className={`flex min-h-[2rem] w-full items-center gap-2 rounded-[10px] px-2 text-left transition duration-200 ease-out ${
                   active
-                    ? 'bg-gradient-to-r from-accent/25 to-accent/10 text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.1)]'
+                    ? 'bg-accent/15 text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.1)]'
                     : 'text-muted hover:bg-fg/[0.06] hover:text-fg'
                 }`}
               >

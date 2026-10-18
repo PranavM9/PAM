@@ -26,7 +26,7 @@ export function SourcePicker({ value, onChange }: { value: ImportSource; onChang
               onClick={() => onChange(s.id)}
               className={`min-h-[3.25rem] rounded-[12px] px-3 py-2.5 text-left transition duration-200 ease-out ${
                 selected
-                  ? 'bg-gradient-to-b from-accent/25 to-accent/10 text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.14),0_6px_20px_rgb(var(--accent-strong)/0.18)]'
+                  ? 'bg-accent/15 text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.14)]'
                   : 'text-fg/80 hover:bg-fg/[0.05] hover:text-fg'
               }`}
             >

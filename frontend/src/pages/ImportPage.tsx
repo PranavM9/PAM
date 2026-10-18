@@ -75,7 +75,6 @@ export default function ImportPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title="Import"
-        subtitle="Bring your conversation history into the vault. Runs extract → normalize → derive → index → cluster."
         cli={cliHints.importRun(fileName ? `/demo/${fileName}` : undefined)}
       />
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:flex-row lg:gap-0 lg:overflow-hidden">
@@ -90,7 +89,6 @@ export default function ImportPage() {
               <div className="space-y-6">
                 <div>
                   <div className="text-[15px] font-medium">Pipeline</div>
-                  <p className="mt-1 text-sm text-muted">Each stage lights up here as your export is processed.</p>
                 </div>
                 <StageStepper />
               </div>

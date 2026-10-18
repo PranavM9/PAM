@@ -110,7 +110,6 @@ export default function AgentsPage() {
           <>
             <PageHeader
               title="Agents"
-              subtitle="Each agent sees only its read scope and writes only what its manifest allows."
               cli={cliHints.agentCreate()}
             />
             <div className="panel flex flex-col items-center gap-4 px-6 py-16 text-center lg:flex-1 lg:justify-center">
