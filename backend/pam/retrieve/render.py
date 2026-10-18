@@ -79,7 +79,8 @@ def render(
             lines.append(f"- (empty) (source: {path})")
     sections.append("\n".join(lines))
     sections.append("\n".join([HEADINGS[4], *(
-        f"- {p.name} [{p.status}]: {' '.join(p.summary.split())} (source: {path})" for p, path in projects)]))
+        f"- {p.name} [{p.status}]{': ' + ' '.join(p.summary.split()) if p.summary.strip() else ''} (source: {path})"
+        for p, path in projects)]))
     sections.append("\n".join([HEADINGS[5], *(
         f"- {e.title} ({iso_z(e.created_at)}, {e.source.value}):\n{_indent(e.text)}\n  Source: {path}"
         for e, path in episodes)]))
