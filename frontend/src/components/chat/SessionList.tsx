@@ -56,7 +56,7 @@ export function SessionList({
         </button>
       }
     >
-      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+      <ul className="stagger min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
         {sessions.length === 0 && <li className="px-2 py-1 text-[13px] leading-relaxed text-muted">No sessions yet. Your chats will appear here.</li>}
         {sessions.map((s) => {
           const active = s.id === activeId

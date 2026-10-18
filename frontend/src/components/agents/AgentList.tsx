@@ -39,11 +39,11 @@ export function AgentList({
     <nav aria-label="Agents" style={style} className="panel flex shrink-0 flex-col gap-3 p-3 lg:w-[var(--pane-w)] lg:gap-4 lg:p-4">
       <div className="flex items-center justify-between gap-3 px-1 lg:flex-col lg:items-stretch">
         <h2 className="text-[15px] font-semibold tracking-[-0.01em] lg:px-1 lg:pt-1">Agents</h2>
-        <button type="button" className="btn lg:w-full" onClick={onNew}>
-          <Plus size={16} strokeWidth={1.75} aria-hidden /> New agent
+        <button type="button" className="group btn lg:w-full" onClick={onNew}>
+          <Plus size={16} strokeWidth={1.75} aria-hidden className="transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-90" /> New agent
         </button>
       </div>
-      <ul className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:overflow-x-visible lg:px-0 lg:pb-0">
+      <ul className="stagger -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:overflow-x-visible lg:px-0 lg:pb-0">
         {loading && <li className="px-3 py-2 text-sm text-muted">Loading…</li>}
         {agents?.map((a) => {
           const active = a.name === selected
@@ -53,14 +53,14 @@ export function AgentList({
                 type="button"
                 onClick={() => onSelect(a.name)}
                 aria-current={active ? 'true' : undefined}
-                className={`flex w-full min-w-[11rem] items-center gap-3 rounded-control px-3 py-2.5 text-left transition duration-200 ease-out lg:min-w-0 ${
+                className={`press group flex w-full min-w-[11rem] items-center gap-3 rounded-control px-3 py-2.5 text-left lg:min-w-0 ${
                   active
                     ? 'bg-gradient-to-r from-accent/25 to-accent/10 shadow-[inset_0_1px_0_var(--glass-highlight)]'
                     : 'hover:bg-fg/[0.06]'
                 }`}
               >
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${active ? 'bg-accent/25 text-fg' : 'bg-fg/[0.06] text-muted'}`}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition duration-500 ease-[var(--ease-spring)] group-hover:scale-110 ${active ? 'scale-105 bg-accent/25 text-fg' : 'bg-fg/[0.06] text-muted'}`}
                   aria-hidden
                 >
                   <Bot size={17} strokeWidth={1.75} />

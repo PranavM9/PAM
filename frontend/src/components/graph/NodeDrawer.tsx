@@ -38,11 +38,11 @@ export function NodeDrawer({
   return (
     <aside
       style={pane.style}
-      className="absolute inset-2 z-20 flex flex-col overflow-hidden rounded-card border border-edge/[0.12] bg-bg/80 shadow-[inset_0_1px_0_var(--glass-highlight),0_24px_60px_rgba(3,1,14,0.35)] backdrop-blur-2xl sm:inset-y-3 sm:left-auto sm:right-3 sm:w-[min(var(--pane-w),calc(100%-1.5rem))]"
+      className="drawer-in-right absolute inset-2 z-20 flex flex-col overflow-hidden rounded-card border border-edge/[0.12] bg-bg/80 shadow-[inset_0_1px_0_var(--glass-highlight),0_24px_60px_rgba(3,1,14,0.35)] backdrop-blur-2xl sm:inset-y-3 sm:left-auto sm:right-3 sm:w-[min(var(--pane-w),calc(100%-1.5rem))]"
       aria-label="Node details"
     >
       <ResizeHandle pane={pane} side="after" label="Resize details drawer" breakpoint="md" className="absolute inset-y-0 left-0 z-10 w-3 rounded-none" />
-      <div className="flex items-start gap-3 border-b border-edge/10 px-5 pb-4 pt-5">
+      <div key={node.id} className="enter flex items-start gap-3 border-b border-edge/10 px-5 pb-4 pt-5">
         <span className="mt-2 h-3 w-3 shrink-0 rounded-full ring-4 ring-edge/[0.06]" style={{ background: swatch }} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="eyebrow">{TYPE_LABEL[node.type]}</div>
@@ -59,7 +59,7 @@ export function NodeDrawer({
           </button>
         </div>
       )}
-      <div className="min-h-0 flex-1 overflow-auto px-5 pb-6 pt-4">
+      <div key={`body-${node.id}`} className="enter min-h-0 flex-1 overflow-auto px-5 pb-6 pt-4 [animation-delay:80ms]">
         {node.path ? (
           <VaultFileView path={node.path} agent={agent} />
         ) : (

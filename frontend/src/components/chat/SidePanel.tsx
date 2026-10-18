@@ -55,11 +55,11 @@ export function SidePanel({
   }, [open, onClose])
 
   const drawer = open
-    ? `glass-blur fixed inset-y-3 z-40 flex w-[min(21rem,calc(100vw-1.5rem))] ${side === 'left' ? 'left-3' : 'right-3'}`
+    ? `glass-blur fixed inset-y-3 z-40 flex w-[min(21rem,calc(100vw-1.5rem))] ${side === 'left' ? 'drawer-in-left left-3' : 'drawer-in-right right-3'}`
     : 'hidden'
   return (
     <>
-      {open && <div className="fixed inset-0 z-30 bg-bg/60 backdrop-blur-[2px] xl:hidden" onClick={onClose} aria-hidden />}
+      {open && <div className="scrim-in fixed inset-0 z-30 bg-bg/60 backdrop-blur-[2px] xl:hidden" onClick={onClose} aria-hidden />}
       <Tag
         id={id}
         aria-label={label}

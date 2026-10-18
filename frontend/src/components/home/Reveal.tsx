@@ -5,8 +5,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
  *
  * Behavior:
  *     Uses an `IntersectionObserver` on the nearest scroll container; once
- *     shown, the block stays shown. Without observer support, or with reduced
- *     motion, the content is visible immediately (see `.reveal` in index.css).
+ *     shown, the block stays shown. Without observer support the content is
+ *     visible immediately; with reduced motion it only fades (see `.reveal`
+ *     and the reduced-motion block in index.css).
  * Parameters:
  *     children: Content to reveal.
  *     delay: Animation delay in milliseconds, for staggering siblings.

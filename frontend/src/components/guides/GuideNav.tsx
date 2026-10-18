@@ -35,7 +35,7 @@ export function GuideNav({
       {[...groups].map(([label, items]) => (
         <div key={label} className="mb-3 last:mb-0">
           <h2 className="px-3 pb-1.5 pt-2 text-[13px] font-medium text-muted">{label}</h2>
-          <ul className="space-y-1">
+          <ul className="stagger space-y-1">
             {items.map((g) => {
               const active = g.slug === selected
               const Icon = guideKind(g.slug).icon

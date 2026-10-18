@@ -43,7 +43,7 @@ export function TokenMeter({
         aria-label="Tokens used compared with the full history"
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-accent-strong to-accent transition-[width] duration-300 ease-out"
+          className="animate-grow-x h-full rounded-full bg-gradient-to-r from-accent-strong to-accent transition-[width] duration-500 ease-[var(--ease-out)]"
           style={{ width: `${Math.max(2, ratio * 100)}%` }}
         />
       </div>

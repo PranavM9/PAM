@@ -58,17 +58,17 @@ export function Composer({
       />
       {streaming ? (
         <button type="button" className="btn h-10 w-10 shrink-0 rounded-full p-0" onClick={onStop} aria-label="Stop" title="Stop">
-          <Square size={14} strokeWidth={2} className="fill-current" />
+          <Square size={14} strokeWidth={2} className="animate-pop fill-current" />
         </button>
       ) : (
         <button
           type="submit"
-          className="btn btn-primary h-10 w-10 shrink-0 rounded-full p-0"
+          className="group btn btn-primary h-10 w-10 shrink-0 rounded-full p-0"
           disabled={!value.trim() || !canSend || ended}
           aria-label="Send"
           title="Send"
         >
-          <ArrowUp size={18} strokeWidth={2} />
+          <ArrowUp size={18} strokeWidth={2} className="transition-transform duration-300 ease-[var(--ease-spring)] group-enabled:group-hover:-translate-y-0.5" />
         </button>
       )}
     </form>

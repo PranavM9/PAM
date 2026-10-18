@@ -15,6 +15,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { CliHint } from '../components/CliHint'
+import { CountUp } from '../components/home/CountUp'
 import { MemoryGem } from '../components/home/MemoryGem'
 import { Reveal } from '../components/home/Reveal'
 import { cliHints } from '../lib/cliHints'
@@ -95,18 +96,19 @@ function Stat({ value, label, note }: { value: ReactNode; label: string; note?: 
  *     `GET /models`; the token saving is the demo vault's example), three
  *     feature statements, four steps that link to the matching pages with their
  *     CLI commands, and a closing call to action. Sections fade in as they
- *     scroll into view.
+ *     scroll into view, the hero recedes as it scrolls away, numbers count up
+ *     when they appear, and cards lift under the pointer.
  */
 export default function HomePage() {
   const graph = useQuery({ queryKey: ['graph', 'default', false], queryFn: () => api.graph('default') })
   const models = useQuery({ queryKey: ['models'], queryFn: api.models })
   const count = (type: 'project' | 'episode') => graph.data?.nodes.filter((n) => n.type === type).length
-  const live = (n: number | undefined) => (n === undefined ? '–' : n.toLocaleString())
+  const live = (n: number | undefined) => (n === undefined ? '–' : <CountUp value={n} />)
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto flex max-w-5xl flex-col px-4 sm:px-8">
-        <section className="flex flex-col items-center pb-16 pt-12 text-center sm:pb-24 sm:pt-20" aria-labelledby="home-title">
+        <section className="hero-recede flex flex-col items-center pb-16 pt-12 text-center sm:pb-24 sm:pt-20" aria-labelledby="home-title">
           <Reveal>
             <MemoryGem size={220} />
           </Reveal>
@@ -132,7 +134,7 @@ export default function HomePage() {
           </Reveal>
           <Reveal delay={360} className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <Link to="/import" className="btn btn-primary min-h-[3rem] rounded-full px-6 text-[15px]">
-              Import your history <ArrowRight size={17} strokeWidth={2} aria-hidden />
+              Import your history <ArrowRight size={17} strokeWidth={2} aria-hidden className="nudge" />
             </Link>
             <Link to="/chat" className="btn min-h-[3rem] rounded-full px-6 text-[15px]">
               See it remember
@@ -155,7 +157,7 @@ export default function HomePage() {
 
         <Reveal as="section" className="panel grid grid-cols-2 divide-edge/[0.08] lg:grid-cols-4 lg:divide-x">
           <h2 className="sr-only">PAM in numbers</h2>
-          <Stat value="96%" label="fewer tokens per answer" note="1.8k briefing vs 46k replay" />
+          <Stat value={<CountUp value={96} suffix="%" />} label="fewer tokens per answer" note="1.8k briefing vs 46k replay" />
           <Stat value={live(count('episode'))} label="conversations remembered" note="in your vault now" />
           <Stat value={live(count('project'))} label="projects found for you" note="clustered automatically" />
           <Stat value={live(models.data?.length)} label="models ready to chat" note="switch any time" />
@@ -176,8 +178,8 @@ export default function HomePage() {
           </Reveal>
           <ul className="mt-16 grid gap-4 text-left md:grid-cols-3">
             {FEATURES.map((f, i) => (
-              <Reveal as="li" key={f.title} delay={i * 120} className="card flex flex-col gap-4 p-6 sm:p-7">
-                <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-b from-accent/30 to-accent-strong/10 text-accent shadow-[inset_0_1px_0_rgb(var(--edge)/0.15)]">
+              <Reveal as="li" key={f.title} delay={i * 120} className="group card lift flex flex-col gap-4 p-6 sm:p-7">
+                <span className="flex h-11 w-11 items-center justify-center rounded-[14px] transition-transform duration-500 ease-[var(--ease-spring)] group-hover:-rotate-6 group-hover:scale-110 bg-gradient-to-b from-accent/30 to-accent-strong/10 text-accent shadow-[inset_0_1px_0_rgb(var(--edge)/0.15)]">
                   <f.icon size={20} strokeWidth={1.75} aria-hidden />
                 </span>
                 <h3 className="text-[19px] font-semibold tracking-[-0.015em]">{f.title}</h3>
@@ -196,8 +198,8 @@ export default function HomePage() {
           </Reveal>
           <ol className="mt-14 space-y-4">
             {STEPS.map((s, i) => (
-              <Reveal as="li" key={s.title} delay={i * 80} className="panel grid gap-5 p-6 sm:p-8 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-8">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-b from-accent to-accent-strong text-xl font-semibold text-accent-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_10px_30px_rgb(var(--accent-strong)/0.35)]">
+              <Reveal as="li" key={s.title} delay={i * 80} className="group panel lift grid gap-5 p-6 sm:p-8 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:gap-8">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-500 ease-[var(--ease-spring)] group-hover:scale-110 bg-gradient-to-b from-accent to-accent-strong text-xl font-semibold text-accent-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_10px_30px_rgb(var(--accent-strong)/0.35)]">
                   {i + 1}
                 </span>
                 <div className="min-w-0 space-y-2">
@@ -211,7 +213,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <Link to={s.to} className="btn justify-self-start rounded-full px-5 md:justify-self-end">
-                  {s.action} <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
+                  {s.action} <ArrowRight size={16} strokeWidth={1.75} aria-hidden className="nudge" />
                 </Link>
               </Reveal>
             ))}
@@ -233,7 +235,7 @@ export default function HomePage() {
           </Reveal>
           <Reveal delay={240} className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to="/import" className="btn btn-primary min-h-[3rem] rounded-full px-6 text-[15px]">
-              Get started <ArrowRight size={17} strokeWidth={2} aria-hidden />
+              Get started <ArrowRight size={17} strokeWidth={2} aria-hidden className="nudge" />
             </Link>
             <Link to="/guides" className="btn min-h-[3rem] rounded-full px-6 text-[15px]">
               <BookOpen size={16} strokeWidth={1.75} aria-hidden /> Read the guides

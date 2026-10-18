@@ -105,7 +105,7 @@ export default function ImportPage() {
             Export guide
           </div>
           {exportGuide ? (
-            <Markdown className="prose-p:leading-relaxed">{exportGuide.body}</Markdown>
+            <Markdown className="scroll-reveal prose-p:leading-relaxed">{exportGuide.body}</Markdown>
           ) : (
             <p className="text-muted">No guide for this source.</p>
           )}

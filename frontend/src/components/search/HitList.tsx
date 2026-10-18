@@ -10,7 +10,7 @@ import type { SearchHit } from '../../types/generated'
  */
 export function HitList({ hits }: { hits: SearchHit[] }) {
   return (
-    <ol className="divide-y divide-edge/[0.07]">
+    <ol className="stagger divide-y divide-edge/[0.07]">
       {hits.map((hit, i) => (
         <li key={hit.chunk_id}>
           <HitRow hit={hit} position={i + 1} />
@@ -48,7 +48,7 @@ function HitRow({ hit, position }: { hit: SearchHit; position: number }) {
             >
               {hit.title ?? hit.path}
             </Link>
-            <ArrowUpRight size={14} strokeWidth={1.75} className="shrink-0 text-muted opacity-0 transition duration-200 group-hover:opacity-100" aria-hidden />
+            <ArrowUpRight size={14} strokeWidth={1.75} className="shrink-0 -translate-x-1 translate-y-1 text-accent opacity-0 transition duration-300 ease-[var(--ease-spring)] group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" aria-hidden />
             <span className="badge shrink-0 font-sans">{hit.doc_type}</span>
           </div>
           <span className="flex shrink-0 gap-1.5">

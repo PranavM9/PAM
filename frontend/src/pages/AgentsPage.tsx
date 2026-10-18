@@ -204,18 +204,18 @@ function AgentForm({ initial, onSaved }: { initial: AgentDetail | null; onSaved:
 
   return (
     <form
-      className="flex flex-col lg:min-h-0 lg:flex-1"
+      className="enter flex flex-col lg:min-h-0 lg:flex-1"
       onSubmit={(e) => {
         e.preventDefault()
         save.mutate()
       }}
     >
       <PageHeader
-        title={initial ? `Edit ${initial.manifest.display_name}` : 'New agent'}
+        title={initial ? `Edit ${initial.manifest.display_name}` : 'NEW AGENT'}
         subtitle={
           initial?.manifest.origin === 'derived'
             ? 'Derived agent: PAM regenerates the Derived persona sections; Custom sections are yours.'
-            : 'Custom agent.'
+            : undefined
         }
         cli={cli}
         actions={
@@ -230,14 +230,14 @@ function AgentForm({ initial, onSaved }: { initial: AgentDetail | null; onSaved:
           <div className="mb-6 space-y-3" aria-live="polite">
             <ErrorNote error={save.error} />
             {save.isSuccess && (
-              <p className="flex items-center gap-2 text-sm text-ok">
-                <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden /> Saved.
+              <p className="enter flex items-center gap-2 text-sm text-ok">
+                <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden className="animate-pop" /> Saved.
               </p>
             )}
           </div>
         )}
 
-        <div className="divide-y divide-edge/10">
+        <div className="scroll-reveal divide-y divide-edge/10">
           <FormSection title="Profile" description="How the agent is named and which model it uses by default.">
             <div className="grid gap-5 sm:grid-cols-2">
               <Field

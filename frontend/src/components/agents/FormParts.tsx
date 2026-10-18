@@ -55,7 +55,7 @@ export const choiceClass = 'h-4 w-4 shrink-0 cursor-pointer accent-accent disabl
 export function ChoiceRow({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <label
-      className={`flex min-h-[2.5rem] cursor-pointer items-center gap-3 rounded-control px-3 text-sm transition duration-200 ease-out hover:bg-fg/[0.05] has-[:checked]:bg-accent/[0.12] has-[:disabled]:cursor-not-allowed ${className}`}
+      className={`press flex min-h-[2.5rem] cursor-pointer items-center gap-3 rounded-control px-3 text-sm hover:bg-fg/[0.05] has-[:checked]:bg-accent/[0.12] has-[:disabled]:cursor-not-allowed ${className}`}
     >
       {children}
     </label>

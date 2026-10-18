@@ -97,7 +97,7 @@ export function VaultFileView({
       )}
       <section aria-label="Body">
         {entries.length > 0 && <div className="mb-5 border-t divider" />}
-        {file.data.body.trim() ? <Markdown className={showTitle ? "text-[15px] leading-relaxed" : ""}>{file.data.body}</Markdown> : <p className="text-sm text-muted">Empty body.</p>}
+        {file.data.body.trim() ? <Markdown className={`scroll-reveal ${showTitle ? 'text-[15px] leading-relaxed' : ''}`}>{file.data.body}</Markdown> : <p className="text-sm text-muted">Empty body.</p>}
       </section>
     </div>
   )

@@ -35,6 +35,10 @@
     radial-gradient(ellipse at 50% 120%, rgba(184, 169, 255, 0.12), transparent 50%),
     linear-gradient(145deg, #090711 4%, #120b24 48%, #090914 100%);
 
+  /* Motion: a fast settle for entrances, a soft overshoot for presses and pills. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', system-ui, Roboto, sans-serif;
   color-scheme: dark;
 }
@@ -211,19 +215,34 @@ body::before {
     @apply glass rounded-[28px];
   }
 
+  /*
+   * Buttons press in quickly and spring back on release: the pressed state
+   * uses a short duration, the resting state a longer overshooting one.
+   * `relative` + `overflow-hidden` host the click ripple (lib/pressFeedback.ts).
+   */
   .btn {
-    @apply inline-flex min-h-[2.25rem] select-none items-center justify-center gap-2 rounded-xl px-3.5 py-1.5 text-sm font-medium text-fg transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-45;
+    @apply relative inline-flex min-h-[2.25rem] select-none items-center justify-center gap-2 overflow-hidden rounded-xl px-3.5 py-1.5 text-sm font-medium text-fg disabled:cursor-not-allowed disabled:opacity-45;
     background: linear-gradient(180deg, rgb(var(--edge) / 0.1), rgb(var(--edge) / 0.05));
     border: 1px solid rgb(var(--edge) / 0.12);
     box-shadow: inset 0 1px 0 var(--glass-highlight);
+    transition:
+      transform 420ms var(--ease-spring),
+      background 200ms ease-out,
+      border-color 200ms ease-out,
+      box-shadow 260ms ease-out,
+      color 200ms ease-out,
+      opacity 200ms ease-out;
   }
   .btn:not(:disabled):hover {
     background: linear-gradient(180deg, rgb(var(--edge) / 0.15), rgb(var(--edge) / 0.08));
     border-color: rgb(var(--accent) / 0.4);
+    transform: translateY(-1px);
   }
   .btn:not(:disabled):active {
     background: linear-gradient(180deg, rgb(var(--edge) / 0.06), rgb(var(--edge) / 0.1));
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+    transform: scale(0.96);
+    transition-duration: 90ms;
   }
   .btn-primary {
     @apply text-accent-fg;
@@ -234,6 +253,11 @@ body::before {
   .btn-primary:not(:disabled):hover {
     background: linear-gradient(180deg, rgb(var(--accent) / 0.95), rgb(var(--accent-strong)));
     border-color: rgb(var(--accent) / 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 12px 32px rgb(var(--accent-strong) / 0.5);
+  }
+  .btn-primary:not(:disabled):active {
+    background: linear-gradient(180deg, rgb(var(--accent-strong)), rgb(var(--accent) / 0.95));
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 12px rgb(var(--accent-strong) / 0.3);
   }
   /* Flat accent button, no gradient. */
   .btn-solid {
@@ -246,15 +270,50 @@ body::before {
     background: rgb(var(--accent) / 0.88);
     border-color: rgb(var(--accent) / 0.88);
   }
+  .btn-solid:not(:disabled):hover {
+    box-shadow: 0 10px 26px rgb(var(--accent-strong) / 0.35);
+  }
   .btn-solid:not(:disabled):active {
     background: rgb(var(--accent) / 0.8);
     box-shadow: none;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-1.5 text-sm text-muted transition duration-200 ease-out hover:bg-fg/[0.06] hover:text-fg disabled:cursor-not-allowed disabled:opacity-45;
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 text-sm text-muted hover:bg-fg/[0.06] hover:text-fg disabled:cursor-not-allowed disabled:opacity-45;
   }
   .icon-btn {
-    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted transition duration-200 ease-out hover:bg-fg/[0.07] hover:text-fg disabled:opacity-45;
+    @apply relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl text-muted hover:bg-fg/[0.07] hover:text-fg disabled:opacity-45;
+  }
+  .btn-ghost,
+  .icon-btn,
+  .press {
+    transition:
+      transform 420ms var(--ease-spring),
+      background-color 200ms ease-out,
+      color 200ms ease-out,
+      box-shadow 200ms ease-out,
+      opacity 200ms ease-out;
+  }
+  .btn-ghost:not(:disabled):active,
+  .icon-btn:not(:disabled):active {
+    transform: scale(0.9);
+    transition-duration: 90ms;
+  }
+  /* Press feedback for large clickable rows and cards. */
+  .press:not(:disabled):active {
+    transform: scale(0.985);
+    transition-duration: 90ms;
+  }
+  /* Cards that lift toward the pointer. */
+  .lift {
+    transition:
+      transform 500ms var(--ease-spring),
+      box-shadow 300ms ease-out,
+      border-color 300ms ease-out;
+  }
+  .lift:hover {
+    transform: translateY(-4px);
+    border-color: rgb(var(--accent) / 0.28);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 22px 48px rgba(3, 1, 14, 0.32), 0 0 0 1px rgb(var(--accent) / 0.08);
   }
 
   .input {
@@ -292,7 +351,221 @@ body::before {
   }
 }
 
-/* Home page motion: slow gem drift and on-scroll reveals. Disabled by reduced motion below. */
+/*
+ * Motion. Entrances use `backwards` fill so no transform lingers once they end
+ * (a lingering transform would trap the fixed-position drawers inside a page).
+ * Everything here is switched off by the reduced-motion block at the end.
+ */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.18) rotate(4deg);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.98);
+  }
+}
+
+@keyframes bubble-in-right {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+}
+
+@keyframes bubble-in-left {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes halo {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--accent) / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgb(var(--accent) / 0);
+  }
+}
+
+@keyframes ripple {
+  from {
+    opacity: 0.38;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes flash {
+  0% {
+    border-color: rgb(var(--accent) / 0.7);
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.18);
+  }
+}
+
+/* Page change: the new page fades in while its sections rise one after another. */
+.page-enter {
+  animation: fade-in 320ms ease-out backwards;
+}
+
+.page-enter > * > * {
+  animation: rise-in 620ms var(--ease-out) backwards;
+}
+
+.page-enter > * > :nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.page-enter > * > :nth-child(3) {
+  animation-delay: 140ms;
+}
+
+.page-enter > * > :nth-child(n + 4) {
+  animation-delay: 200ms;
+}
+
+/* List items cascade in when they mount (new results, new agents, a folder opening). */
+.stagger > * {
+  animation: rise-in 520ms var(--ease-out) backwards;
+}
+
+.stagger > :nth-child(2) { animation-delay: 35ms; }
+.stagger > :nth-child(3) { animation-delay: 70ms; }
+.stagger > :nth-child(4) { animation-delay: 105ms; }
+.stagger > :nth-child(5) { animation-delay: 140ms; }
+.stagger > :nth-child(6) { animation-delay: 175ms; }
+.stagger > :nth-child(7) { animation-delay: 210ms; }
+.stagger > :nth-child(8) { animation-delay: 245ms; }
+.stagger > :nth-child(n + 9) { animation-delay: 280ms; }
+
+/* Arrow icons inside links and buttons step forward on hover. */
+.nudge {
+  transition: transform 360ms var(--ease-spring);
+}
+
+:hover > .nudge {
+  transform: translateX(3px);
+}
+
+.enter {
+  animation: rise-in 520ms var(--ease-out) backwards;
+}
+
+.animate-pop {
+  animation: pop-in 460ms var(--ease-out) backwards;
+}
+
+.animate-flash {
+  animation: flash 900ms ease-out;
+}
+
+.animate-halo {
+  animation: halo 1.6s ease-out infinite;
+}
+
+.animate-grow-x {
+  transform-origin: left;
+  animation: grow-x 900ms var(--ease-out) backwards;
+}
+
+.drawer-in-right {
+  animation: slide-in-right 420ms var(--ease-out) backwards;
+}
+
+.drawer-in-left {
+  animation: slide-in-left 420ms var(--ease-out) backwards;
+}
+
+.scrim-in {
+  animation: fade-in 260ms ease-out backwards;
+}
+
+.msg-user {
+  transform-origin: bottom right;
+  animation: bubble-in-right 420ms var(--ease-spring) backwards;
+}
+
+.msg-assistant {
+  transform-origin: top left;
+  animation: bubble-in-left 480ms var(--ease-out) backwards;
+}
+
+/* Click ripple added by lib/pressFeedback.ts. */
+.press-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  background: currentColor;
+  pointer-events: none;
+  animation: ripple 620ms var(--ease-out) forwards;
+}
+
+/*
+ * Scroll reveals for long content (guides, vault files, search results):
+ * each child fades up over its first 140 px on screen. Scroll-driven, so it
+ * also plays back when scrolling up; browsers without view timelines simply
+ * show the content.
+ */
+@supports (animation-timeline: view()) {
+  .scroll-reveal > * {
+    animation: rise-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0px entry 140px;
+  }
+
+  /* Home hero drifts back and fades as it scrolls away. */
+  .hero-recede {
+    animation: recede linear both;
+    animation-timeline: view();
+    animation-range: exit 0% exit 100%;
+  }
+}
+
+@keyframes recede {
+  to {
+    opacity: 0.15;
+    transform: translateY(-40px) scale(0.94);
+  }
+}
+
+/* Home page: slow gem drift and on-scroll reveals. */
 @keyframes gem-spin {
   to {
     transform: rotate(360deg);
@@ -312,11 +585,13 @@ body::before {
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(28px) scale(0.98);
+    filter: blur(8px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
@@ -325,13 +600,8 @@ body::before {
 }
 
 .reveal[data-shown='true'] {
-  animation: fade-up 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-  }
+  animation: fade-up 900ms var(--ease-out) backwards;
+  opacity: 1;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
@@ -355,13 +625,75 @@ body::before {
   scrollbar-color: rgb(var(--edge) / 0.18) transparent;
 }
 
+/*
+ * Reduced motion (also what Windows reports when "Animation effects" is off):
+ * entrances keep their fade but lose all travel, scale and blur; the gem stops
+ * drifting, the hero no longer recedes, and hover lifts and nudges stay put.
+ * Color and opacity transitions are untouched.
+ */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+  html {
+    scroll-behavior: auto;
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes bubble-in-right {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes bubble-in-left {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes grow-x {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .hero-recede {
+    animation: none !important;
+  }
+
+  .lift:hover,
+  .btn:not(:disabled):hover:not(:active),
+  :hover > .nudge {
+    transform: none;
   }
 }

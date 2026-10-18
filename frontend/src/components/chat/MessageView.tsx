@@ -50,7 +50,7 @@ export function MessageView({
 }) {
   if (message.kind === 'user') {
     return (
-      <div className="flex justify-end pl-10 sm:pl-16">
+      <div className="msg-user flex justify-end pl-10 sm:pl-16">
         <div className="max-w-full whitespace-pre-wrap break-words rounded-[20px] rounded-br-md bg-gradient-to-br from-accent to-accent/80 px-4 py-2.5 text-[14px] leading-relaxed text-accent-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_10px_30px_rgb(var(--accent-strong)/0.28)]">
           {message.text}
         </div>
@@ -59,7 +59,7 @@ export function MessageView({
   }
   if (message.kind === 'switch') {
     return (
-      <div className="flex items-center gap-3 py-1 text-xs text-muted" role="separator">
+      <div className="enter flex items-center gap-3 py-1 text-xs text-muted" role="separator">
         <div className="h-px flex-1 bg-edge/10" />
         <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-edge/10 bg-edge/[0.05] px-3 py-1">
           <ArrowRightLeft size={12} strokeWidth={1.75} className="shrink-0 text-accent" aria-hidden />
@@ -71,7 +71,7 @@ export function MessageView({
   }
   if (message.kind === 'tool') {
     return (
-      <div className="ml-11 flex items-start gap-2.5 rounded-control border border-edge/[0.08] bg-edge/[0.04] px-3.5 py-2.5 text-xs leading-relaxed">
+      <div className="enter ml-11 flex items-start gap-2.5 rounded-control border border-edge/[0.08] bg-edge/[0.04] px-3.5 py-2.5 text-xs leading-relaxed">
         <Wrench size={14} strokeWidth={1.75} className="mt-0.5 shrink-0 text-accent" aria-hidden />
         <div className="min-w-0">
           <span className="font-mono text-fg/90">{message.name}</span>
@@ -83,7 +83,7 @@ export function MessageView({
   }
   const usage = message.usage && (message.usage.prompt !== null || message.usage.completion !== null) ? message.usage : null
   return (
-    <div className="flex items-start gap-3" data-streaming={message.streaming ? 'true' : undefined}>
+    <div className="msg-assistant flex items-start gap-3" data-streaming={message.streaming ? 'true' : undefined}>
       <AssistantAvatar />
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-1 text-xs text-muted">
@@ -140,27 +140,29 @@ const STARTERS = [
  */
 export function EmptyChat({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-5 py-10 text-center sm:py-16">
-      <AssistantAvatar size="lg" />
+    <div className="enter mx-auto flex max-w-md flex-col items-center gap-5 py-10 text-center sm:py-16">
+      <span className="animate-pop rounded-full [animation-delay:120ms]">
+        <AssistantAvatar size="lg" />
+      </span>
       <div className="space-y-2">
         <h2 className="text-xl font-semibold tracking-[-0.015em] text-fg">Pick up where you left off</h2>
         <p className="text-[14px] leading-relaxed text-muted">
           Pick any model. PAM injects only the memory this turn needs and shows the token savings alongside.
         </p>
       </div>
-      <div className="flex w-full flex-col gap-2 pt-2">
+      <div className="stagger flex w-full flex-col gap-2 pt-2">
         {STARTERS.map((q) => (
           <button
             key={q}
             type="button"
-            className="group flex w-full items-center justify-between gap-3 rounded-control border border-edge/10 bg-edge/[0.05] px-4 py-3 text-left text-sm text-fg/90 transition duration-200 ease-out hover:border-accent/40 hover:bg-edge/[0.09] hover:text-fg"
+            className="press group flex w-full items-center justify-between gap-3 rounded-control border border-edge/10 bg-edge/[0.05] px-4 py-3 text-left text-sm text-fg/90 hover:border-accent/40 hover:bg-edge/[0.09] hover:text-fg"
             onClick={() => onPick(q)}
           >
             {q}
             <ArrowRight
               size={16}
               strokeWidth={1.75}
-              className="shrink-0 text-muted transition duration-200 ease-out group-hover:text-accent"
+              className="shrink-0 text-muted transition duration-300 ease-[var(--ease-spring)] group-hover:translate-x-1 group-hover:text-accent"
               aria-hidden
             />
           </button>

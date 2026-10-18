@@ -32,7 +32,7 @@ export function VaultTree({
   onSelect: (path: string) => void
 }) {
   return (
-    <ul role={depth === 0 ? 'tree' : 'group'} className={depth > 0 ? 'ml-[1.05rem] border-l border-edge/[0.08] pl-1.5' : 'space-y-px'}>
+    <ul role={depth === 0 ? 'tree' : 'group'} className={depth > 0 ? 'stagger ml-[1.05rem] border-l border-edge/[0.08] pl-1.5' : 'space-y-px'}>
       {nodes.map((node) => {
         if (node.file) {
           const active = node.path === selected

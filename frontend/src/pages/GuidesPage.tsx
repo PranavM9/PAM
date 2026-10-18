@@ -53,7 +53,7 @@ export default function GuidesPage() {
         <article className="panel flex min-w-0 flex-col lg:min-h-0 lg:flex-1">
           <div ref={scroller} className="px-5 py-6 sm:px-10 sm:py-10 lg:min-h-0 lg:flex-1 lg:overflow-auto">
             {selected && kind ? (
-              <div className="mx-auto max-w-[68ch]">
+              <div key={selected.slug} className="enter mx-auto max-w-[68ch]">
                 <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
                   <span className="eyebrow text-[13px]">{kind.label}</span>
                   <span className="h-1 w-1 rounded-full bg-muted/50" aria-hidden />
@@ -62,7 +62,7 @@ export default function GuidesPage() {
                     {minutes} min read
                   </span>
                 </div>
-                <Markdown className="prose-base leading-relaxed [&_h1]:mb-4 [&_h1]:text-[28px] [&_h1]:leading-tight sm:[&_h1]:text-[32px] [&_h2]:mt-10 [&_h2]:text-[19px] [&_pre]:text-[13px] [&_table]:block [&_table]:overflow-x-auto [&_pre]:max-w-full">
+                <Markdown className="scroll-reveal prose-base leading-relaxed [&_h1]:mb-4 [&_h1]:text-[28px] [&_h1]:leading-tight sm:[&_h1]:text-[32px] [&_h2]:mt-10 [&_h2]:text-[19px] [&_pre]:text-[13px] [&_table]:block [&_table]:overflow-x-auto [&_pre]:max-w-full">
                   {selected.body}
                 </Markdown>
                 {(prev || next) && (

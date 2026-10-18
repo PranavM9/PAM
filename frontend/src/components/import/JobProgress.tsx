@@ -40,18 +40,18 @@ export function StageStepper({ status }: { status?: JobStatus }) {
                 done
                   ? 'border-accent/40 bg-accent/20 text-accent'
                   : active
-                    ? 'border-accent/60 bg-accent/15 text-accent shadow-[0_0_0_4px_rgb(var(--accent)/0.1)]'
+                    ? 'animate-halo border-accent/60 bg-accent/15 text-accent'
                     : errored
                       ? 'border-bad/40 bg-bad/15 text-bad'
                       : 'border-edge/15 bg-edge/[0.03] text-muted'
               }`}
             >
               {done ? (
-                <Check size={16} strokeWidth={2} />
+                <Check size={16} strokeWidth={2} className="animate-pop" />
               ) : active ? (
                 <Loader2 size={16} strokeWidth={1.75} className="animate-spin" />
               ) : errored ? (
-                <XCircle size={16} strokeWidth={1.75} />
+                <XCircle size={16} strokeWidth={1.75} className="animate-pop" />
               ) : (
                 <span className="text-[13px] tabular-nums">{i + 1}</span>
               )}
@@ -85,7 +85,7 @@ export function JobProgress({ status, onReset, onViewGraph }: { status: JobStatu
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[17px] font-medium tracking-[-0.01em]">
-            {complete && <CheckCircle2 size={18} strokeWidth={1.75} className="shrink-0 text-ok" aria-hidden />}
+            {complete && <CheckCircle2 size={18} strokeWidth={1.75} className="animate-pop shrink-0 text-ok" aria-hidden />}
             {failed && <XCircle size={18} strokeWidth={1.75} className="shrink-0 text-bad" aria-hidden />}
             {failed ? 'Import failed' : complete ? 'Import complete' : status.stage === 'queued' ? 'Queued…' : 'Importing…'}
           </div>
@@ -111,8 +111,8 @@ export function JobProgress({ status, onReset, onViewGraph }: { status: JobStatu
       {failed && <ErrorNote error={new Error(status.error ?? 'Import failed')} />}
 
       {report && (
-        <div className="well space-y-4 p-5">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
+        <div className="enter well space-y-4 p-5">
+          <dl className="stagger grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
             <Stat label="Found" value={report.conversations_found} />
             <Stat label="Written" value={report.episodes_written} />
             <Stat label="Skipped" value={report.episodes_skipped_existing} />
@@ -135,7 +135,7 @@ export function JobProgress({ status, onReset, onViewGraph }: { status: JobStatu
       )}
 
       {(complete || failed) && (
-        <div className="flex flex-wrap gap-2">
+        <div className="enter flex flex-wrap gap-2 [animation-delay:200ms]">
           {complete && (
             <button type="button" className="btn btn-primary min-h-[2.75rem] px-5" onClick={onViewGraph}>
               <Network size={16} strokeWidth={1.75} aria-hidden /> View graph
