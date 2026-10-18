@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import ConnectorsPage from './pages/ConnectorsPage'
 import AgentsPage from './pages/AgentsPage'
 import ChatPage from './pages/ChatPage'
 import GraphPage from './pages/GraphPage'
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="vault" element={<VaultPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="agents" element={<AgentsPage />} />
+        <Route path="connectors" element={<ConnectorsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="guides" element={<GuidesPage />} />
