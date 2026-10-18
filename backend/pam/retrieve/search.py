@@ -16,6 +16,7 @@ from pam.contracts.retrieval import SearchHit, SearchQuery, SearchResponse
 from pam.core.config import load as load_config
 from pam.core.vault import Vault
 from pam.retrieve import _index
+from pam.sync.watcher import sync_before_read
 
 RESTRICTED_OVERFETCH = 3  # §8 M6 step 3: over-fetch x3 when the agent is restricted
 MAX_CHUNKS_PER_DOC = 2  # §8 M6 step 6
@@ -121,6 +122,7 @@ def search(vault: Vault, q: SearchQuery) -> SearchResponse:
         vault: Vault to search.
         q: Search request.
     """
+    sync_before_read(vault)
     started = time.perf_counter()
     cfg = load_config(vault)
     agent = load_manifest(q.agent, vault)

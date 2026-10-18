@@ -1576,7 +1576,16 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Depends on:** T09
 - **Done when:** the M10 acceptance criteria pass.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `sync/watcher.py`:
+    - `sync(vault, *, lock_timeout=0.0) -> SyncResult`: one `git.status_porcelain` with no lock; a clean tree returns at once. Otherwise take `vault_write_lock(timeout=lock_timeout)` (busy → `SyncResult(busy=True)`, nothing touched), re-read the status under the lock, and classify each dirty path: unmerged → left alone; deleted (`D` in `XY`) → `git.restore` from HEAD; episode → `EpisodeFrontmatter` must validate and the body must hash to `body_sha256` and (for a tracked file) equal the HEAD body, else `immutable_violation` and not committed; fact / project / skill / `working/*.md` → frontmatter validated against its §7 model, invalid → not committed; anything else → committed as-is. Valid paths go into one `git.commit(..., "manual: <n> files")`, then committed + restored paths go to `index_paths` once (an indexer error is logged; the commit stands).
+    - `SyncResult` (dataclass, not a contract): `dirty_paths`, `committed`, `restored`, `immutable_violations`, `invalid` (path → reason), `reindexed`, `commit_sha`, `busy`; `.report` → §7.12 `SyncReport(dirty_paths, reindexed, commit_sha)`.
+    - `sync_once(vault) -> SyncReport` (= `sync(vault).report`, logging a warning per restored, violated, or invalid path); `sync_before_read(vault) -> SyncReport | None` wraps it, logs and swallows any exception, and never raises; `watch(vault, interval, on_result=None, ticks=None)` polls `sync`.
+  - `retrieve/search.py`: `sync_before_read(vault)` as the first statement of `search()`, plus its import (two lines, not one: the import cannot share the call's line idiomatically). `build_context` calls `search()`, so it is covered too.
+  - `cli/sync_cmd.py`: `pam sync [--watch] [--interval SECONDS]`; `--json` prints the `SyncReport` (one JSON line per tick that changed something with `--watch`); human output lists committed, restored, and refused paths; a busy vault exits 4 (`--json` prints the report first).
+  - Tests `tests/test_m10_sync.py` (tmp_path vaults via `init_vault`, isolated git config): edited fact → 1 commit, `manual: 1 files`, `index_paths` spy gets that path; untracked fact committed; deleted file restored and reported, no commit; second call no-op; `.pam/` ignored; episode body edit reported, not committed; episode frontmatter-only edit committed; forged `body_sha256` refused; invalid fact frontmatter refused; held lock → `busy`, no crash, CLI exit 4; `search()` works when `sync_once` raises; `search()` sees a hand-edited fact; `pam sync --json` validates as `SyncReport`; `watch(ticks=2)`.
+  - Differences from the task prompt: SyncReport (§7.12) has no field for restored paths or body violations, and changing it needs a `PROPOSED` contract entry; they go into `dirty_paths` and the richer `SyncResult` instead (logged by `sync_before_read`, printed by the CLI). The `search.py` edit is two lines (import + call).
+  - Risks: a commit whose reindex fails leaves a stale index until `pam index`; a hand-edited episode body stays dirty and is re-reported on every sync until the user reverts it.
+- **Result (➕):** 2026-10-18 · PENDING · Code and `tests/test_m10_sync.py` written; not run on this machine (macOS, Python 3.9, no env). `pytest -q` (local and in the backend container), the fresh-vault `pam sync` / `pam search` check, and the real-vault check on the 65-episode import are run by Pranav on WSL. See CHG-0012.
 
 #### T10 · Clusterer & graph (≈ 1.5 h)
 - **Module:** M5
@@ -1899,6 +1908,24 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M6 only, plus the test lines above. No contract changes.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · Yogesh (T07 review)
+
+### CHG-0012 — M10 implementation choices: lock-free fast path, refusal rules, SyncResult, search hook
+- **Type:** design
+- **Module(s):** M10 (one call in M6 `retrieve/search.py`; test setup in `tests/test_m06_retrieve_stub.py` and `tests/test_m10_git.py`)
+- **Proposed by:** agent (task T09b)
+- **Date:** 2026-10-18
+- **Motivation:** §8 M10 does not say how a sync avoids committing a PAM writer's half-written files, what "validate the frontmatter" covers, how restored and refused paths are reported when §7.12 `SyncReport` has only `dirty_paths`, `reindexed`, and `commit_sha`, or what `search()` does when the sync fails.
+- **Proposal:**
+  1. Fast path: one `git.status_porcelain` with no lock; a clean tree returns at once. A dirty tree takes `vault_write_lock(timeout=0)` and re-reads the status under it, so a writer's uncommitted files are never committed as `manual:`. A held lock skips the pass (`busy`) and touches nothing.
+  2. Classification: unmerged entries are left alone; any `D` in `XY` is restored with `git.restore` from HEAD (§11 item 9), and a path that is not in HEAD is reported as invalid; episodes must validate as `EpisodeFrontmatter`, their body must hash to `body_sha256` **and** equal the HEAD body (a body edit with a rewritten hash is also refused); a refused episode is left as it is on disk, never rewritten or restored; fact, project, skill, and `working/*.md` frontmatter must validate against its §7 model; every other dirty path (personas, `agent.yaml`, `pam.toml`, imports) is committed as-is. One commit `manual: <n> files`; a change git sees as empty (line endings only) makes no commit.
+  3. Reindex: `index_paths(vault, committed + restored)` once, under the lock, after the commit. An indexer error is logged and the commit stands (as CHG-0009 item 8); `SyncReport.reindexed` is `IndexReport.documents_indexed`.
+  4. Reporting without a contract change: `SyncReport.dirty_paths` lists every dirty path found (committed, restored, or refused). The richer `SyncResult` dataclass (`committed`, `restored`, `immutable_violations`, `invalid`, `busy`) is internal; `sync_once` logs one warning per restored or refused path, and `pam sync` prints them as `Warning:` lines. A refused episode stays dirty and is reported on every sync until the user reverts it.
+  5. Search hook: `search()` first calls `sync_before_read(vault)`, which wraps `sync_once` and logs and swallows any exception. That is two lines in `search.py` (import + call). `build_context` calls `search()`, so `get_context` syncs too.
+  6. CLI: `pam sync [--watch] [--interval 2.0]`. `--json` prints the `SyncReport` (one JSON line per pass that found dirty paths with `--watch`). A busy vault exits 4 (`--json` prints the report first). Problems do not change the exit code.
+  7. Test setup (assertions unchanged where they still apply): `test_m06_retrieve_stub.py` commits its two hand-written files, because the sync in `search()` would otherwise commit and reindex them over the hand-built stub index; `test_m10_git.py::test_sync_cli_stub` now runs `pam sync` on a real vault and checks the T02 placeholder text is gone.
+- **Impact:** M10 only, plus the hook and the test lines above. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T09b)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

@@ -152,7 +152,11 @@ def test_run_raises_pam_error_with_git_message(repo):
         git.run(repo, "no-such-subcommand")
 
 
-def test_sync_cli_stub():
-    result = CliRunner().invoke(app, ["sync"])
+def test_sync_cli_stub(tmp_path):
+    # T09b replaced the stub; `pam sync` now runs on a real vault (tests/test_m10_sync.py).
+    from pam.core.vault import init_vault
+
+    init_vault(tmp_path / "vault")
+    result = CliRunner().invoke(app, ["--vault", str(tmp_path / "vault"), "sync"])
     assert result.exit_code == 0
-    assert "not implemented until T09b" in result.output
+    assert "not implemented until T09b" not in result.output

@@ -27,6 +27,7 @@ from pam.contracts.retrieval import ContextBundle, ContextRequest, SearchQuery, 
 from pam.core import mdio, tokens
 from pam.core.vault import Vault, init_vault
 from pam.retrieve import _index, context, search
+from pam.sync import git
 
 FIXTURES = Path(__file__).parent / "fixtures"
 NOW = datetime(2026, 10, 1, 12, tzinfo=UTC)
@@ -124,6 +125,8 @@ def stub_vault(tmp_path, monkeypatch) -> Vault:
     conn.execute("INSERT INTO chunks VALUES (?,?,?,?,?,?)", (rowid, f"{work_id}:0", str(work_id), 0, text, tokens.count(text)))
     conn.execute("INSERT INTO chunks_fts(rowid,text) VALUES (?,?)", (rowid, text))
     conn.execute("INSERT INTO chunks_vec(rowid,embedding) VALUES (?,?)", (rowid, _pack(_fake_vector(text))))
+    # Committed, so the sync that `search()` runs first (M10) leaves the hand-built index alone.
+    git.commit(root, [project_path, fact_path], "test: stub project and fact")
     manifest = AgentManifest(name="research", display_name="Research", origin="custom", created_at=NOW,
                              read=ReadScope(project_ids=[project_id], include_shared_facts=True), write="own",
                              tools=["get_context", "search_memory", "get_episode", "list_agents"])
