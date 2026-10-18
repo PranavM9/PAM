@@ -31,17 +31,17 @@ Gates: chk = Done-when commands pass (PM ran) · reg = earlier tests pass (PM ra
 | T03 | Importers | Aakash | DONE: PR #10 + follow-up PR #14 merged (23:42Z) | T01 | 14:36 | 16:40 | 2.0 | ~1.5 | pass (PM 16:43 on main: extract + detect on all 3 fixtures, Gemini zip byte-identical to the loose copy; real export via Pranav on b0e6bc7: claude · 65 conversations · 5 skipped · 0 errors) | pass (222 passed, 2 skipped) | real-data check done by Pranav | waived? |
 | T04 | Normalizer | Pranav | MERGED PR #11 (22:49Z) | T02, T03 | 14:54 | 15:49 | 1.0 | ~0.9 | pass (PM 15:50, scratch copy of main: 9/5/3 episodes, 1 commit each; re-run 0 written, no commit; verify 17 OK; tamper -> FAIL, exit 1; archive byte-identical) | pass (131 passed, 1 skipped) | pending (container run) | waived? |
 | T05 | Agents & permissions | Yogesh | DONE: merged PR #12 (22:56Z) | T01, T02 | ~14:50 | 15:56 | 1.0 | ~1.1 | pass (PM 15:50; main 16:05: 212 passed, 2 skipped) | pass | pending | waived? |
-| T06 | Indexer | Yogesh | MERGED PR #25 (bf61b6e, CHG-0008) | T04, T05 | ~16:00 | ~18:50 | 2.0 | ~2.8 (+40%) | PM could NOT run: this Mac's python.org Python can't load SQLite extensions (17 test_m04 fail 'cannot load sqlite-vec'); needs uv Python or Docker | 404 passed, 18 failed (all that env cause), 3 skipped | pending | waived? |
-| T07 | Retriever & context | Aakash | PR #26 CLOSED UNMERGED (02:01Z); branch t07/retriever @ b4b4afc on origin (author: 401 passed, 5 skipped, rebased on T06; real-index search top-3 OK, context 533/800) | T06 ✓ | 18:32 | | 2.0 | ~0.5 | | | | |
+| T06 | Indexer | Yogesh | DONE: PR #25 | T04, T05 | ~16:00 | ~18:50 | 2.0 | ~2.8 (+40%) | pass (PM 20:15, uv Python: index 17 docs / 81 chunks in 36.5 s with the real model; re-run 17 unchanged; stats per doc_type) | pass (522 passed, 4 skipped) | pending | waived? |
+| T07 | Retriever & context | Aakash | DONE: PR #28 (t07/retriever-fixes; CHG-0010 (M6), CHG-0011) | T06 | 18:32 | ~20:10 | 2.0 | ~1.6 | pass (PM 20:15 real model: 'tailscale eduroam' -> the right episode at #1; context --budget 800 -> 776 used, baseline 5251, saved 4475) | pass | pending | waived? |
 | T08 | Rule extractor & persona | Pranav | DONE: PRs #15, #16, #17, #20 merged (latest 00:24Z) | T04, T05 | 15:50 | 17:24 | 2.0 | ~1.6 | pass (PM 16:58 + 17:26) | pass (334 passed, 2 skipped) | PASS (Pranav + team cross-check, 17:26) | PASS (team cross-check) |
-| T09 | Memory writer | Pranav | MERGED PR #22 (0509454 + cb823cc hard-import index_paths, CHG-0009) | T06, T08 | 17:42 | ~19:00 | 1.5 | ~1.3 | M7 tests pass in PM venv except the 1 real-index test (env limit) | see T06 | pending | waived? |
-| T09b | Vault sync watcher | Pranav (planned after T07 + T09) | todo | T09 (+T07 for retrieve/search.py) | | | 0.5 | | | | | |
-| T10 | Clusterer & graph | Yogesh (after T06 + T09) | todo | T06, T09 | | | 1.5 | | | | | |
-| T11 | Working memory | Yogesh (part 1 after T06; end after T09) | todo | T09 (end only) | | | 0.75 | | | | | |
-| T12 | MCP server | Aakash (t12/mcp-server), assigned 19:12; early start (lazy retrieve/working imports); tests-first PR #23 | in progress | T07 (PR #26 closed), T09 ✓, T11 (not started) | 19:12 | | 1.0 | | | | | |
-| T13 | Chat orchestrator | Yogesh: part 1 (llm.py + models_cmd) after T06; Pranav: rest after T12 | todo | T12 (rest only) | | | 1.5 | | | | | |
-| T14 | REST API | Yogesh (after T10 + T13) | tests-first merged PR #24 | T10, T13 | | | 1.25 | | | | | |
-| T15 | Frontend (a–g) | Aakash: DRAFT against mocks on t15/frontend-draft (approved by Pranav 19:48), after T07 merge + T12; T14 wires it to the real API later | todo | T14 (real wiring only) | | | 3.5 | | | | | |
+| T09 | Memory writer | Pranav | DONE: PR #22 | T06, T08 | 17:42 | ~19:00 | 1.5 | ~1.3 | pass (PM 20:15 full suite incl. the real-index write test) | pass | pending | waived? |
+| T09b | Vault sync watcher | Yogesh (took it instead of T11) | PR #31 OPEN, mergeable | T09 ✓, T07 ✓ | | ~22:20 | 0.5 | ? | pass (PM 22:26, uv Python: branch pytest 543 passed, 4 skipped; M10 acceptance: hand-edited fact -> `pam sync` 1 commit 'manual: 1 files', search finds the new value; edited episode body reported, not committed; deleted fact restored) | pass | n/a | waived? |
+| T10 | Clusterer & graph | Pranav (t10/cluster-graph), after T13 part 1 | todo, READY | T06 ✓, T09 ✓ | | | 1.5 | | | | | |
+| T11 | Working memory | Yogesh (t11/working-memory), NOT started at 22:26 (he did T09b + fix #30 first) | todo, READY, CRITICAL | T09 ✓ | | | 0.75 | | | | | |
+| T12 | MCP server | Aakash | DONE: PR #29 (7fac367; CHG-0010 (M11)) | T07, T09, T11 | 19:12 | ~20:10 | 1.0 | ~1.0 | pass (test_m11 green; `pam mcp serve --help` lists both transports) | pass | Pranav verifies (Inspector / Claude Desktop) | waived? |
+| T13 | Chat orchestrator | Pranav part 1 (t13/chat-llm), NOT started at 22:26; Yogesh rest after T11 + part 1 | todo, READY | T12 ✓ (+T11 for turn recording) | | | 1.5 | | | | | |
+| T14 | REST API | Yogesh (after T13 rest; needs T10) | todo | T10, T13 | | | 1.25 | | | | | |
+| T15 | Frontend (a–g) | Aakash: draft on t15/frontend-draft, a–f pushed (e5018d3), g pending; real wiring after T14 | in progress | T14 (wiring) | 19:50 | | 3.5 | ~0.4 so far | | | | |
 | T16 | Docker hardening & demo | — | todo | T15 | | | 1.0 | | | | | |
 
 ## Critical path (with 3 people in parallel)
@@ -134,3 +134,23 @@ T00 0–0.75 · T01 0.75–2.25 · T02 2.25–2.75 · T03 2.25–4.25 · T05 2.7
 - Pranav wants a draft frontend early. Decision: REST + SSE is the UI transport (a browser can't run the CLI). CLI parity comes via a <CliHint> showing the equivalent `pam …` command on every page. No dev bridge, no spec change.
 - Aakash order: 1) reopen/merge T07 (PR #26 closed unmerged, critical path; minutes), 2) T12 MCP server (critical path, ~1 h), 3) T15 draft (3.5 h). If the frontend must start right away, swap: Pranav takes T12 (he is free after T09; T09b waits on T07 anyway).
 - Critical path effect: drafting T15 against mocks now takes most of T15's 3.5 h off the end of the chain, leaving ~0.5 h of real wiring after T14. Remaining path ≈ T07 merge -> T12 1 -> T13 rest 0.75 -> T14 1.25 -> T15 wiring 0.5 -> T16 1 ≈ 4.5–5 h.
+
+## Plan v8 (20:15)
+- Pranav: T13 part 1 (0.75) -> T10 (1.5) -> T09b (0.5) -> demo prep. Yogesh: T11 (0.75) -> T13 rest (0.75) -> T14 (1.25). Aakash: finish T15 draft (g) -> CLI-audit bug fixes (B-NN) -> T15 wiring after T14 -> T16 with Pranav.
+- Remaining critical path: T11 0.75 -> T13 rest 0.75 -> T14 1.25 -> T15 wiring 0.5 -> T16 1 ≈ 4.25 h (T10 runs alongside and must finish before T14 merges; T13 part 1 alongside T11).
+- CLI audit: discrepancies come to the PM as bugs B-NN and are slotted to the module owner on fix/b<NN>-<slug>. Demo-path bugs first.
+## Risks (20:15)
+- Pranav's Mac (macOS 12, Intel x86_64): `uv sync --frozen` FAILS because onnxruntime 1.31 has no macosx_12 x86 wheel. Native runs need `onnxruntime<1.20` in a scratch venv (PM verified 1.19.2 works); otherwise Docker only. Do not change uv.lock without a CHG.
+- Indexing speed on this Mac: 81 chunks in 36.5 s with the real model, so the 65-episode real export (several hundred chunks) may take minutes. For the demo, pre-index before going on stage, or run on a faster machine (Pranav verifies this).
+- §10 has two duplicated IDs now: CHG-0002 and CHG-0010. Next free: CHG-0012. A human should append a note.
+
+## Bugs (CLI audit and others)
+| ID | Summary | Owner | Branch / PR | State |
+|----|---------|-------|-------------|-------|
+| B-01 | Empty/whitespace id prefix matched every file (project note/add-episodes, fact show/supersede, episode show, derive --episode); plus a Pydantic warning in test_m07 | Yogesh | fix/empty-id-prefix, PR #30 | PM verified 22:26 (206 targeted tests pass; `project note ""` -> exit 1 "project id must not be empty", no commit). Ready to merge. Touches finished tasks' files only (derive.py, episode/fact/project cmds) |
+
+## 22:26 notes
+- Nothing merged since 20:15. Critical path stalled ~2 h: T11 not started (Yogesh did T09b + B-01), T13 part 1 not started (Pranav). Remaining path still ~4.25 h, but it has to start now.
+- T15 draft: t15/frontend-draft at 9eba842 (20:52), incl. CHG-0012 and a 'lavender glass' restyle; no PR yet.
+- Next free CHG: CHG-0013 (T15 draft took CHG-0012 on its branch).
+- .pm/ edits keep getting stashed by branch switches in Pranav's checkout (stash@{0} recovered 22:26). Commit .pm via a docs PR, or keep it out of feature branches.
