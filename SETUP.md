@@ -291,6 +291,8 @@ docker compose exec backend pytest -q -k m06          # one module
 | `pam index` refuses to run: model mismatch | You changed the `embedding.model` config; run `pam index --rebuild` |
 | Exit code 4, "vault busy" | Another writer holds the lock; retry, or check for a stuck process with `docker compose top backend` |
 | Chat streams nothing behind nginx | Make sure `proxy_buffering off;` is set for `/api/chat` in `nginx.conf` |
+| `git add -- pam.toml failed: fatal: not a git repository` | `./vault` holds a `pam.toml` but no git repo (a half-made vault). `docker compose restart backend` runs `pam init`, which finishes it and keeps the settings and keys |
+| `error while creating mount source path '…/vault': chown … permission denied` (Colima) | Docker could not create `./vault`; run `mkdir vault` in the repo root, then `docker compose up -d` |
 | A free model disappears mid-demo | `pam models check`, then switch models in the dropdown (that's the point of the project 🙂) |
 
 ## 10. Reset
