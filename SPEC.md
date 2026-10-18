@@ -1866,6 +1866,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Risks: T17's 1500-token trim of tool results (kept under it, tested); image URLs and `public_base_url` (root-relative URLs, matching T17's `urljoin`); clustering may not isolate the 4 phone conversations (`demo-setup.sh` then creates the project from them).
 - **Result (➕):**
   - 2026-10-18 · PASS (local), Docker and end-to-end checks pending Yogesh. `cd mock/tmobile && uv run --frozen pytest -q`: 96 passed; the tests alone (before the code): 96 skipped. Maya (`monthly_budget=40`, `needs=battery,camera`) gets `replace_battery` ($239 score vs $300 no change, $336 upgrade, $367 wait 3 months), citing `line.device.battery_health` (78) and `tradein.curve` ($63 now, $57 in 3 months). Hale saves $80/mo, Okafor "Keep your plan", Chen $74.48/mo. Locally under uvicorn every tool answers in under 7 ms. PAM's Claude importer reads the generated export: detect 0.95, 10 conversations, 0 errors. `demo-setup.sh` dry-run with a stub `pam`. Not run here (macOS without Docker): `docker compose up -d --build tmobile-mock` healthy, images through `http://localhost:5173/connectors/tmobile/images/...` in light and dark pages, `pam import` and `demo-setup.sh` on a real vault, and the DEMO.md story after T17 and T18: pending Yogesh. Backend files untouched. Design choices in CHG-0029.
+  - 2026-10-18 · Docker checks (Yogesh's WSL2 machine) · PASS after a `demo-setup.sh` fix (CHG-0031). `docker compose up -d --build tmobile-mock` healthy; all 7 tools answer in about 2 ms with `synthetic: true` and byte-identical repeats; Maya `replace_battery`, Hale saves $80/mo, Okafor "Keep your plan"; images load as `image/svg+xml` through `http://localhost:5173/connectors/tmobile/images/...`. T17 live check: `pam connector add mock/tmobile/connector.yaml` and `call` on all 7 tools print `ok` with valid cards. `demo-setup.sh` on a real vault failed twice before the fix: Docker mode could not write `./demo` or the root-owned vault, and clustering put the resume and apartment chats into the phone project while the battery chat stayed unassigned, after which the fallback `project create` was refused (an episode belongs to one project). After the fix both modes (`PAM_DOCKER=1` and local `PAM="uv run ... pam"`) end with "Phones and money" = exactly the 4 phone conversations, the other 6 in two other projects, the agent, the connector and the persona, and a clean vault tree.
 
 ### 9.4 Cut list (if behind schedule, cut from the top) 🔒
 1. Gemini importer (show that Gemini consumes memory via MCP instead).
@@ -2546,6 +2547,19 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** `backend/pam/core/vault.py`, `backend/tests/test_m00_core.py` (6 tests), `docker-compose.yml`, `SETUP.md`. No contract change; existing vaults are unaffected.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · human (Pranav)
+
+### CHG-0031 — `demo-setup.sh`: deterministic phone project and Docker mode on Linux
+- **Type:** design (fix)
+- **Module(s):** M17 (`mock/tmobile/demo-setup.sh` only)
+- **Proposed by:** agent (Yogesh's T19 verification; decided for Pranav at Yogesh's request)
+- **Date:** 2026-10-18
+- **Motivation:** On a real vault the script failed. (1) Clustering with the default `assign_threshold` 0.70 put "Apartment search near campus" (cosine 0.72 to the phone conversations' centroid) and then "Resume for a software internship" into the phone project, left "Phone battery dies by 2pm" unassigned, and the fallback `project create` was refused because an episode belongs to one project. The four phone conversations score 0.82–0.91 against that centroid; every other conversation scores 0.72 or less. (2) In `PAM_DOCKER=1` mode the backend runs as root, so the host could not create `./demo/tmobile` (root-owned `./demo`), read the 0600 vault files, or append the persona.
+- **Proposal (as implemented):**
+  1. After derive and index, create "Phones and money" from the 4 episodes whose source conversation has `topic: phones-and-money`; then set `assign_threshold = 0.80` in this demo vault's `pam.toml` and run `pam cluster`, which groups the other 6 conversations. The script checks that the project still has exactly 4 episodes and stops otherwise.
+  2. In Docker mode every read or write of `./demo` and the vault goes through the container (`docker compose exec`/`cp`); local mode keeps host writes and explains how to fix a root-owned `./demo`. The final `pam sync` commits `pam.toml` and the persona.
+- **Impact:** `mock/tmobile/demo-setup.sh`. No code, data, contract or default-config change; only the scratch demo vault gets the 0.80 threshold.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T19 follow-up)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
