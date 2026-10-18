@@ -17,7 +17,7 @@ about 1.8k tokens instead of the 46k it would take to replay the full history.
 
 ## What it does
 
-- **Imports** exports from Claude, ChatGPT, and Gemini (Gemini is best-effort).
+- **Imports** exports from Claude, ChatGPT, and Gemini.
 - **Stores** everything as plain Markdown in a git-tracked vault you can open in
   any editor. Every change is a commit, and nothing is ever deleted.
 - **Derives** facts about you, your projects, and a persona (identity, rules,
