@@ -11,7 +11,23 @@ import type { ModelEntry } from '../types/generated'
 /** One editable model row; `key` keeps React's identity stable while the id is being typed. */
 interface Row extends ModelEntry {
   key: number
+  /** Provider chosen in the dropdown: the id's prefix, or `other` when the id is typed in full. */
+  provider: string
 }
+
+const OTHER = 'other'
+const MODEL_PROVIDERS: { value: string; label: string; example: string }[] = [
+  { value: 'anthropic', label: 'Anthropic', example: 'claude-sonnet-5-5' },
+  { value: 'openrouter', label: 'OpenRouter', example: 'meta-llama/llama-3.3-70b-instruct:free' },
+  { value: 'ollama', label: 'Ollama', example: 'qwen2.5:7b' },
+  { value: OTHER, label: 'Other (full id)', example: 'provider/model' },
+]
+
+/** Provider dropdown value for a LiteLLM id: its prefix when known, otherwise `other`. */
+const providerOf = (id: string) => MODEL_PROVIDERS.find((p) => p.value !== OTHER && id.startsWith(`${p.value}/`))?.value ?? OTHER
+/** The part of a row's id the user types: everything after the provider prefix. */
+const nameOf = (row: Row) => (row.provider === OTHER ? row.id : row.id.slice(row.provider.length + 1))
+const joinId = (provider: string, name: string) => (provider === OTHER ? name : `${provider}/${name}`)
 
 const PRESETS: ModelEntry[] = [
   { id: 'anthropic/claude-sonnet-5-5', label: 'Claude Sonnet (Anthropic)', supports_tools: true },
@@ -26,7 +42,7 @@ const PROVIDERS: { provider: KeyProvider; label: string; placeholder: string; se
   { provider: 'ollama', label: 'Ollama base URL', placeholder: 'http://ollama:11434', secret: false },
 ]
 
-const plain = ({ id, label, supports_tools }: Row): ModelEntry => ({ id: id.trim(), label: label.trim(), supports_tools })
+const plain = ({ id, label, supports_tools }: ModelEntry): ModelEntry => ({ id: id.trim(), label: label.trim(), supports_tools })
 
 /**
  * Settings page: manage chat models and provider keys.
@@ -48,10 +64,11 @@ export default function SettingsPage() {
 
   // Until the user edits, the draft is the saved list; saved rows get negative keys, new rows positive ones.
   const saved = models.data ?? []
-  const base: Row[] = saved.map((m, i) => ({ ...m, key: -(i + 1) }))
+  const base: Row[] = saved.map((m, i) => ({ ...m, key: -(i + 1), provider: providerOf(m.id) }))
   const draft = rows ?? base
   const dirty = JSON.stringify(draft.map(plain)) !== JSON.stringify(saved)
-  const update = (key: number, change: Partial<ModelEntry>) =>
+  const incomplete = draft.some((r) => !nameOf(r).trim() || !r.label.trim())
+  const update = (key: number, change: Partial<Row>) =>
     setRows((list) => (list ?? base).map((r) => (r.key === key ? { ...r, ...change } : r)))
 
   const save = useMutation({
@@ -76,7 +93,10 @@ export default function SettingsPage() {
     }
   }
 
-  const addRow = (entry: ModelEntry) => setRows((list) => [...(list ?? base), { ...entry, key: ++nextKey.current }])
+  const addRow = (entry: ModelEntry) =>
+    setRows((list) => [...(list ?? base), { ...entry, key: ++nextKey.current, provider: providerOf(entry.id) }])
+  const changeProvider = (row: Row, provider: string) =>
+    update(row.key, { provider, id: provider === OTHER ? row.id : joinId(provider, nameOf(row)) })
   const duplicate = (id: string) => id.trim() !== '' && draft.filter((r) => r.id.trim() === id.trim()).length > 1
 
   return (
@@ -97,16 +117,31 @@ export default function SettingsPage() {
                   const isSaved = saved.some((m) => m.id === row.id.trim()) && !dirty
                   return (
                     <li key={row.key} className="well grid gap-3 p-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)_auto_auto]">
-                      <Field label="Model id" hint={duplicate(row.id) ? 'Duplicate id' : undefined} invalid={duplicate(row.id)}>
-                        <input
-                          className="input font-mono"
-                          value={row.id}
-                          onChange={(e) => update(row.key, { id: e.target.value })}
-                          placeholder="provider/model"
-                          autoComplete="off"
-                          spellCheck={false}
-                        />
-                      </Field>
+                      <div className="flex min-w-0 flex-col gap-1.5">
+                        <span className="label">Model</span>
+                        <div className="flex min-w-0 gap-2">
+                          <select className="input shrink-0" aria-label="Provider" value={row.provider} onChange={(e) => changeProvider(row, e.target.value)}>
+                            {MODEL_PROVIDERS.map((p) => (
+                              <option key={p.value} value={p.value}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            className="input min-w-0 flex-1 font-mono"
+                            aria-label="Model name"
+                            value={nameOf(row)}
+                            onChange={(e) => update(row.key, { id: joinId(row.provider, e.target.value) })}
+                            placeholder={MODEL_PROVIDERS.find((p) => p.value === row.provider)?.example}
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                        </div>
+                        <span className={`truncate font-mono text-xs ${duplicate(row.id) ? 'text-warn' : 'text-muted'}`} title={row.id}>
+                          {duplicate(row.id) ? 'Duplicate id: ' : 'Id: '}
+                          {row.id || '-'}
+                        </span>
+                      </div>
                       <Field label="Label">
                         <input className="input" value={row.label} onChange={(e) => update(row.key, { label: e.target.value })} autoComplete="off" />
                       </Field>
@@ -150,7 +185,7 @@ export default function SettingsPage() {
                 })}
               </ul>
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" className="btn" onClick={() => addRow({ id: '', label: '', supports_tools: false })}>
+                <button type="button" className="btn" onClick={() => addRow({ id: `${MODEL_PROVIDERS[0].value}/`, label: '', supports_tools: false })}>
                   <Plus size={15} strokeWidth={1.75} aria-hidden /> Add model
                 </button>
                 <select
@@ -174,7 +209,7 @@ export default function SettingsPage() {
                   <button type="button" className="btn" disabled={dirty || saved.length === 0} onClick={() => runChecks()}>
                     <Activity size={15} strokeWidth={1.75} aria-hidden /> Check all
                   </button>
-                  <button type="button" className="btn btn-primary px-5" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
+                  <button type="button" className="btn btn-primary px-5" disabled={!dirty || incomplete || save.isPending} title={incomplete ? 'Every model needs a name and a label' : undefined} onClick={() => save.mutate()}>
                     {save.isPending ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Save size={16} strokeWidth={1.75} aria-hidden />} Save models
                   </button>
                 </div>
@@ -230,6 +265,9 @@ function KeyRow({ provider, label, placeholder, secret, status }: { provider: Ke
       : secret
         ? `set${status.last4 ? ` (…${status.last4})` : ''}, from ${status.source}`
         : `${status.value ?? 'set'}, from ${status.source}`
+  // The field is emptied after a save, so dots in the placeholder and a "Saved" note show that a key is stored.
+  const stored = secret && status?.is_set
+  const note = write.isSuccess ? (write.variables === null ? 'Cleared.' : 'Saved.') : ''
   return (
     <form
       className="well grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto]"
@@ -246,8 +284,11 @@ function KeyRow({ provider, label, placeholder, secret, status }: { provider: Ke
           spellCheck={false}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
+          placeholder={stored ? `${'•'.repeat(16)}${status?.last4 ?? ''}  (type to replace)` : placeholder}
         />
+        <span aria-live="polite" className="min-h-4 text-xs text-ok">
+          {note}
+        </span>
       </Field>
       <div className="flex items-end gap-2">
         <button type="submit" className="btn btn-primary" disabled={!value.trim() || write.isPending}>
