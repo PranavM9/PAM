@@ -1,1 +1,1 @@
-"""M4 — skeleton. Owner: T06. Planned: db.py schema.sql chunker.py embedder.py indexer.py. See SPEC.md §8 M4 and §9.3."""
+"""M4 Indexer (T06): schema.sql, db.py, chunker.py, embedder.py, indexer.py. See SPEC.md §7.8 and §8 M4."""

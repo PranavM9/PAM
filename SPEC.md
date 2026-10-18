@@ -1505,7 +1505,14 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   5. Add `pam index [--rebuild] [paths…]` and `pam index stats`.
 - **Done when:** the M4 acceptance criteria pass.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - `index/schema.sql` (§7.8 verbatim); `index/db.py`: `connect(vault)` (creates `.pam/`, loads sqlite-vec, WAL, applies the schema), `delete_index(vault)`, `get_meta(conn)`, `set_meta(conn, values)`.
+  - `index/chunker.py`: `parse_episode(body)`, `episode_chunks(body, cfg)` (summary = chunk 0; each user turn opens a group with the following non-user turns; `<role>: <text>` without times; `[<title>] ` prefix inside `max_tokens`), `split_text(text, max_tokens, overlap_tokens)` (paragraphs, hard token split for one huge paragraph, word-aligned overlap tail), `fact_chunk`, `project_chunk` (name + keywords + `## Summary (auto)`), `skill_chunk` (name + description + first 300 tokens of steps).
+  - `index/embedder.py`: `Embedder(cfg)` with `embed_documents(texts)` / `embed_query(text)` (adds `query_prefix`), batch 64, L2-normalized float32, lazy model load with a stderr notice; `get_embedder(cfg)` shares one instance per model (T07 reuses it); `l2_normalize`.
+  - `index/indexer.py`: `index_vault(vault=None, *, rebuild=False, paths=None, embedder=None) -> IndexReport`, `index_paths(vault, paths, embedder=None) -> IndexReport` (for M7/M10; takes no vault lock), `stats(vault=None) -> dict`, `doc_type_of(rel_path)`. Change detection hashes the whole file; one transaction per run; `doc_vectors` for episodes.
+  - `cli/index_cmd.py`: `pam index [PATHS...] [--rebuild]`, `pam index stats` (both with `--json`).
+  - Tests `tests/test_m04_index.py`: chunker grammar cases; embedder wrapper with a stub model; indexer on the Claude fixture with a deterministic fake embedder (idempotence, rebuild, rowid alignment, unit vectors, doc vectors, edit/delete, `index_paths`, model mismatch, dim guard, bad and duplicate files, empty vault without a model load); CLI; one real-model acceptance test.
+  - Risks: the first real run downloads the model (about 130 MB); a message line that looks exactly like a role heading starts a new turn. Choices logged as CHG-0008.
+- **Result (➕):** 2026-10-17 · PASS · WSL2 checkout, locally (`uv run --frozen`) and in the backend container: `pytest -q tests/test_m04_index.py` → 30 passed; full `pytest -q` → 364 passed, 2 skipped (T07's retriever modules are not written yet), no regressions. M4 acceptance on the Claude fixture with bge-small: `pam index` → 9 documents, 70 chunks (largest 508 tokens); a second `pam index` → `0 documents (9 unchanged, 0 removed)`; `pam index --rebuild` → 70 chunks again; `pam index stats` → episode 9 / 70; `chunks`, `chunks_fts`, `chunks_vec` each hold 70 rows and `doc_vectors` 9. Fixed during the run: M2 writes message times with microseconds, so the role-heading pattern accepts fractional seconds (CHG-0008 #1).
 
 #### T07 · Retriever & context (≈ 2 h)
 - **Module:** M6
@@ -1780,6 +1787,27 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** `backend/pyproject.toml`, `backend/uv.lock`, `extract/text.py` (warning text), `cli/derive_cmd.py`, plus 3 tests appended to `tests/test_m03_extract.py`. No contract changes. Needs human edits outside T08's paths: SETUP §7 should drop the `spacy download` step, and the `backend/Dockerfile` header comment ("T16 bakes the spaCy … models") is now only true for fastembed.
 - **Status log:**
   - 2026-10-17 · IMPLEMENTED · Yogesh (T08 follow-up)
+
+### CHG-0008 — M4 implementation choices: heading times, chunk format, change hash, no lock, edge cases
+- **Type:** design
+- **Module(s):** M4 (affects M5/T10 and M6/T07, which read the index, and M7/T09 and M10/T09b, which call `index_paths`)
+- **Proposed by:** agent (task T06)
+- **Date:** 2026-10-17
+- **Motivation:** §8 M4 leaves open how turns are rendered in a chunk, what `content_sha256` covers, whether indexing takes the vault lock, and what happens with bad files. The §7.3 example shows whole-second times, but M2 writes message times with microseconds.
+- **Proposal:**
+  1. Role headings match `### <user|assistant|system|tool> · <YYYY-MM-DDTHH:MM:SS[.ffffff]Z | unknown>`. Any other line is message text.
+  2. Episode chunks: chunk 0 is `[<title>] Summary: <summary>` when there is one. Each user turn opens a group, and the following non-user turns join it (a leading non-user turn forms its own group). A group renders as `<role>: <text>` blocks separated by blank lines, without timestamps; attachment lines stay. The `[<title>] ` prefix counts toward `max_tokens`. An episode with no turns and no summary gets one title-only chunk, so every episode has a `doc_vectors` row.
+  3. Splitting: paragraphs (blank-line separated) are packed greedily; a paragraph over the budget is cut into token windows; each new piece starts with about `overlap_tokens` of the previous piece's tail, cut at a word boundary, unless that would exceed the budget.
+  4. `content_sha256` hashes the whole file (frontmatter and body), because fact, project, and skill values live in the frontmatter. `documents.token_count` is the token count of the full body (T07 uses it as the episode baseline).
+  5. Indexing takes no vault lock and makes no commit: it writes only `.pam/index.db` (SQLite locking, WAL, 10 s busy timeout). `index_paths(vault, paths, embedder=None)` can therefore run inside M7/M10's lock. Relative paths are vault-relative; non-document paths are ignored; a missing file is removed from the index.
+  6. A file that fails to parse is skipped with a `Warning:` on stderr and its old rows are removed. A second file carrying an id that another existing file already has (a copy) is skipped with a warning. `embedding.dim` other than 384 is refused, because `chunks_vec` is `float[384]`.
+  7. The model loads only when something must be embedded, so an empty or unchanged vault never loads it. `get_embedder(cfg)` keeps one instance per model per process for T07 to reuse.
+  8. `pam index stats` is recognized as the single argument `stats`, since Typer cannot mix `[PATHS...]` with a subcommand; `--json` prints `{types: {doc_type: {documents, chunks}}, documents, chunks, embedding_model, embedding_dim, last_indexed_commit, db_bytes}`. `--rebuild` with paths is an error.
+  9. Named constants from §8 prose: `BATCH_SIZE = 64`, `SKILL_STEPS_TOKENS = 300`; `index_version` is `1`.
+  10. A `[chunking]` change in `pam.toml` is not detected: unchanged files keep their old chunks until `pam index --rebuild`, which the `--rebuild` help text says. Detecting it would need a new `meta` key, and §7.8 fixes the key list. Only a model change is refused (§8 M4).
+- **Impact:** M4 only. No contract changes.
+- **Status log:**
+  - 2026-10-17 · IMPLEMENTED · agent (T06)
 
 ---
 
