@@ -1,10 +1,11 @@
-# PAM frontend — SPEC §8 M15: node build → nginx. T16 hardens.
+# PAM frontend — SPEC §8 M15: node build → nginx. No secrets are baked into the bundle.
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# Vite inlines VITE_* values from .env files; local ones must not reach the image.
+RUN rm -f .env .env.local .env.*.local && npm run build
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
