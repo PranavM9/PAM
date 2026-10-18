@@ -668,3 +668,16 @@ def test_cli_project_skill_and_episode_commands_make_one_commit_each(vault, tmp_
         assert _count_commits(vault) == before + 1, args
     assert len(_facts(vault)) == 1
     assert _invoke(vault, "skill", "list").exit_code == 0
+
+
+def test_writes_are_indexed_for_real(vault):
+    from pam.index import indexer
+
+    writer.add_fact(vault, _fact_input("UW"))
+    writer.update_project(vault, UpdateProjectInput(name="Research", note="Indexed."))
+    writer.add_skill(vault, AddSkillInput(name="Deploy", description="Ship", steps_markdown="1. Go"))
+    types = indexer.stats(vault)["types"]
+    assert [types[t]["documents"] for t in ("fact", "project", "skill")] == [1, 1, 1]
+    writer.add_fact(vault, _fact_input("WSU"))
+    report = indexer.index_vault(vault)
+    assert report.documents_indexed == 0 and report.documents_unchanged == 3

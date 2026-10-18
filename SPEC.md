@@ -1564,6 +1564,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - Tests (appended): commit-message regex for every action incl. `session=`, `index_paths` spy (once on success, never on failure/denial/no-op/busy), one commit per successful write over a mixed sequence, backlink + `pam episode verify` on an imported episode, `log_episode` id format and extracted fact, tampered-episode abort with rollback, extraction conflict and permission cases, CLI exit codes and one commit per CLI write.
   - Risks: `index_paths`' real signature is T06's (assumed `(vault, paths)` with vault-relative POSIX strings; re-check after T06 merges). Two existing tests in `test_m07_memory.py` had bugs (see CHG-0009).
 - **Result (➕):** 2026-10-17 · PARTIAL · Local run (macOS, Python 3.12 pip venv, not `uv`; `en_core_web_sm` absent, so the regex fallback path): `pytest -q` → 391 passed, 1 skipped (`test_m06_retrieve.py`, waits for T07); `test_m07_memory.py` + `test_m03_extract.py` → 169 passed, 0 skipped. CLI on the Claude fixture: `pam derive` → `+3 ~0 !0`, one commit, school=UW with WSU in history; `pam fact add` (overwrite) and `pam fact supersede` each make 1 commit, history grows, the old episode gains the `superseded_facts` backlink, `pam episode verify` → 9 OK; a custom `write=own` agent is denied with exit 3. **Pending:** (1) T06 is not merged, so `index_paths` is skipped and "`pam index stats` / `pam search` sees the new fact" is unchecked; after T06 merges: rebase, make the import hard, rerun everything; (2) the in-container `pytest -q` run. See CHG-0009.
+- **Result (➕):** 2026-10-17 · PARTIAL · After T06 (#25) merged: rebased on main, CHG renumbered to CHG-0009, `pam.index.indexer.index_paths` is now a hard import (it takes `(vault, paths)` with vault-relative paths as assumed), and `tests/conftest.py` swaps in a fake embedder so writer reindexing stays offline (`test_m04_index.py` is exempt). Local run (macOS, Homebrew Python 3.13 venv, no fastembed): `pytest -q` → 421 passed, 3 skipped (T07, T12, T13 modules not written), 1 failed (`test_m04_index.py::test_acceptance_real_model…`, needs the real fastembed model). A new test checks that fact, project, and skill writes land in the index (`indexer.stats`). **Pending:** the in-container `pytest -q`, and `pam index stats` / `pam search` on a fact written through the CLI with the real model.
 
 #### T09b · Vault sync watcher (≈ 0.5 h)
 - **Module:** M10 (rest)
@@ -1834,6 +1835,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M7, `extract/facts.py`, four CLI modules, `test_m07_memory.py`. No contract changes. Pending T06: the real `index_paths` signature.
 - **Status log:**
   - 2026-10-17 · IMPLEMENTED · agent (T09)
+  - 2026-10-17 · IMPLEMENTED · agent (T09, after T06 merged) · item 8 now holds without the fallback: the `index_paths` import is hard, and `tests/conftest.py` patches `indexer.get_embedder` with a fake for every module except `test_m04_index.py`.
 
 ---
 

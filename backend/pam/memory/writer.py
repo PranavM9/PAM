@@ -48,14 +48,10 @@ from pam.core.ids import new_uuid, sha256_text
 from pam.core.lock import vault_write_lock
 from pam.core.time import iso_z, utcnow
 from pam.core.vault import Vault
+from pam.index.indexer import index_paths  # module-level name so tests can spy on it
 from pam.memory import conflicts
 from pam.normalize.render import render
 from pam.sync import git
-
-try:  # T06 (pam.index) may not be merged yet; tests spy on this module-level name.
-    from pam.index.indexer import index_paths
-except ImportError:
-    index_paths = None
 
 log = logging.getLogger(__name__)
 
@@ -186,21 +182,17 @@ def reindex(vault: Vault, paths: Iterable[Path]) -> None:
     """Reindex committed paths with `pam.index.indexer.index_paths`.
 
     Behavior:
-        Paths go to the indexer as vault-relative POSIX strings. When the indexer is not available
-        the step is skipped with a debug log. An indexer error is logged and does not fail the
-        write, which is already committed.
+        Paths go to the indexer as vault-relative POSIX strings. An indexer error is logged and
+        does not fail the write, which is already committed.
     Parameters:
         vault: The vault.
         paths: Files that were written.
     """
     rels = sorted({vault.rel(p) for p in paths})
-    if index_paths is None:
-        log.debug("indexer not available; skipped reindex of %d paths", len(rels))
-        return
     try:
         index_paths(vault, rels)
-    except Exception:  # noqa: BLE001 - the commit is done; a stale index is repaired by `pam index`
-        log.warning("reindex of %d paths failed", len(rels), exc_info=True)
+    except Exception as e:  # noqa: BLE001 - the commit is done; a stale index is repaired by `pam index`
+        log.warning("reindex of %d paths failed (%s); run `pam index` to repair", len(rels), e)
 
 
 def _authorize(v: Vault, agent: str, tool: str, scope: str | None = None) -> AgentManifest:
