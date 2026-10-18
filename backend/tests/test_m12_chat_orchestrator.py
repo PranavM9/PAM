@@ -220,12 +220,43 @@ def test_injection_event_order_and_prompt(vault, context_calls, fake_llm):
     assert _types(events) == ["context", "token", "token", "done"]
     assert "".join(e.text for e in events if isinstance(e, TokenEvent)) == "You were wiring RAG."
     messages = fake.calls[0]["messages"]
-    assert messages[0] == {"role": "system", "content": f"{llm.PAM_PREAMBLE}\n\n{RENDERED}"}
+    assert messages[0] == {
+        "role": "system", "content": f"{llm.PAM_PREAMBLE}\n\n{orchestrator.NO_TOOLS_NOTE}\n\n{RENDERED}"
+    }
     assert messages[-1] == {"role": "user", "content": "where did I leave off?"}
     assert len(messages) == 2  # a new session has no history
     assert fake.calls[0]["tools"] is None
     done = events[-1]
     assert (done.model, done.prompt_tokens, done.completion_tokens) == (MODEL_A.id, 120, 7)
+
+
+def test_injection_with_tool_support_offers_tools_and_runs_them(vault, context_calls, fake_llm):
+    call = llm.ToolCall(id="c1", name="list_agents", arguments={})
+    fake = fake_llm(_tool_round(call), _text("Done."))
+    events = _run(_req(model=TOOLS_MODEL.id), vault)  # default mode: injection
+    assert _types(events) == ["context", "tool_call", "token", "done"]
+    assert len(context_calls) == 1  # context is still injected
+    assert {t["function"]["name"] for t in fake.calls[0]["tools"]} == ALL_TOOLS
+    system = fake.calls[0]["messages"][0]["content"]
+    assert orchestrator.TOOLS_NOTE in system and RENDERED in system
+    assert orchestrator.NO_TOOLS_NOTE not in system
+
+
+def test_injection_add_fact_is_written_through_the_tool_loop(vault, context_calls, fake_llm):
+    args = {"attribute": "name", "value": "Jerry", "category": "identity"}
+    fake_llm(_tool_round(llm.ToolCall(id="c1", name="add_fact", arguments=args)), _text("Saved."))
+    events = _run(_req(message="Remember that my name is Jerry", model=TOOLS_MODEL.id), vault)
+    tool_event = next(e for e in events if e.type == "tool_call")
+    assert tool_event.name == "add_fact"
+    assert not tool_event.result_summary.startswith("ERROR")
+    assert list((vault.root / "memory" / "shared").rglob("*.md"))  # the fact file exists
+
+
+def test_injection_without_tool_support_forbids_claiming_a_save(vault, context_calls, fake_llm):
+    fake = fake_llm(_text("ok"))
+    _run(_req(message="Remember that my name is Jerry"), vault)
+    assert fake.calls[0]["tools"] is None
+    assert "Never claim" in fake.calls[0]["messages"][0]["content"]
 
 
 def test_context_event_carries_bundle_numbers_and_unique_doc_ids(vault, context_calls, fake_llm):
