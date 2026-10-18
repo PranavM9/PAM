@@ -31,9 +31,9 @@ services:
     build: ./frontend
     ports:
       - "5173:80"
+    # Plain start order until T14 serves /api/health; then switch to `condition: service_healthy`.
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
   ollama:
     image: ollama/ollama
