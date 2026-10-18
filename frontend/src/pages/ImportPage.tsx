@@ -16,7 +16,7 @@ import { guide } from '../guides'
 import { cliHints } from '../lib/cliHints'
 
 /**
- * Import wizard: source picker, dropzone, live stage stepper, report and export guide.
+ * Import wizard: live stage stepper, dropzone, compact source picker, report and export guide.
  *
  * Behavior:
  *     Uploads with `POST /imports`, keeps the job id in the URL (`?job=`), and
@@ -78,22 +78,20 @@ export default function ImportPage() {
         cli={cliHints.importRun(fileName ? `/demo/${fileName}` : undefined)}
       />
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:flex-row lg:gap-0 lg:overflow-hidden">
-        <section className="panel min-w-0 space-y-8 p-5 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" aria-label="Import steps">
-          <SourcePicker value={source} onChange={pickSource} />
+        <section className="panel min-w-0 space-y-6 p-5 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" aria-label="Import steps">
+          {status ? (
+            <JobProgress status={status} onReset={reset} onViewGraph={() => navigate('/graph')} />
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <div className="text-[15px] font-medium">Pipeline</div>
+              </div>
+              <StageStepper />
+            </div>
+          )}
           <Dropzone sourceLabel={sourceLabel} fileName={fileName} busy={upload.isPending} onFile={start} />
           <ErrorNote error={upload.error ?? job.error} />
-          <div className="divider border-t pt-8">
-            {status ? (
-              <JobProgress status={status} onReset={reset} onViewGraph={() => navigate('/graph')} />
-            ) : (
-              <div className="space-y-6">
-                <div>
-                  <div className="text-[15px] font-medium">Pipeline</div>
-                </div>
-                <StageStepper />
-              </div>
-            )}
-          </div>
+          <SourcePicker value={source} onChange={pickSource} />
         </section>
 
         <ResizeHandle pane={guidePane} side="after" label="Resize export guide" />
