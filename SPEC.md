@@ -1687,8 +1687,10 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - `frontend/nginx.conf`: proxy settings at server level, inherited by `/api/`, `/api/chat` (`X-Accel-Buffering: no`), `/api/imports` (`client_max_body_size 200m`) and `/mcp`; gzip only in the static `location /`.
   - `frontend/Dockerfile`: multi-stage as before; drops `.env`, `.env.local`, `.env.*.local` before `npm run build` so no VITE_* secrets are inlined.
   - Risk: T14 is not on main, so the `|| exec sleep infinity` fallback stays and the healthcheck stays red. Until T14 merges, `docker compose up -d` fails the frontend's `service_healthy` dependency; start it with `docker compose up -d --no-deps frontend`.
+  - Review fixes (CHG-0019): frontend `depends_on` is plain `backend` until T14; `rm -f .env .env.*` before the build; nginx `Host $http_host` and no separate `/api/chat` location.
 - **Result (➕):**
   - 2026-10-18 · T16a · PENDING Docker verification · `docker compose config -q` passes; no Docker daemon on the authoring machine, so build, offline model load, `pytest -q` and image size are verified by Pranav on WSL2. Healthcheck pending T14; fallback not removed.
+  - 2026-10-18 · T16a review (CHG-0019) · PASS on WSL2 Docker 29.8 · clean build (backend 2.9 GB, models layer 66 MB, cached across code edits); `pytest -q` 618 passed, 2 skipped with `--network none`; offline init, import, index and search on a host-owned `/vault` bind mount; plain `docker compose up -d` starts both services and `exec backend pam init` works. Against a stub `/api/health`: healthy in about 6 s, SSE unbuffered, 5 MB upload passes on `/api/imports` and is refused with 413 elsewhere, `/mcp` redirect keeps the port, no `.env*` value in the bundle. Real `/api/health` and the clean Windows/macOS runs are pending T14 and T16c.
 
 ### 9.4 Cut list (if behind schedule, cut from the top) 🔒
 1. Gemini importer (show that Gemini consumes memory via MCP instead).
@@ -2013,6 +2015,20 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M12 only. No contract changes. T14 calls `run_turn(vault, req, mcp_url=...)`, returns 400 for `UnknownModel` and maps the other exceptions raised before the first event to 404/400/409.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 rest)
+
+### CHG-0019 — M15 review fixes to CHG-0017: plain frontend dependency, all .env files stripped, Host with port
+- **Type:** design
+- **Module(s):** M15
+- **Proposed by:** human (Yogesh), review of T16a
+- **Date:** 2026-10-18
+- **Motivation:** Docker verification of T16a on WSL2: with T14 not on main the backend stays unhealthy, so `docker compose up` exits after about 80 s and never starts the frontend. `.env.production` was still inlined into the bundle. `Host $host` drops the port, so backend redirects (e.g. `/mcp` to `/mcp/`) would point at port 80. `add_header X-Accel-Buffering` on `/api/chat` only reaches the browser and has no effect; `proxy_buffering off` already streams SSE.
+- **Proposal:**
+  1. Compose: the frontend's `depends_on` is plain `backend` (start order) until T14 serves `/api/health`; then switch to `condition: service_healthy`. The backend healthcheck from CHG-0017 stays.
+  2. Frontend build: `rm -f .env .env.*` before `npm run build`, so no env-file value reaches the image.
+  3. nginx: `proxy_set_header Host $http_host`; the `/api/chat` location is removed and SSE is served by `/api/` with the server-level `proxy_buffering off`.
+- **Impact:** `docker-compose.yml`, `frontend/Dockerfile`, `frontend/nginx.conf`. Supersedes CHG-0017 point 4's `/api/chat` location and its `service_healthy` note. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T16a review)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

@@ -4,8 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-# Vite inlines VITE_* values from .env files; local ones must not reach the image.
-RUN rm -f .env .env.local .env.*.local && npm run build
+# Vite inlines VITE_* values from .env files; none of them may reach the image.
+RUN rm -f .env .env.* && npm run build
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
