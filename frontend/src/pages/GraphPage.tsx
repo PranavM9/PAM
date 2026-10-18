@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Loader2, Maximize2, PinOff, Search } from 'lucide-react'
+import { Loader2, Maximize2, Orbit, Pin, PinOff, Search, Wind } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph2D, { type ForceGraphMethods, type LinkObject, type NodeObject } from 'react-force-graph-2d'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -15,6 +15,7 @@ import type { GraphLink, GraphNode } from '../types/generated'
 type Node = NodeObject<GraphNode>
 type Link = LinkObject<GraphNode, GraphLink>
 type Methods = ForceGraphMethods<Node, Link>
+type PhysicsMode = 'drift' | 'frictionless'
 
 /** Fact color from the `--warn` token, read once so canvas frames stay cheap. */
 let factColor: string | null = null
@@ -41,17 +42,26 @@ function endpointId(end: unknown): string {
 
 /** Last known positions and pins, kept across refetches and page visits. */
 const positions = new Map<string, { x?: number; y?: number; fx?: number; fy?: number }>()
+const pinnedProjects = new Set<string>()
+
+function flowField() {
+  let nodes: Node[] = []
+  let phase = 0
+  const force = () => {
+    phase += 0.006
+    nodes.forEach((node, index) => {
+      if (node.fx !== undefined || node.fy !== undefined) return
+      const angle = phase + index * 2.399963
+      node.vx = (node.vx ?? 0) - (node.y ?? 0) * 0.00001 + Math.cos(angle) * 0.0007
+      node.vy = (node.vy ?? 0) + (node.x ?? 0) * 0.00001 + Math.sin(angle) * 0.0007
+    })
+  }
+  force.initialize = (next: Node[]) => { nodes = next }
+  return force
+}
 
 function rememberPositions(nodes: Node[]) {
   for (const node of nodes) positions.set(String(node.id), { x: node.x, y: node.y, fx: node.fx, fy: node.fy })
-}
-
-function clearPins(nodes: Node[]) {
-  for (const node of nodes) {
-    node.fx = undefined
-    node.fy = undefined
-  }
-  rememberPositions(nodes)
 }
 
 function themeColor(name: string, alpha = 1): string {
@@ -94,17 +104,53 @@ export default function GraphPage() {
   const [hover, setHover] = useState<string | null>(null)
   const [selected, setSelected] = useState<Node | null>(null)
   const [query, setQuery] = useState('')
+  const [physicsMode, setPhysicsMode] = useState<PhysicsMode>('drift')
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const [episodesAlwaysOn, setEpisodesAlwaysOn] = useState(true)
+  const [, setPinRevision] = useState(0)
   const [fitted, setFitted] = useState<unknown>(null)
-  const [pinned, setPinned] = useState(() => [...positions.values()].filter((p) => p.fx !== undefined).length)
   const navigate = useNavigate()
 
   const data = useMemo(() => {
     if (!graph.data) return { nodes: [] as Node[], links: [] as Link[] }
-    return {
-      nodes: graph.data.nodes.map((n): Node => ({ ...n, ...positions.get(n.id) })),
-      links: graph.data.links.map((l): Link => ({ ...l })),
+    const allNodes = graph.data.nodes
+    const nodeById = new Map(allNodes.map((node) => [node.id, node]))
+    const episodeProject = new Map<string, string>()
+    for (const link of graph.data.links) {
+      if (link.kind !== 'member') continue
+      const source = nodeById.get(link.source)
+      const target = nodeById.get(link.target)
+      if (source?.type === 'episode' && target?.type === 'project') episodeProject.set(source.id, target.id)
+      if (target?.type === 'episode' && source?.type === 'project') episodeProject.set(target.id, source.id)
     }
-  }, [graph.data])
+    const visibleIds = new Set<string>()
+    for (const node of allNodes) {
+      if (node.type === 'project') visibleIds.add(node.id)
+      if (node.type === 'episode' && (episodesAlwaysOn || episodeProject.get(node.id) === activeProjectId)) visibleIds.add(node.id)
+      if (node.type === 'fact' && facts && (episodesAlwaysOn || (activeProjectId && episodeProject.get(node.cluster_id ?? '') === activeProjectId))) visibleIds.add(node.id)
+    }
+    const visibleNodes = allNodes.filter((node) => visibleIds.has(node.id))
+    const visibleLinks = graph.data.links.filter((link) => visibleIds.has(link.source) && visibleIds.has(link.target))
+    {
+      const scores = new Map<string, number>()
+      for (const link of graph.data.links) {
+        if (link.kind !== 'similar') continue
+        const a = episodeProject.get(link.source)
+        const b = episodeProject.get(link.target)
+        if (!a || !b || a === b) continue
+        const key = [a, b].sort().join('::')
+        scores.set(key, (scores.get(key) ?? 0) + link.weight)
+      }
+      for (const [key, weight] of scores) {
+        const [source, target] = key.split('::')
+        visibleLinks.push({ source, target, kind: 'similar', weight })
+      }
+    }
+    return {
+      nodes: visibleNodes.map((n): Node => ({ ...n, ...positions.get(n.id) })),
+      links: visibleLinks.map((l): Link => ({ ...l })),
+    }
+  }, [graph.data, activeProjectId, episodesAlwaysOn, facts])
 
   const neighbours = useMemo(() => {
     const map = new Map<string, Set<string>>()
@@ -133,31 +179,51 @@ export default function GraphPage() {
   useEffect(() => {
     const methods = fg.current
     if (!methods) return
-    methods.d3Force('charge')?.strength(-60)
-    methods.d3Force('link')?.distance((link: Link) => (link.kind === 'member' ? 30 : 60))
+    methods.d3Force('charge')?.strength(physicsMode === 'frictionless' ? -8 : -60)
+    methods.d3Force('link')?.distance((link: Link) => (link.kind === 'member' ? 42 : 72)).strength(physicsMode === 'frictionless' ? 0.035 : 0.18)
+    methods.d3Force('flow', physicsMode === 'frictionless' ? flowField() : null)
     methods.d3ReheatSimulation()
-  }, [data])
+  }, [data, physicsMode, width, height])
 
   const flyTo = useCallback((node: Node) => {
-    setSelected(node)
     setQuery('')
+    if (node.type === 'project') {
+      setActiveProjectId((current) => current === node.id ? null : node.id)
+      setSelected(null)
+      setFitted(null)
+      requestAnimationFrame(() => fg.current?.zoomToFit(600, 90))
+      return
+    }
+    setSelected(node)
     if (node.x !== undefined && node.y !== undefined) {
       fg.current?.centerAt(node.x, node.y, 800)
       fg.current?.zoom(4, 800)
     }
   }, [setSelected, setQuery])
 
+  const toggleProjectPin = () => {
+    if (!activeProjectId) return
+    const node = data.nodes.find((candidate) => String(candidate.id) === activeProjectId)
+    if (!node) return
+    if (pinnedProjects.has(activeProjectId)) {
+      pinnedProjects.delete(activeProjectId)
+      node.fx = undefined
+      node.fy = undefined
+    } else {
+      pinnedProjects.add(activeProjectId)
+      node.fx = node.x
+      node.fy = node.y
+    }
+    rememberPositions([node])
+    setPinRevision((revision) => revision + 1)
+    fg.current?.d3ReheatSimulation()
+  }
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
     return data.nodes.filter((n) => n.label.toLowerCase().includes(q)).slice(0, 8)
   }, [query, data.nodes])
-
-  const unpinAll = () => {
-    clearPins(data.nodes)
-    setPinned(0)
-    fg.current?.d3ReheatSimulation()
-  }
 
   const drawNode = useCallback(
     (node: Node, ctx: CanvasRenderingContext2D, scale: number) => {
@@ -167,6 +233,15 @@ export default function GraphPage() {
       const faded = lit !== null && !lit.has(String(node.id))
       ctx.globalAlpha = faded ? 0.12 : 1
       ctx.fillStyle = color(node)
+      if (node.type === 'project') {
+        ctx.beginPath()
+        ctx.arc(x, y, r + 4 / scale, 0, 2 * Math.PI)
+        ctx.lineWidth = 1 / scale
+        ctx.strokeStyle = color(node)
+        ctx.globalAlpha = faded ? 0.04 : 0.24
+        ctx.stroke()
+        ctx.globalAlpha = faded ? 0.12 : 1
+      }
       ctx.beginPath()
       if (node.type === 'fact') ctx.rect(x - r, y - r, r * 2, r * 2)
       else ctx.arc(x, y, r, 0, 2 * Math.PI)
@@ -176,7 +251,7 @@ export default function GraphPage() {
         ctx.strokeStyle = palette.fg
         ctx.stroke()
       }
-      const showLabel = !faded && (node.type === 'project' ? scale > 0.6 : String(node.id) === focus || (lit !== null && scale > 1.5) || scale > 3.5)
+      const showLabel = !faded && (node.type === 'project' ? scale > 0.35 : String(node.id) === focus || (lit !== null && scale > 1.5) || scale > 3.5)
       if (showLabel) {
         const size = (node.type === 'project' ? 13 : 11) / scale
         ctx.font = `${node.type === 'project' ? 600 : 400} ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`
@@ -237,7 +312,6 @@ export default function GraphPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title="Graph"
-        subtitle="Projects (large), episodes (small) and similarity links. Drag to pin, scroll to zoom, click to open."
         cli={cliHints.graphExport(agent, facts)}
       />
       <section className="panel relative mb-1 min-h-[26rem] flex-1 overflow-hidden shadow-[inset_0_1px_0_var(--glass-highlight),0_8px_24px_rgba(3,1,14,0.16)] sm:mx-2" aria-label="Memory graph">
@@ -256,7 +330,10 @@ export default function GraphPage() {
               linkColor={linkColor}
               linkWidth={(l) => (focus && (endpointId(l.source) === focus || endpointId(l.target) === focus) ? 1.5 : 0.6)}
               linkLineDash={(l) => (l.kind === 'similar' ? [2, 2] : null)}
-              cooldownTicks={150}
+              d3AlphaDecay={physicsMode === 'drift' ? 0.0228 : 0}
+              d3AlphaMin={physicsMode === 'drift' ? 0.001 : 0}
+              d3VelocityDecay={physicsMode === 'frictionless' ? 0.005 : 0.18}
+              cooldownTicks={physicsMode === 'drift' ? 150 : Infinity}
               onEngineStop={() => {
                 rememberPositions(data.nodes)
                 if (fitted !== data) {
@@ -266,11 +343,22 @@ export default function GraphPage() {
               }}
               onNodeHover={(n) => setHover(n ? String(n.id) : null)}
               onNodeClick={flyTo}
-              onNodeDragEnd={(n) => {
-                n.fx = n.x
-                n.fy = n.y
+              onNodeDragEnd={(n, delta) => {
+                if (n.type === 'project' && pinnedProjects.has(String(n.id))) {
+                  n.fx = n.x
+                  n.fy = n.y
+                } else {
+                  n.fx = undefined
+                  n.fy = undefined
+                  const distance = Math.hypot(delta.x, delta.y)
+                  const speed = Math.min(18, distance * 0.08)
+                  if (distance > 0) {
+                    n.vx = (delta.x / distance) * speed
+                    n.vy = (delta.y / distance) * speed
+                  }
+                }
                 rememberPositions([n])
-                setPinned(data.nodes.filter((d) => d.fx !== undefined).length)
+                fg.current?.d3ReheatSimulation()
               }}
               onBackgroundClick={() => setSelected(null)}
             />
@@ -320,6 +408,10 @@ export default function GraphPage() {
           >
             <AgentSelect value={agent} onChange={(name) => setParam('agent', name === 'default' ? null : name)} />
             <label className="flex min-h-[2.25rem] cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 text-sm text-fg/90 transition duration-200 ease-out hover:bg-fg/[0.06]">
+              <input type="checkbox" className="h-4 w-4 accent-accent" checked={episodesAlwaysOn} onChange={(e) => { setEpisodesAlwaysOn(e.target.checked); setActiveProjectId(null); setSelected(null); setFitted(null) }} />
+              Show all episodes
+            </label>
+            <label className="flex min-h-[2.25rem] cursor-pointer select-none items-center gap-2 rounded-xl px-2.5 text-sm text-fg/90 transition duration-200 ease-out hover:bg-fg/[0.06]">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-accent"
@@ -332,9 +424,24 @@ export default function GraphPage() {
             <button type="button" className="btn-ghost min-h-[2.25rem]" onClick={() => fg.current?.zoomToFit(600, 40)}>
               <Maximize2 size={15} strokeWidth={1.75} /> Fit
             </button>
-            <button type="button" className="btn-ghost min-h-[2.25rem]" onClick={unpinAll} disabled={pinned === 0}>
-              <PinOff size={15} strokeWidth={1.75} /> Unpin {pinned > 0 ? pinned : ''}
-            </button>
+            {activeProjectId && !episodesAlwaysOn && <button type="button" className="btn-ghost min-h-[2.25rem]" onClick={() => { setActiveProjectId(null); setSelected(null); setFitted(null) }}>All projects</button>}
+            {activeProjectId && (
+              <button type="button" className="btn-ghost min-h-[2.25rem]" aria-pressed={pinnedProjects.has(activeProjectId)} onClick={toggleProjectPin}>
+                {pinnedProjects.has(activeProjectId) ? <PinOff size={15} strokeWidth={1.75} /> : <Pin size={15} strokeWidth={1.75} />}
+                {pinnedProjects.has(activeProjectId) ? 'Unpin project' : 'Pin project'}
+              </button>
+            )}
+            <span className="mx-0.5 hidden h-5 w-px bg-edge/10 sm:block" aria-hidden />
+            <div role="group" aria-label="Graph motion" className="flex items-center rounded-xl bg-bg/45 p-1">
+              {([
+                ['drift', 'Drift', Orbit],
+                ['frictionless', 'Frictionless', Wind],
+              ] as const).map(([mode, label, Icon]) => (
+                <button key={mode} type="button" aria-label={`${label} graph mode`} aria-pressed={physicsMode === mode} title={label} onClick={() => setPhysicsMode(mode)} className={`flex min-h-[2rem] items-center gap-1.5 rounded-lg px-2 text-xs transition ${physicsMode === mode ? 'bg-accent/20 text-fg' : 'text-muted hover:text-fg'}`}>
+                  <Icon size={14} aria-hidden /> <span className="hidden lg:inline">{label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -343,7 +450,7 @@ export default function GraphPage() {
             <span className="font-medium text-fg">{counts.project}</span> projects
           </span>
           <span>
-            <span className="font-medium text-fg">{counts.episode}</span> episodes
+            <span className="font-medium text-fg">{data.nodes.filter((node) => node.type === 'episode').length}</span> episodes shown
           </span>
           {facts && (
             <span>
@@ -351,7 +458,7 @@ export default function GraphPage() {
             </span>
           )}
           <span>
-            <span className="font-medium text-fg">{graph.data?.links.length ?? 0}</span> links
+            <span className="font-medium text-fg">{data.links.length}</span> links
           </span>
         </div>
 

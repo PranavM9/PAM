@@ -23,7 +23,7 @@ export default {
         bad: token('bad'),
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', 'system-ui', 'sans-serif'],
+        sans: ['DM Sans', 'Avenir Next', 'Avenir', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', '"SF Mono"', 'Consolas', 'monospace'],
       },
       borderRadius: {

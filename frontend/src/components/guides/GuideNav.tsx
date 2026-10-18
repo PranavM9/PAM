@@ -47,7 +47,7 @@ export function GuideNav({
                     aria-current={active ? 'page' : undefined}
                     className={`flex min-h-[2.75rem] w-full items-center gap-3 rounded-[14px] px-3 py-2 text-left text-sm leading-snug transition duration-200 ease-out ${
                       active
-                        ? 'bg-gradient-to-r from-accent/25 to-accent/10 font-medium text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.12)]'
+                        ? 'bg-accent/15 font-medium text-fg shadow-[inset_0_1px_0_rgb(var(--edge)/0.12)]'
                         : 'text-muted hover:bg-fg/[0.06] hover:text-fg'
                     }`}
                   >

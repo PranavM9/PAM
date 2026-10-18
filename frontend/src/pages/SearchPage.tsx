@@ -49,7 +49,6 @@ export default function SearchPage() {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden">
       <PageHeader
         title="Search"
-        subtitle="Hybrid search (vector + keyword, fused with RRF) and the token-budgeted context bundle an agent would get."
         cli={cliHints.search(query || undefined, agent, k)}
       />
       <div className="flex flex-col gap-4 pb-2 xl:min-h-0 xl:flex-1 xl:flex-row xl:gap-0">
@@ -88,7 +87,7 @@ export default function SearchPage() {
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
                   <Search size={22} strokeWidth={1.75} aria-hidden />
                 </span>
-                <p className="max-w-xs text-sm leading-relaxed text-muted">Search your vault to see how hits are ranked.</p>
+                <p className="max-w-xs text-sm leading-relaxed text-muted">Search your vault.</p>
               </div>
             )}
           </div>

@@ -69,7 +69,7 @@ export function SessionList({
                 aria-current={active ? 'true' : undefined}
                 className={`w-full rounded-control px-3 py-2.5 text-left transition duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60 ${
                   active
-                    ? 'bg-gradient-to-r from-accent/25 to-accent/10 shadow-[inset_0_1px_0_rgb(var(--edge)/0.1)]'
+                    ? 'bg-accent/15 shadow-[inset_0_1px_0_rgb(var(--edge)/0.1)]'
                     : 'hover:bg-fg/[0.06]'
                 }`}
               >
