@@ -1,16 +1,17 @@
-"""Fact extraction, merging, and the minimal fact writer (SPEC §8 M3, §7.4).
+"""Fact extraction and merging, with writes routed through the M7 writer (SPEC §8 M3, §7.4).
 
 Behavior:
     `extract_candidates` mines one user message with the `patterns.PATTERNS` table. `Merger`
-    applies candidates to the `shared` fact slots following the §8 M3 merge rules, and
-    `write_merge` stores the result under the vault write lock. T09 reroutes the writer half
-    through `pam.memory`; the extraction half stays here.
+    applies candidates to the `shared` fact slots following the §8 M3 merge rules. Storing the
+    result belongs to `pam.memory.writer`: `write_merge` delegates to `writer.merge_candidate` for
+    `pam derive`, and `write_candidates` / `extract_and_store` send facts through `writer.add_fact`.
 """
 
 from __future__ import annotations
 
 import re
 import warnings
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -20,7 +21,6 @@ from pydantic import ValidationError
 
 from pam.contracts.common import Actor
 from pam.contracts.config import ExtractCfg
-from pam.contracts.episode import EpisodeFrontmatter
 from pam.contracts.fact import (
     Cardinality,
     Fact,
@@ -31,14 +31,15 @@ from pam.contracts.fact import (
     fact_id,
     normalize_value,
 )
+from pam.contracts.writes import AddFactInput
 from pam.core import mdio
 from pam.core.errors import PamError
-from pam.core.ids import sha256_text
 from pam.core.lock import vault_write_lock
 from pam.core.time import utcnow
 from pam.core.vault import Vault
 from pam.extract import patterns as pat
 from pam.extract.text import Sentence, cap_value, iter_sentences, load_nlp, mask_ignored, negated
+from pam.memory import writer
 from pam.sync import git
 
 SCOPE = "shared"
@@ -357,56 +358,99 @@ def load_shared_facts(vault: Vault) -> dict[UUID, Fact]:
     return facts
 
 
-def write_fact(vault: Vault, fact: Fact) -> Path:
-    """Write one fact file (`memory/<scope>/facts/<id>.md`).
+def _fact_input(fact: Fact) -> AddFactInput:
+    return AddFactInput(
+        subject=fact.subject, attribute=fact.attribute, value=fact.value, category=fact.category,
+        cardinality=fact.cardinality, confidence=fact.confidence, shared=fact.scope == SCOPE,
+        episode_id=fact.updated_by_episode,
+    )
+
+
+def store_merge(vault: Vault, merger: Merger, agent: str, txn: writer.Txn) -> None:
+    """Store a finished merge through `writer.add_fact`, falling back to `writer.merge_candidate`.
 
     Behavior:
-        The body is one human-readable line, `**<attribute>**: <value>`. The caller holds the
-        vault write lock and commits.
+        Each touched fact is replayed as an `add_fact` call (extractor `rule`, the merge time, the
+        history reason) when `writer.plan_fact` reproduces exactly the fact the `Merger` built, which
+        covers new slots, confidence bumps, and overwrites by newer evidence. Facts the `Merger`
+        shaped differently (conflicts, older evidence recorded as history, a slot touched twice in
+        one run) are written verbatim by `writer.merge_candidate`, so the §8 M3 merge rules hold.
+        The caller holds the vault write lock and makes the commit.
     Exceptions:
-        OSError: The file cannot be written.
-    Returns:
-        The absolute path written.
+        PermissionDenied: The agent may not write shared facts.
+        PamError: A write failed (for example an episode body no longer matches `body_sha256`).
     Parameters:
         vault: Target vault.
-        fact: Fact to store.
+        merger: The merger whose `result` is stored.
+        agent: Agent on whose behalf the merge runs.
+        txn: Transaction that records every changed file.
     """
-    path = vault.fact_path(fact.scope, fact.id)
-    mdio.write(path, fact, f"**{fact.attribute}**: {fact.value}\n")
-    return path
+    res = merger.result
+    rest = MergeResult(on_disk=set(res.on_disk))
+    for fid, fact in res.facts.items():
+        data = _fact_input(fact)
+        reason = fact.history[-1].reason if fact.history else None
+        existing = mdio.read_model(vault.fact_path(fact.scope, fid), Fact)[0] if fid in res.on_disk else None
+        planned, _ = writer.plan_fact(
+            existing, data, fact.scope, agent=agent, extractor=Actor.RULE,
+            pattern_id=fact.pattern_id, now=merger.now, reason=reason,
+        )
+        if planned.model_dump() != fact.model_dump():
+            rest.facts[fid] = fact
+            continue
+        writer.raise_for_result(writer.add_fact(
+            vault, data, agent, extractor=Actor.RULE, pattern_id=fact.pattern_id,
+            now=merger.now, reason=reason, txn=txn,
+        ))
+    rest.backlinks = [(episode, fid) for episode, fid in res.backlinks if fid in rest.facts]
+    if rest.facts:
+        writer.merge_candidate(vault, rest, agent, txn=txn)
 
 
-def add_backlink(vault: Vault, episode_id: UUID, fid: UUID) -> Path | None:
-    """Append a fact id to an episode's `superseded_facts` (§7.4).
+def extract_and_store(
+    vault: Vault,
+    texts: Iterable[str],
+    ep: EpisodeRef,
+    agent: str,
+    txn: writer.Txn,
+    times: dict[UUID, datetime] | None = None,
+) -> MergeResult:
+    """Mine user messages of one episode and store the merged facts in the caller's transaction.
 
     Behavior:
-        Only the frontmatter changes. The write is skipped when the id is already listed, when the
-        episode file is missing, or when the body no longer matches `body_sha256`.
+        Extracts candidates from every text, merges them with one `Merger` (the episode confirms a
+        value at most once), and stores the result with `store_merge`. The caller holds the vault
+        write lock and makes the commit.
+    Exceptions:
+        PermissionDenied: The agent may not write shared facts.
     Returns:
-        The episode path when it was rewritten, else `None`.
+        The merge result.
     Parameters:
         vault: Target vault.
-        episode_id: Episode that produced the replaced value.
-        fid: Fact whose value was replaced.
+        texts: User messages of the episode.
+        ep: The episode that is the evidence.
+        agent: Agent on whose behalf the merge runs.
+        txn: Transaction that records every changed file.
+        times: `created_at` of known episodes, to order evidence; unknown episodes count as older.
     """
-    path = next(iter(sorted(vault.root.glob(f"memory/*/episodes/{episode_id}.md"))), None)
-    if path is None:
-        return None
-    fm, body = mdio.read_model(path, EpisodeFrontmatter)
-    if fid in fm.superseded_facts:
-        return None
-    if sha256_text(body) != fm.body_sha256:
-        warnings.warn(f"episode {episode_id} body does not match body_sha256; backlink skipped", RuntimeWarning)
-        return None
-    mdio.write(path, fm.model_copy(update={"superseded_facts": [*fm.superseded_facts, fid]}), body)
-    return path
+    merger = Merger(vault, times or {})
+    seen: set[tuple[str, str]] = set()
+    for text in texts:
+        for cand in extract_candidates(text):
+            key = (cand.attribute, normalize_value(cand.value))
+            if key not in seen:
+                seen.add(key)
+                merger.add(ep, cand)
+    store_merge(vault, merger, agent, txn)
+    return merger.result
 
 
 def write_merge(vault: Vault, result: MergeResult) -> tuple[list[Path], list[Path]]:
-    """Write every touched fact and backlink of a merge.
+    """Write every touched fact and backlink of a merge through `writer.merge_candidate`.
 
     Behavior:
-        The caller holds the vault write lock and makes the commit.
+        The caller (`pam derive`) holds the vault write lock and makes the commit; the writer
+        re-verifies each episode's `body_sha256` before it appends a backlink.
     Exceptions:
         OSError: A file cannot be written.
     Returns:
@@ -415,18 +459,7 @@ def write_merge(vault: Vault, result: MergeResult) -> tuple[list[Path], list[Pat
         vault: Target vault.
         result: The merge to store.
     """
-    changed, created = [], []
-    for fid, fact in result.facts.items():
-        existed = fid in result.on_disk
-        path = write_fact(vault, fact)
-        changed.append(path)
-        if not existed:
-            created.append(path)
-    for episode_id, fid in result.backlinks:
-        path = add_backlink(vault, episode_id, fid)
-        if path is not None and path not in changed:
-            changed.append(path)
-    return changed, created
+    return writer.merge_candidate(vault, result)
 
 
 def write_candidates(
@@ -439,11 +472,13 @@ def write_candidates(
     """Extract facts from one message and store them as one commit.
 
     Behavior:
-        Facts land in the `shared` scope (`agent` is reserved for M7's permission check). Holds the
-        write lock and commits as `derive: +c ~u !k`; makes no commit when nothing changed.
-        T09 replaces the write step with `pam.memory.writer`.
+        Facts land in the `shared` scope, so `agent` must be allowed to write it (M8). Holds the
+        write lock, merges with the §8 M3 rules, sends the facts through `writer.add_fact`, and
+        commits as `derive: +c ~u !k`; makes no commit when nothing changed. A failure rolls the
+        written files back. Touched paths are reindexed after the commit.
     Exceptions:
         VaultBusy: The write lock is held by another writer.
+        PermissionDenied: The agent may not write shared facts.
     Returns:
         The facts created or changed.
     Parameters:
@@ -454,18 +489,15 @@ def write_candidates(
         created_at: Time of the evidence; defaults to now.
     """
     v = vault if isinstance(vault, Vault) else Vault.resolve(vault)
+    txn = writer.Txn()
     with vault_write_lock(v):
-        merger = Merger(v, {})
-        ep = EpisodeRef(episode_id, created_at or merger.now)
-        for cand in extract_candidates(text):
-            merger.add(ep, cand)
-        res = merger.result
-        changed, created = write_merge(v, res)
-        if changed:
-            try:
-                git.commit(v.root, changed, f"derive: +{len(res.created)} ~{len(res.updated)} !{len(res.conflicts)}")
-            except PamError:
-                for path in created:
-                    path.unlink(missing_ok=True)
-                raise
+        try:
+            res = extract_and_store(v, [text], EpisodeRef(episode_id, created_at or utcnow()), agent, txn)
+            if txn.paths:
+                git.commit(v.root, txn.paths, f"derive: +{len(res.created)} ~{len(res.updated)} !{len(res.conflicts)}")
+        except BaseException:
+            txn.rollback()
+            raise
+    if txn.paths:
+        writer.reindex(v, txn.paths)
     return list(res.facts.values())
