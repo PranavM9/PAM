@@ -3,10 +3,14 @@ services:
   backend:
     build: ./backend
     container_name: pam-backend
-    # Until T14 adds `pam api serve`, the server command fails and the container idles
-    # so `docker compose exec backend pam …` works. Remove this fallback once T14 is on main.
+    # `pam api serve` refuses an uninitialised vault, so create one on first run. `pam init`
+    # runs only when /vault has no pam.toml and itself refuses a non-empty folder that is not
+    # a vault, so an existing vault is never touched. A failure exits the container (B-05).
     entrypoint: ["/bin/sh", "-c"]
-    command: ["pam api serve --host 0.0.0.0 --port 8000 || exec sleep infinity"]
+    command:
+      - |
+        if [ ! -f /vault/pam.toml ]; then pam init; fi &&
+        exec pam api serve --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     env_file:
