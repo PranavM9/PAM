@@ -184,6 +184,20 @@ def test_pam_folder_is_ignored(vault, index_spy):
     assert index_spy == []
 
 
+def test_session_transcript_is_skipped(vault, index_spy):
+    transcript = vault.root / "working" / "s_abc123def456.transcript.jsonl"
+    transcript.write_text('{"role": "user", "text": "hi"}\n', encoding="utf-8")
+    rel = vault.rel(transcript)
+    before = _commits(vault)
+    result = runner.invoke(app, ["--vault", str(vault.root), "--json", "sync"])
+    assert result.exit_code == 0, result.output
+    assert SyncReport.model_validate_json(result.stdout) == SyncReport(dirty_paths=[], reindexed=0, commit_sha=None)
+    assert _commits(vault) == before
+    assert rel not in git.run(vault.root, "ls-files").stdout.splitlines()
+    assert ("??", rel) in git.status_porcelain(vault.root)
+    assert index_spy == []
+
+
 def test_edited_episode_body_is_reported_not_committed(vault, caplog):
     rel = _log_episode(vault)
     path = vault.abs(rel)

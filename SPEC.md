@@ -1926,6 +1926,7 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M10 only, plus the hook and the test lines above. No contract changes.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T09b)
+  - 2026-10-18 · IMPLEMENTED · agent (T09b) · `working/*.transcript.jsonl` is skipped by sync (neither committed nor reported), per §8 M9 and CHG-0013.
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

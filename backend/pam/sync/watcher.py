@@ -34,6 +34,17 @@ log = logging.getLogger(__name__)
 
 DOC_MODELS: dict[str, type[BaseModel]] = {"fact": Fact, "project": Project, "skill": Skill}
 IMMUTABLE_BODY = "episode body changed (body_sha256 mismatch)"
+TRANSCRIPT_SUFFIX = ".transcript.jsonl"
+
+
+def _is_transcript(rel: str) -> bool:
+    # §8 M9, CHG-0013: `working/<id>.transcript.jsonl` stays out of git until its session ends,
+    # so sync neither commits nor reports it.
+    return rel.startswith("working/") and rel.count("/") == 1 and rel.endswith(TRANSCRIPT_SUFFIX)
+
+
+def _status(v: Vault) -> list[tuple[str, str]]:
+    return [(status, rel) for status, rel in git.status_porcelain(v.root) if not _is_transcript(rel)]
 
 
 @dataclass
@@ -134,9 +145,9 @@ def sync(vault: Vault | str | os.PathLike | None, *, lock_timeout: float = 0.0) 
     """Bring edits made outside PAM into git and the index.
 
     Behavior:
-        Runs one `git status --porcelain` (`.pam/` excluded); a clean tree returns at once with no
-        lock. Otherwise takes the vault write lock and re-reads the status. Deleted files are
-        restored from HEAD. A changed episode whose body does not hash to `body_sha256`, or differs
+        Runs one `git status --porcelain` (`.pam/` and `working/*.transcript.jsonl` excluded); a
+        clean tree returns at once with no lock. Otherwise takes the vault write lock and re-reads
+        the status. Deleted files are restored from HEAD. A changed episode whose body does not hash to `body_sha256`, or differs
         from the HEAD body, is an immutable violation. Fact, project, skill, and working-memory
         files must validate against their §7 model. Everything else dirty is committed in one
         `manual: <n> files` commit, and the committed and restored paths are reindexed. A held
@@ -151,12 +162,12 @@ def sync(vault: Vault | str | os.PathLike | None, *, lock_timeout: float = 0.0) 
         lock_timeout: Seconds to wait for the write lock before giving up as busy.
     """
     v = vault if isinstance(vault, Vault) else Vault.resolve(vault)
-    entries = git.status_porcelain(v.root)
+    entries = _status(v)
     if not entries:
         return SyncResult()
     try:
         with vault_write_lock(v, timeout=lock_timeout):
-            entries = git.status_porcelain(v.root)
+            entries = _status(v)
             result = SyncResult(dirty_paths=sorted(rel for _, rel in entries))
             _apply(v, entries, result)
             return result
