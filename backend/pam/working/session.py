@@ -324,7 +324,9 @@ def _episode_input(memory: WorkingMemory, messages: list[RawMessage]) -> LogEpis
     return LogEpisodeInput(title=title, messages=messages, summary=summary, tags=[f"session:{memory.session_id}"])
 
 
-def end(vault: Vault | str | Path | None, session_id: str, agent: str | None = None) -> WriteResult:
+def end(
+    vault: Vault | str | Path | None, session_id: str, agent: str | None = None, auto: bool = False,
+) -> WriteResult:
     """Promote a session to an episode and mark it ended.
 
     Behavior:
@@ -342,6 +344,7 @@ def end(vault: Vault | str | Path | None, session_id: str, agent: str | None = N
         vault: Vault, its folder, or `None` to resolve from `--vault` / `PAM_VAULT`.
         session_id: Session to end.
         agent: Agent that owns the episode; defaults to the session's agent.
+        auto: Mark the end commit as an idle auto-end (`session: auto-end ...`).
     """
 
     def step(v: Vault) -> WriteResult:
@@ -360,13 +363,57 @@ def end(vault: Vault | str | Path | None, session_id: str, agent: str | None = N
             memory = memory.model_copy(update={
                 "status": "ended", "promoted_episode_id": logged.doc_id, "updated_at": utcnow(),
             })
-            sha = _commit(v, memory, _session_message("end", owner, session_id))
+            sha = _commit(v, memory, _session_message("auto-end" if auto else "end", owner, session_id))
         return WriteResult(
             ok=True, action=END_ACTION, doc_id=logged.doc_id, path=logged.path, commit_sha=sha,
             message=f"session ended; {logged.message}",
         )
 
     return _write_result(vault, END_ACTION, step)
+
+
+def end_idle(
+    vault: Vault | str | Path | None, idle_seconds: float, now: datetime | None = None,
+) -> list[WriteResult]:
+    """End every active session that has been idle for `idle_seconds` or longer.
+
+    Behavior:
+        A session's last activity is its newest transcript turn (else `updated_at`). Idle
+        sessions with at least one turn go through `end`, so each gets an episode and the
+        `session: end` commit. Sessions without turns are left active, as are sessions that are
+        unreadable. `idle_seconds <= 0` ends nothing.
+    Returns:
+        One `WriteResult` per session that was due, in `list_sessions` order; a failed one
+        (for example a busy vault) stays active and is retried on the next call.
+    Parameters:
+        vault: Vault, its folder, or `None` to resolve from `--vault` / `PAM_VAULT`.
+        idle_seconds: Inactivity that makes a session due.
+        now: Current time; defaults to `utcnow()`.
+    """
+    if idle_seconds <= 0:
+        return []
+    v = _vault(vault)
+    current = now or utcnow()
+    results = []
+    folder = v.root / "working"
+    ids = sorted(p.stem for p in folder.glob("*.md")) if folder.is_dir() else []
+    for sid in ids:
+        if not _valid_id(sid):
+            continue
+        try:
+            stored, _ = mdio.read_model(v.working_path(sid), WorkingMemory)
+            if stored.status != "active":
+                continue
+            turns = _read_transcript(v, sid)
+            if not turns:
+                continue
+            stamps = [message.created_at for message, _ in turns if message.created_at]
+            if (current - (max(stamps) if stamps else stored.updated_at)).total_seconds() < idle_seconds:
+                continue
+        except PamError:
+            continue
+        results.append(end(v, sid, auto=True))
+    return results
 
 
 list = list_sessions  # noqa: A001 - the M9 API name; nothing below this line calls the builtin

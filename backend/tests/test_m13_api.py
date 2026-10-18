@@ -398,3 +398,30 @@ def test_mcp_is_mounted_on_app(client):
     response = client.get("/mcp")
     assert response.status_code != 404
 
+
+
+def test_idle_sweep_ends_session_and_creates_episode(client, vault, monkeypatch):
+    from datetime import timedelta  # noqa: PLC0415
+
+    from pam.core import config  # noqa: PLC0415
+    from pam.working import session  # noqa: PLC0415
+
+    cfg = config.load(vault).model_copy(update={"session_idle_minutes": 1})
+    vault.config_path.write_text(config.dump_toml(cfg), encoding="utf-8")
+    sid = session.start(vault, "default", "test/model").session_id
+    session.record_turn(vault, sid, "user", "hello", "test/model")
+    assert app_mod.end_idle_once(vault) == 0
+    real = session.utcnow
+    monkeypatch.setattr(session, "utcnow", lambda: real() + timedelta(minutes=5))
+    assert app_mod.end_idle_once(vault) == 1
+    body = client.get(f"/api/sessions/{sid}").json()
+    assert body["status"] == "ended" and body["promoted_episode_id"]
+
+
+def test_sweeper_runs_with_app_lifespan(vault, monkeypatch):
+    import threading  # noqa: PLC0415
+
+    ran = threading.Event()
+    monkeypatch.setattr(app_mod, "end_idle_once", lambda root: ran.set() or 0)
+    with TestClient(app_mod.create_app(vault.root)):
+        assert ran.wait(5)

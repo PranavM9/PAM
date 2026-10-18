@@ -2207,6 +2207,22 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 memory guidance)
 
+### CHG-0026 — M9/M13/M14: end idle sessions automatically and promote them to an episode
+- **Type:** design (adds one `PamConfig` field)
+- **Module(s):** M9, M13, M14, §7.13
+- **Proposed by:** agent (Yogesh's request, outside the T-list)
+- **Date:** 2026-10-18
+- **Motivation:** §8 M9 promotes a session to an episode only when someone ends it. A chat that is just abandoned never reaches the vault.
+- **Proposal:**
+  1. `PamConfig.session_idle_minutes: int = 30` (0 turns auto-end off). Existing `pam.toml` files load unchanged because the field has a default. Schemas and `generated.ts` are regenerated.
+  2. `session.end_idle(vault, idle_seconds, now=None)` ends every active session whose newest transcript turn (else `updated_at`) is at least `idle_seconds` old, by calling `end(..., auto=True)`. The episode is the same as a manual end; only the end commit differs: `session: auto-end (agent=<a>, session=<id>)`. Sessions with no turns, unreadable sessions and ended sessions are skipped. `WorkingMemory` is unchanged, so an auto-end is visible only in git history.
+  3. The API app runs a sweeper task for its lifespan: every `sync_interval_seconds` it calls `end_idle_once(vault)` in a worker thread, reading the config each time. A busy vault or other failure is logged and retried on the next tick.
+  4. `pam session end --idle` runs the same sweep once (exit 1 if any due session failed to end). `pam session end <ID>` is unchanged.
+  5. Frontend: every 30 s and on window focus, `ChatPage` asks `GET /sessions/{id}` for each open stored session. A session that comes back `ended` is marked ended and shows "Session ended after inactivity and saved as episode <id>".
+- **Impact:** `contracts/config.py` (one field), `working/session.py`, `api/app.py`, `cli/session_cmd.py`, `schemas/PamConfig.json`, `frontend/src/pages/ChatPage.tsx`, `frontend/src/types/generated.ts`, tests. No vault layout, other contract or route change.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (idle auto-end)
+
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
 

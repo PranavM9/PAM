@@ -33,3 +33,4 @@ class PamConfig(_C):
     clustering: ClusterCfg = ClusterCfg(); extraction: ExtractCfg = ExtractCfg()
     models: list[ModelEntry] = Field(default_factory=list)
     sync_interval_seconds: int = 5
+    session_idle_minutes: int = 30            # CHG-0026: idle sessions are ended; 0 turns it off

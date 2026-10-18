@@ -612,6 +612,7 @@ export interface PamConfig {
   extraction?: ExtractCfg
   models?: ModelEntry[]
   sync_interval_seconds?: number
+  session_idle_minutes?: number
 }
 /**
  * This interface was referenced by `PamContracts`'s JSON-Schema
