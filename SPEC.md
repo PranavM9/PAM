@@ -1857,7 +1857,15 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
   - `pam import` accepts `demo-export/claude-export.zip` and creates 10 episodes; `demo-setup.sh` runs end to end on a scratch vault.
   - After T17 and T18 (Yogesh runs this): the `DEMO.md` story works in under 3 minutes. As `tmobile-advisor`, "Should I upgrade my phone?" gives an answer that uses memory (battery, $40 budget) and the connector (battery health 78%, trade-in curve) and recommends waiting or a battery replacement with cards; "Is our family plan too expensive?" shows the household optimizer's savings; the unrelated conversations never appear in that agent's context.
 - **Agent plan (➕):**
+  - 2026-10-18 · Pranav. Files (all under `mock/tmobile/` unless noted):
+    - `data/{devices,plans,addons,tradein,customers,messages}.json`: 12 current and 8 older devices (Aurora, Lumen, Kestrel, Nimbus), Starter/Plus/Max/Student, 10 add-ons including the $89 battery service, a 36-month non-increasing trade-in curve per device and 3 promotions, the 5 M17 households, and all copy.
+    - `engine/common.py` (`load_catalog`, `money`, `say`, `reason`, date helpers), `engine/cards.py` (card builders), `engine/catalog.py` (`run_household`, `run_search`, `run_plans`, `run_tradein`, `tradein_value`, `best_promotion`), `engine/upgrade.py` (`recommend`, `run_upgrade`), `engine/household.py` (`covers`, `config_cost`, `optimize`, `run_optimize`), `engine/addons.py` (`suggest`, `run_addons`). Every `run_*` is pure: `(catalog, today, public_base, args) -> (data, reasons, cards)`.
+    - `app.py`: `create_app(today, public_base)`, the 7 tools, `/health`, `/images`; fixed JSON layout for byte-identical answers; 404/400 error envelope.
+    - `tools/make_images.py`, `images/**` (76 SVGs), `tools/make_export.py`, `demo-export/conversations.json`, `demo-setup.sh`, `connector.yaml`, `Dockerfile`, `README.md`, `DEMO.md`. Outside the folder: the `tmobile-mock` compose service, the nginx `/connectors/tmobile/` location, one `.gitignore` line, SETUP.md §11.
+  - Tests (`mock/tmobile/tests/`, written first and skipping cleanly until the code exists): envelope and `ConnectorCard` validation with the badge, byte-identical answers, Maya's verdict and signals, `no_change` always scored, Hale >= $20/mo, Okafor "Keep your plan", coverage of every line, 2-line enumeration against brute force, add-on rules, search filters, the chart marker, non-increasing curves, data integrity and copy rules, image determinism, size and `<title>`, export layout against the backend fixture, and `connector.yaml` validated as a CHG-0027 `Connector` and called the way T17's executor calls it.
+  - Risks: T17's 1500-token trim of tool results (kept under it, tested); image URLs and `public_base_url` (root-relative URLs, matching T17's `urljoin`); clustering may not isolate the 4 phone conversations (`demo-setup.sh` then creates the project from them).
 - **Result (➕):**
+  - 2026-10-18 · PASS (local), Docker and end-to-end checks pending Yogesh. `cd mock/tmobile && uv run --frozen pytest -q`: 96 passed; the tests alone (before the code): 96 skipped. Maya (`monthly_budget=40`, `needs=battery,camera`) gets `replace_battery` ($239 score vs $300 no change, $336 upgrade, $367 wait 3 months), citing `line.device.battery_health` (78) and `tradein.curve` ($63 now, $57 in 3 months). Hale saves $80/mo, Okafor "Keep your plan", Chen $74.48/mo. Locally under uvicorn every tool answers in under 7 ms. PAM's Claude importer reads the generated export: detect 0.95, 10 conversations, 0 errors. `demo-setup.sh` dry-run with a stub `pam`. Not run here (macOS without Docker): `docker compose up -d --build tmobile-mock` healthy, images through `http://localhost:5173/connectors/tmobile/images/...` in light and dark pages, `pam import` and `demo-setup.sh` on a real vault, and the DEMO.md story after T17 and T18: pending Yogesh. Backend files untouched. Design choices in CHG-0029.
 
 ### 9.4 Cut list (if behind schedule, cut from the top) 🔒
 1. Gemini importer (show that Gemini consumes memory via MCP instead).
@@ -2507,6 +2515,22 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** only the T17 paths. `tests/test_m00_core.py` gains samples for the new models (added lines only).
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T17)
+### CHG-0029 — M17 implementation choices (T19)
+- **Type:** design
+- **Module(s):** M17 (`mock/tmobile/`), with the M16 executor (T17) as its caller
+- **Proposed by:** agent (task T19)
+- **Date:** 2026-10-18
+- **Motivation:** M17 and T19 leave the wire conventions between the mock and T17's executor, and some engine details, open.
+- **Proposal:**
+  1. **Wire conventions.** GET tools read the query string; POST tools read a JSON object body (query parameters are a fallback for `curl`). Numbers are parsed from `40` or `40.0`, booleans from `true`/`false`, matching T17's `str(value)` query encoding. `connector.yaml` declares every parameter's type (`string`, `number`, `boolean`) and marks ids as `required`.
+  2. **Image URLs** are root-relative and include `PUBLIC_BASE`, e.g. `/connectors/tmobile/images/devices/kestrel-5-slate.svg`; T17 resolves them with `urljoin`, which keeps them unchanged. Every `pam_cards` item validates as `ConnectorCard`, has the badge `Synthetic demo data` first, and leaves `connector_id` empty.
+  3. **Errors:** 404 `NOT_FOUND` (unknown customer, line or device) and 400 `BAD_ARGUMENTS`, as `{"synthetic", "as_of", "error": {"code", "message"}}`. `search_devices` clamps `limit` to 1-6 (PAM keeps 6 cards). The JSON given to the model (the body without `pam_cards`) stays under T17's 1500-token trim (largest about 1300 tokens; a test checks a 4300-character proxy).
+  4. **Timekeeper:** $150 per unmet need on the 24-month cost scale; waiting adds $150 x months / 12 per current issue. A battery under 80% and a phone past `updates_until` are issues even when not stated. `replace_battery` is not offered on a phone without updates. Trade-in curves are calendar-based: 36 monthly values from the later of 2025-10 and the release month, -15% from the successor launch, never increasing.
+  5. **Household optimizer:** the current bill counts streaming the household pays for elsewhere (it pays it today); a proposed mix drops services covered by any line's plan perk or a bundle. The Student plan needs `person.student`; any international day needs a plan with international. Ties break by fewest changes, then plan ids. Carrier home internet costs $35/mo with a Plus or Max line, $50/mo otherwise.
+  6. **Packaging:** `pyproject.toml` has fastapi and uvicorn as runtime dependencies and httpx, pytest and pyyaml in the dev group (`uv sync --no-dev` in the image). The nginx location resolves `tmobile-mock` per request through Docker's DNS (`resolver 127.0.0.11`), so the frontend still starts when the mock is not running. `demo-setup.sh` stages files in `./demo/tmobile/` (mounted at `/demo` in the backend), never deletes, and creates the "Phones and money" project from the 4 phone episodes if clustering mixes topics.
+- **Impact:** `mock/tmobile/**`, the `tmobile-mock` compose service, one nginx location, one `.gitignore` line, SETUP.md §11. No contract or backend change.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T19)
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:

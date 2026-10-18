@@ -1,0 +1,124 @@
+# Ready-to-add M16 connector for the synthetic T-Mobile mock (SPEC M17, T19 step 6).
+# Add it to a vault with: pam connector add mock/tmobile/connector.yaml
+# GET tools send their arguments in the query string; POST tools send them as a JSON body.
+id: tmobile
+name: T-Mobile (synthetic)
+description: >-
+  Synthetic carrier data for the T-Mobile demo: phones, plans, add-ons, trade-in values and
+  household accounts. Brands, plans and people are fictional and every result is labelled as
+  synthetic demo data.
+base_url: http://tmobile-mock:8100
+public_base_url: /connectors/tmobile
+auth:
+  type: none
+tools:
+  - name: get_household
+    description: >-
+      Look up a household account: its lines, each person's phone, plan, battery health and
+      6-month usage, the bill trend and recent support contacts.
+    method: GET
+    path: /customers/{customer_id}
+    params:
+      - name: customer_id
+        type: string
+        required: true
+        description: Customer id, for example cust-chen.
+  - name: search_devices
+    description: >-
+      Search the phones on sale, ranked by how well they match the query, with prices over
+      24 months.
+    method: GET
+    path: /catalog/devices
+    params:
+      - name: query
+        type: string
+        description: Free text such as camera, battery, small or a brand name.
+      - name: max_monthly
+        type: number
+        description: Highest monthly price over 24 months, in dollars.
+      - name: form_factor
+        type: string
+        description: One of budget, mid, flagship or foldable.
+      - name: limit
+        type: number
+        description: Number of phones to return, 1 to 6 (default 3).
+  - name: list_plans
+    description: List every plan priced per line for a number of lines, with autopay applied.
+    method: GET
+    path: /catalog/plans
+    params:
+      - name: lines
+        type: number
+        description: Number of lines on the account, 1 to 5 (default 1).
+  - name: tradein_value
+    description: >-
+      Trade-in value of a phone today and over the coming months, with active trade-in
+      promotions.
+    method: GET
+    path: /tradein/{device_id}
+    params:
+      - name: device_id
+        type: string
+        required: true
+        description: Device id, for example kestrel-5 (get_household lists each line's device id).
+      - name: months_ahead
+        type: number
+        description: Months of the curve to show after today, 0 to 24 (default 12).
+  - name: recommend_upgrade
+    description: >-
+      Decide whether one line should upgrade now, wait 3 or 6 months, replace the battery, or
+      keep the phone. Every option is scored on the same 24-month cost scale with its reasons.
+    method: POST
+    path: /recommend/upgrade
+    params:
+      - name: customer_id
+        type: string
+        required: true
+        description: Customer id, for example cust-chen.
+      - name: line_id
+        type: string
+        required: true
+        description: Line id from get_household, for example chen-maya.
+      - name: monthly_budget
+        type: number
+        description: Highest monthly price for a new phone after trade-in, in dollars.
+      - name: needs
+        type: string
+        description: Comma list of camera, battery, storage and size.
+  - name: optimize_household
+    description: >-
+      Find the cheapest plan for every line that still covers each person's peak usage, and say
+      "Keep your plan" when it saves less than $5/mo.
+    method: POST
+    path: /recommend/household
+    params:
+      - name: customer_id
+        type: string
+        required: true
+        description: Customer id, for example cust-chen.
+      - name: include_home_internet
+        type: boolean
+        description: Also consider moving home internet to the carrier.
+  - name: suggest_addons
+    description: >-
+      Suggest up to 3 add-ons for a line and a phone, each with its reason, or say nothing else
+      is needed.
+    method: POST
+    path: /recommend/addons
+    params:
+      - name: customer_id
+        type: string
+        required: true
+        description: Customer id, for example cust-chen.
+      - name: line_id
+        type: string
+        required: true
+        description: Line id from get_household, for example chen-maya.
+      - name: device_id
+        type: string
+        required: true
+        description: Phone in the cart, for example aurora-fold.
+enabled: true
+archived: false
+agents:
+  - tmobile-advisor

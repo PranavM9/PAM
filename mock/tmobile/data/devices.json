@@ -1,0 +1,1027 @@
+{
+  "devices": [
+    {
+      "id": "aurora-one-pro",
+      "brand": "Aurora",
+      "model": "One Pro",
+      "name": "Aurora One Pro",
+      "form_factor": "flagship",
+      "status": "current",
+      "release_date": "2026-09-10",
+      "colours": [
+        {
+          "name": "Graphite",
+          "hex": "#3a3d45",
+          "image": "images/devices/aurora-one-pro-graphite.svg"
+        },
+        {
+          "name": "Glacier",
+          "hex": "#b9c9d6",
+          "image": "images/devices/aurora-one-pro-glacier.svg"
+        },
+        {
+          "name": "Sunset",
+          "hex": "#e07a5f",
+          "image": "images/devices/aurora-one-pro-sunset.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 1099,
+          "monthly_24": 45.79
+        },
+        {
+          "gb": 512,
+          "full_price": 1299,
+          "monthly_24": 54.12
+        }
+      ],
+      "battery_mah": 4680,
+      "camera": "Triple 48 MP with 5x zoom",
+      "screen": "6.7 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.7,
+      "highlights": [
+        "The sharpest zoom in the line-up, great for concerts and sports.",
+        "A full day and a half of battery for most people.",
+        "Gets updates until 2033."
+      ],
+      "scores": {
+        "camera": 5,
+        "battery": 4,
+        "storage": 5,
+        "size": 2
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-09",
+      "successor_launch": "2027-09-09"
+    },
+    {
+      "id": "aurora-one",
+      "brand": "Aurora",
+      "model": "One",
+      "name": "Aurora One",
+      "form_factor": "mid",
+      "status": "current",
+      "release_date": "2026-09-10",
+      "colours": [
+        {
+          "name": "Midnight",
+          "hex": "#2b3345",
+          "image": "images/devices/aurora-one-midnight.svg"
+        },
+        {
+          "name": "Sage",
+          "hex": "#9db5a0",
+          "image": "images/devices/aurora-one-sage.svg"
+        },
+        {
+          "name": "Blush",
+          "hex": "#e8b4b8",
+          "image": "images/devices/aurora-one-blush.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 699,
+          "monthly_24": 29.12
+        },
+        {
+          "gb": 256,
+          "full_price": 799,
+          "monthly_24": 33.29
+        }
+      ],
+      "battery_mah": 4300,
+      "camera": "Dual 48 MP",
+      "screen": "6.3 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.5,
+      "highlights": [
+        "Most of the Pro camera in a smaller body.",
+        "Battery lasts a full day of heavy use.",
+        "Gets updates until 2033."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 4,
+        "storage": 3,
+        "size": 4
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-09",
+      "successor_launch": "2027-09-09"
+    },
+    {
+      "id": "aurora-fold",
+      "brand": "Aurora",
+      "model": "Fold",
+      "name": "Aurora Fold",
+      "form_factor": "foldable",
+      "fold_style": "book",
+      "status": "current",
+      "release_date": "2026-07-22",
+      "colours": [
+        {
+          "name": "Onyx",
+          "hex": "#25272e",
+          "image": "images/devices/aurora-fold-onyx.svg"
+        },
+        {
+          "name": "Mist",
+          "hex": "#c7cdd8",
+          "image": "images/devices/aurora-fold-mist.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 1799,
+          "monthly_24": 74.96
+        },
+        {
+          "gb": 512,
+          "full_price": 1999,
+          "monthly_24": 83.29
+        }
+      ],
+      "battery_mah": 4400,
+      "camera": "Triple 50 MP",
+      "screen": "7.6 in inner OLED, 6.3 in cover",
+      "esim": true,
+      "rating": 4.4,
+      "highlights": [
+        "Opens into a small tablet for reading and split-screen work.",
+        "The cover screen works like a normal phone.",
+        "Protection is worth it for the folding screen."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 3,
+        "storage": 5,
+        "size": 1
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-07",
+      "successor_launch": "2027-07-21"
+    },
+    {
+      "id": "lumen-x",
+      "brand": "Lumen",
+      "model": "X",
+      "name": "Lumen X",
+      "form_factor": "flagship",
+      "status": "current",
+      "release_date": "2026-03-05",
+      "colours": [
+        {
+          "name": "Obsidian",
+          "hex": "#1f2328",
+          "image": "images/devices/lumen-x-obsidian.svg"
+        },
+        {
+          "name": "Porcelain",
+          "hex": "#e9e4dc",
+          "image": "images/devices/lumen-x-porcelain.svg"
+        },
+        {
+          "name": "Lagoon",
+          "hex": "#3f8f9a",
+          "image": "images/devices/lumen-x-lagoon.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 999,
+          "monthly_24": 41.62
+        },
+        {
+          "gb": 512,
+          "full_price": 1199,
+          "monthly_24": 49.96
+        }
+      ],
+      "battery_mah": 5000,
+      "camera": "Triple 50 MP with night mode",
+      "screen": "6.6 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.6,
+      "highlights": [
+        "Excellent low-light photos without a tripod.",
+        "A 5000 mAh battery that charges in about 40 minutes.",
+        "Gets updates until 2033."
+      ],
+      "scores": {
+        "camera": 5,
+        "battery": 4,
+        "storage": 5,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-03",
+      "successor_launch": "2027-03-04"
+    },
+    {
+      "id": "lumen-a5",
+      "brand": "Lumen",
+      "model": "A5",
+      "name": "Lumen A5",
+      "form_factor": "budget",
+      "status": "current",
+      "release_date": "2026-04-14",
+      "colours": [
+        {
+          "name": "Charcoal",
+          "hex": "#33363b",
+          "image": "images/devices/lumen-a5-charcoal.svg"
+        },
+        {
+          "name": "Mint",
+          "hex": "#a8d5c2",
+          "image": "images/devices/lumen-a5-mint.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 299,
+          "monthly_24": 12.46
+        }
+      ],
+      "battery_mah": 5000,
+      "camera": "50 MP main",
+      "screen": "6.5 in LCD, 90 Hz",
+      "esim": true,
+      "rating": 4.1,
+      "highlights": [
+        "Two-day battery for light use.",
+        "A good everyday camera in daylight.",
+        "Gets updates until 2030."
+      ],
+      "scores": {
+        "camera": 2,
+        "battery": 5,
+        "storage": 2,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2030-04",
+      "successor_launch": "2027-04-13"
+    },
+    {
+      "id": "lumen-flip",
+      "brand": "Lumen",
+      "model": "Flip",
+      "name": "Lumen Flip",
+      "form_factor": "foldable",
+      "fold_style": "flip",
+      "status": "current",
+      "release_date": "2026-06-18",
+      "colours": [
+        {
+          "name": "Lavender",
+          "hex": "#b8a9d9",
+          "image": "images/devices/lumen-flip-lavender.svg"
+        },
+        {
+          "name": "Ink",
+          "hex": "#2a2d3a",
+          "image": "images/devices/lumen-flip-ink.svg"
+        },
+        {
+          "name": "Citrus",
+          "hex": "#e6d36f",
+          "image": "images/devices/lumen-flip-citrus.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 999,
+          "monthly_24": 41.62
+        }
+      ],
+      "battery_mah": 3900,
+      "camera": "Dual 50 MP",
+      "screen": "6.7 in inner OLED, 3.4 in cover",
+      "esim": true,
+      "rating": 4.3,
+      "highlights": [
+        "Folds in half to fit any pocket.",
+        "The cover screen handles replies and photos.",
+        "Protection is worth it for the folding screen."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 3,
+        "storage": 4,
+        "size": 5
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-06",
+      "successor_launch": "2027-06-17"
+    },
+    {
+      "id": "kestrel-8-pro",
+      "brand": "Kestrel",
+      "model": "8 Pro",
+      "name": "Kestrel 8 Pro",
+      "form_factor": "flagship",
+      "status": "current",
+      "release_date": "2026-09-24",
+      "colours": [
+        {
+          "name": "Slate",
+          "hex": "#3b4048",
+          "image": "images/devices/kestrel-8-pro-slate.svg"
+        },
+        {
+          "name": "Fjord",
+          "hex": "#5b7fa6",
+          "image": "images/devices/kestrel-8-pro-fjord.svg"
+        },
+        {
+          "name": "Sand",
+          "hex": "#d8c7a8",
+          "image": "images/devices/kestrel-8-pro-sand.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 899,
+          "monthly_24": 37.46
+        },
+        {
+          "gb": 512,
+          "full_price": 1049,
+          "monthly_24": 43.71
+        }
+      ],
+      "battery_mah": 5100,
+      "camera": "Triple 50 MP with 4x zoom",
+      "screen": "6.7 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.6,
+      "highlights": [
+        "The longest battery life of any flagship here.",
+        "A camera that rivals phones costing $200 more.",
+        "Gets updates until 2033."
+      ],
+      "scores": {
+        "camera": 5,
+        "battery": 5,
+        "storage": 5,
+        "size": 2
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-09",
+      "successor_launch": "2027-09-23"
+    },
+    {
+      "id": "kestrel-8",
+      "brand": "Kestrel",
+      "model": "8",
+      "name": "Kestrel 8",
+      "form_factor": "mid",
+      "status": "current",
+      "release_date": "2026-09-24",
+      "colours": [
+        {
+          "name": "Slate",
+          "hex": "#3b4048",
+          "image": "images/devices/kestrel-8-slate.svg"
+        },
+        {
+          "name": "Moss",
+          "hex": "#7d9471",
+          "image": "images/devices/kestrel-8-moss.svg"
+        },
+        {
+          "name": "Coral",
+          "hex": "#e48a7a",
+          "image": "images/devices/kestrel-8-coral.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 599,
+          "monthly_24": 24.96
+        },
+        {
+          "gb": 256,
+          "full_price": 699,
+          "monthly_24": 29.12
+        }
+      ],
+      "battery_mah": 4800,
+      "camera": "Dual 50 MP",
+      "screen": "6.3 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.5,
+      "highlights": [
+        "A big battery in a phone that fits one hand.",
+        "Photos close to the 8 Pro in good light.",
+        "Gets updates until 2033."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 5,
+        "storage": 3,
+        "size": 4
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-09",
+      "successor_launch": "2027-09-23"
+    },
+    {
+      "id": "kestrel-a",
+      "brand": "Kestrel",
+      "model": "A",
+      "name": "Kestrel A",
+      "form_factor": "budget",
+      "status": "current",
+      "release_date": "2026-02-10",
+      "colours": [
+        {
+          "name": "Graphite",
+          "hex": "#3a3d45",
+          "image": "images/devices/kestrel-a-graphite.svg"
+        },
+        {
+          "name": "Sky",
+          "hex": "#9cc3e6",
+          "image": "images/devices/kestrel-a-sky.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 249,
+          "monthly_24": 10.38
+        }
+      ],
+      "battery_mah": 4500,
+      "camera": "48 MP main",
+      "screen": "6.4 in LCD, 90 Hz",
+      "esim": true,
+      "rating": 4.0,
+      "highlights": [
+        "Simple and reliable for calls, maps and messages.",
+        "Easy on the budget at about $10 a month.",
+        "Gets updates until 2029."
+      ],
+      "scores": {
+        "camera": 2,
+        "battery": 4,
+        "storage": 2,
+        "size": 4
+      },
+      "charger_in_box": false,
+      "updates_until": "2029-02",
+      "successor_launch": "2027-02-09"
+    },
+    {
+      "id": "nimbus-edge",
+      "brand": "Nimbus",
+      "model": "Edge",
+      "name": "Nimbus Edge",
+      "form_factor": "mid",
+      "status": "current",
+      "release_date": "2026-05-06",
+      "colours": [
+        {
+          "name": "Storm",
+          "hex": "#4a5160",
+          "image": "images/devices/nimbus-edge-storm.svg"
+        },
+        {
+          "name": "Cloud",
+          "hex": "#dfe5ec",
+          "image": "images/devices/nimbus-edge-cloud.svg"
+        },
+        {
+          "name": "Ember",
+          "hex": "#c8553d",
+          "image": "images/devices/nimbus-edge-ember.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 499,
+          "monthly_24": 20.79
+        },
+        {
+          "gb": 256,
+          "full_price": 579,
+          "monthly_24": 24.12
+        }
+      ],
+      "battery_mah": 5200,
+      "camera": "Dual 50 MP",
+      "screen": "6.6 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.3,
+      "highlights": [
+        "The best battery for the money.",
+        "A bright screen that is easy to read outside.",
+        "Gets updates until 2031."
+      ],
+      "scores": {
+        "camera": 3,
+        "battery": 5,
+        "storage": 3,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2031-05",
+      "successor_launch": "2027-05-05"
+    },
+    {
+      "id": "nimbus-go",
+      "brand": "Nimbus",
+      "model": "Go",
+      "name": "Nimbus Go",
+      "form_factor": "budget",
+      "status": "current",
+      "release_date": "2026-01-20",
+      "colours": [
+        {
+          "name": "Night",
+          "hex": "#262a33",
+          "image": "images/devices/nimbus-go-night.svg"
+        },
+        {
+          "name": "Peach",
+          "hex": "#f0b89a",
+          "image": "images/devices/nimbus-go-peach.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 64,
+          "full_price": 199,
+          "monthly_24": 8.29
+        },
+        {
+          "gb": 128,
+          "full_price": 229,
+          "monthly_24": 9.54
+        }
+      ],
+      "battery_mah": 4000,
+      "camera": "13 MP main",
+      "screen": "6.1 in LCD, 60 Hz",
+      "esim": true,
+      "rating": 3.8,
+      "highlights": [
+        "The lowest price in the line-up.",
+        "Small and light, good as a first phone.",
+        "Gets updates until 2029."
+      ],
+      "scores": {
+        "camera": 1,
+        "battery": 3,
+        "storage": 1,
+        "size": 5
+      },
+      "charger_in_box": false,
+      "updates_until": "2029-01",
+      "successor_launch": "2027-01-19"
+    },
+    {
+      "id": "nimbus-fold",
+      "brand": "Nimbus",
+      "model": "Fold",
+      "name": "Nimbus Fold",
+      "form_factor": "foldable",
+      "fold_style": "book",
+      "status": "current",
+      "release_date": "2026-08-12",
+      "colours": [
+        {
+          "name": "Basalt",
+          "hex": "#2f3237",
+          "image": "images/devices/nimbus-fold-basalt.svg"
+        },
+        {
+          "name": "Frost",
+          "hex": "#d6dde6",
+          "image": "images/devices/nimbus-fold-frost.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 1499,
+          "monthly_24": 62.46
+        },
+        {
+          "gb": 512,
+          "full_price": 1699,
+          "monthly_24": 70.79
+        }
+      ],
+      "battery_mah": 4500,
+      "camera": "Triple 50 MP",
+      "screen": "7.8 in inner OLED, 6.2 in cover",
+      "esim": true,
+      "rating": 4.2,
+      "highlights": [
+        "The widest inner screen of any foldable here.",
+        "Costs $300 less than the Aurora Fold.",
+        "Protection is worth it for the folding screen."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 4,
+        "storage": 5,
+        "size": 1
+      },
+      "charger_in_box": false,
+      "updates_until": "2033-08",
+      "successor_launch": "2027-08-11"
+    },
+    {
+      "id": "kestrel-5",
+      "brand": "Kestrel",
+      "model": "5",
+      "name": "Kestrel 5",
+      "form_factor": "mid",
+      "status": "older",
+      "release_date": "2023-09-12",
+      "colours": [
+        {
+          "name": "Slate",
+          "hex": "#3b4048",
+          "image": "images/devices/kestrel-5-slate.svg"
+        },
+        {
+          "name": "Glacier",
+          "hex": "#b9c9d6",
+          "image": "images/devices/kestrel-5-glacier.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 699,
+          "monthly_24": 29.12
+        }
+      ],
+      "battery_mah": 4400,
+      "camera": "Dual 50 MP",
+      "screen": "6.3 in OLED, 90 Hz",
+      "esim": true,
+      "rating": 4.4,
+      "highlights": [
+        "Still fast enough for everyday apps.",
+        "Gets updates until September 2028.",
+        "A battery swap brings back most of its battery life."
+      ],
+      "scores": {
+        "camera": 3,
+        "battery": 3,
+        "storage": 2,
+        "size": 4
+      },
+      "charger_in_box": false,
+      "updates_until": "2028-09",
+      "successor_launch": "2024-09-10"
+    },
+    {
+      "id": "kestrel-6",
+      "brand": "Kestrel",
+      "model": "6",
+      "name": "Kestrel 6",
+      "form_factor": "mid",
+      "status": "older",
+      "release_date": "2024-09-10",
+      "colours": [
+        {
+          "name": "Slate",
+          "hex": "#3b4048",
+          "image": "images/devices/kestrel-6-slate.svg"
+        },
+        {
+          "name": "Moss",
+          "hex": "#7d9471",
+          "image": "images/devices/kestrel-6-moss.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 749,
+          "monthly_24": 31.21
+        }
+      ],
+      "battery_mah": 4500,
+      "camera": "Dual 50 MP",
+      "screen": "6.3 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.4,
+      "highlights": [
+        "A bright 120 Hz screen.",
+        "Gets updates until 2029.",
+        "Good battery for its age."
+      ],
+      "scores": {
+        "camera": 3,
+        "battery": 4,
+        "storage": 3,
+        "size": 4
+      },
+      "charger_in_box": false,
+      "updates_until": "2029-09",
+      "successor_launch": "2025-09-23"
+    },
+    {
+      "id": "kestrel-7",
+      "brand": "Kestrel",
+      "model": "7",
+      "name": "Kestrel 7",
+      "form_factor": "flagship",
+      "status": "older",
+      "release_date": "2025-09-23",
+      "colours": [
+        {
+          "name": "Slate",
+          "hex": "#3b4048",
+          "image": "images/devices/kestrel-7-slate.svg"
+        },
+        {
+          "name": "Fjord",
+          "hex": "#5b7fa6",
+          "image": "images/devices/kestrel-7-fjord.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 849,
+          "monthly_24": 35.38
+        }
+      ],
+      "battery_mah": 4800,
+      "camera": "Triple 50 MP",
+      "screen": "6.5 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.5,
+      "highlights": [
+        "A strong camera and a big battery.",
+        "Gets updates until 2032.",
+        "Still current enough for a year or two."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 4,
+        "storage": 4,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2032-09",
+      "successor_launch": "2026-09-24"
+    },
+    {
+      "id": "aurora-x2",
+      "brand": "Aurora",
+      "model": "X2",
+      "name": "Aurora X2",
+      "form_factor": "flagship",
+      "status": "older",
+      "release_date": "2020-09-15",
+      "colours": [
+        {
+          "name": "Graphite",
+          "hex": "#3a3d45",
+          "image": "images/devices/aurora-x2-graphite.svg"
+        },
+        {
+          "name": "Pearl",
+          "hex": "#e6e1d8",
+          "image": "images/devices/aurora-x2-pearl.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 899,
+          "monthly_24": 37.46
+        }
+      ],
+      "battery_mah": 3700,
+      "camera": "Dual 12 MP",
+      "screen": "6.1 in OLED, 60 Hz",
+      "esim": true,
+      "rating": 4.3,
+      "highlights": [
+        "Was the flagship of 2020.",
+        "Stopped getting updates in September 2025.",
+        "A small, light phone."
+      ],
+      "scores": {
+        "camera": 2,
+        "battery": 2,
+        "storage": 2,
+        "size": 5
+      },
+      "charger_in_box": false,
+      "updates_until": "2025-09",
+      "successor_launch": "2021-09-14"
+    },
+    {
+      "id": "aurora-x5",
+      "brand": "Aurora",
+      "model": "X5",
+      "name": "Aurora X5",
+      "form_factor": "flagship",
+      "status": "older",
+      "release_date": "2025-09-09",
+      "colours": [
+        {
+          "name": "Graphite",
+          "hex": "#3a3d45",
+          "image": "images/devices/aurora-x5-graphite.svg"
+        },
+        {
+          "name": "Glacier",
+          "hex": "#b9c9d6",
+          "image": "images/devices/aurora-x5-glacier.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 999,
+          "monthly_24": 41.62
+        }
+      ],
+      "battery_mah": 4500,
+      "camera": "Triple 48 MP",
+      "screen": "6.6 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.6,
+      "highlights": [
+        "Last year's flagship.",
+        "Gets updates until 2032.",
+        "Excellent video recording."
+      ],
+      "scores": {
+        "camera": 5,
+        "battery": 4,
+        "storage": 4,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2032-09",
+      "successor_launch": "2026-09-10"
+    },
+    {
+      "id": "lumen-a3",
+      "brand": "Lumen",
+      "model": "A3",
+      "name": "Lumen A3",
+      "form_factor": "budget",
+      "status": "older",
+      "release_date": "2025-03-18",
+      "colours": [
+        {
+          "name": "Charcoal",
+          "hex": "#33363b",
+          "image": "images/devices/lumen-a3-charcoal.svg"
+        },
+        {
+          "name": "Sky",
+          "hex": "#9cc3e6",
+          "image": "images/devices/lumen-a3-sky.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 249,
+          "monthly_24": 10.38
+        }
+      ],
+      "battery_mah": 5000,
+      "camera": "50 MP main",
+      "screen": "6.5 in LCD, 90 Hz",
+      "esim": true,
+      "rating": 4.0,
+      "highlights": [
+        "Two-day battery for light use.",
+        "Gets updates until 2029.",
+        "A basic camera for video calls."
+      ],
+      "scores": {
+        "camera": 2,
+        "battery": 5,
+        "storage": 2,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2029-03",
+      "successor_launch": "2026-04-14"
+    },
+    {
+      "id": "lumen-x4",
+      "brand": "Lumen",
+      "model": "X4",
+      "name": "Lumen X4",
+      "form_factor": "flagship",
+      "status": "older",
+      "release_date": "2025-02-25",
+      "colours": [
+        {
+          "name": "Obsidian",
+          "hex": "#1f2328",
+          "image": "images/devices/lumen-x4-obsidian.svg"
+        },
+        {
+          "name": "Lagoon",
+          "hex": "#3f8f9a",
+          "image": "images/devices/lumen-x4-lagoon.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 256,
+          "full_price": 949,
+          "monthly_24": 39.54
+        }
+      ],
+      "battery_mah": 4900,
+      "camera": "Triple 50 MP",
+      "screen": "6.6 in OLED, 120 Hz",
+      "esim": true,
+      "rating": 4.5,
+      "highlights": [
+        "Good night photos.",
+        "Gets updates until 2032.",
+        "Fast charging."
+      ],
+      "scores": {
+        "camera": 4,
+        "battery": 4,
+        "storage": 4,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2032-02",
+      "successor_launch": "2026-03-05"
+    },
+    {
+      "id": "nimbus-6",
+      "brand": "Nimbus",
+      "model": "6",
+      "name": "Nimbus 6",
+      "form_factor": "mid",
+      "status": "older",
+      "release_date": "2024-04-16",
+      "colours": [
+        {
+          "name": "Storm",
+          "hex": "#4a5160",
+          "image": "images/devices/nimbus-6-storm.svg"
+        },
+        {
+          "name": "Cloud",
+          "hex": "#dfe5ec",
+          "image": "images/devices/nimbus-6-cloud.svg"
+        }
+      ],
+      "storage": [
+        {
+          "gb": 128,
+          "full_price": 399,
+          "monthly_24": 16.62
+        }
+      ],
+      "battery_mah": 5000,
+      "camera": "Dual 48 MP",
+      "screen": "6.5 in OLED, 90 Hz",
+      "esim": true,
+      "rating": 4.1,
+      "highlights": [
+        "Unlocked, works on any carrier.",
+        "Gets updates until 2028.",
+        "A long-lasting battery."
+      ],
+      "scores": {
+        "camera": 3,
+        "battery": 4,
+        "storage": 2,
+        "size": 3
+      },
+      "charger_in_box": false,
+      "updates_until": "2028-04",
+      "successor_launch": "2025-05-06"
+    }
+  ]
+}
