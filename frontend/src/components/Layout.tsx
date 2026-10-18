@@ -7,6 +7,7 @@ import {
   MessagesSquare,
   // Moon, // light mode disabled for now
   Network,
+  Plug,
   Search,
   Settings,
   Sparkles,
@@ -27,6 +28,7 @@ const ROUTES: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/vault', label: 'Vault', icon: FolderTree },
   { to: '/search', label: 'Search', icon: Search },
   { to: '/agents', label: 'Agents', icon: Bot },
+  { to: '/connectors', label: 'Connectors', icon: Plug },
   { to: '/chat', label: 'Chat', icon: MessagesSquare },
   { to: '/guides', label: 'Guides', icon: BookOpen },
   { to: '/settings', label: 'Settings', icon: Settings },

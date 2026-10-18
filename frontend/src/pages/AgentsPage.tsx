@@ -3,6 +3,7 @@ import { Bot, CheckCircle2, Eye, Loader2, PenLine, Save } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, type AgentDetail } from '../api/client'
+import { AgentConnectors } from '../components/agents/AgentConnectors'
 import { AgentList } from '../components/agents/AgentList'
 import { ChoiceRow, Field, FormSection, choiceClass } from '../components/agents/FormParts'
 import { ErrorNote } from '../components/ErrorNote'
@@ -361,6 +362,10 @@ function AgentForm({ initial, onSaved }: { initial: AgentDetail | null; onSaved:
                 </fieldset>
               ))}
             </div>
+          </FormSection>
+
+          <FormSection title="Connectors" description="External APIs this agent may call as tools. Defined on the Connectors page.">
+            <AgentConnectors agent={nameValid ? name : ''} />
           </FormSection>
 
           <FormSection title="Token budget" description="Upper bound on the context bundle the agent receives.">
