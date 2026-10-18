@@ -17,7 +17,7 @@ class ContextCfg(_C):
     default_budget: int = 2000; persona_max_tokens: int = 300
     max_facts: int = 12; max_projects: int = 3
 class ClusterCfg(_C):
-    min_cluster_size: int = 3; assign_threshold: float = 0.60
+    min_cluster_size: int = 3; assign_threshold: float = 0.70
     similar_link_threshold: float = 0.75; similar_links_per_node: int = 3
     rebuild_match_jaccard: float = 0.5; dormant_after_days: int = 30
 class ExtractCfg(_C):

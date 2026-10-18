@@ -864,7 +864,7 @@ class ContextCfg(_C):
     default_budget: int = 2000; persona_max_tokens: int = 300
     max_facts: int = 12; max_projects: int = 3
 class ClusterCfg(_C):
-    min_cluster_size: int = 3; assign_threshold: float = 0.60
+    min_cluster_size: int = 3; assign_threshold: float = 0.70
     similar_link_threshold: float = 0.75; similar_links_per_node: int = 3
     rebuild_match_jaccard: float = 0.5; dormant_after_days: int = 30
 class ExtractCfg(_C):
@@ -1594,7 +1594,13 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Steps:** incremental assignment, then rebuild with Jaccard ID matching, then c-TF-IDF naming, then the summary, then graph export.
 - **Done when:** the M5 acceptance criteria pass.
 - **Agent plan (➕):**
-- **Result (➕):**
+  - Files: `cluster/assign.py` (`load_vectors`, `centroid`, `save_centroids`, `assign_incremental`, `cluster_labels`, `jaccard`, `match_clusters`), `cluster/naming.py` (`ctfidf`, `project_name`, `display_term`, `summary_section`, `replace_summary`), `cluster/cluster.py` (`run_cluster(vault, agent="default", rebuild=False, now=None) -> ClusterReport`), `cluster/graph.py` (`build_graph(vault, agent="default", facts=False) -> GraphData`), `cli/cluster_cmd.py` (`pam cluster [--rebuild] [--agent]`), `cli/graph_cmd.py` (`pam graph export [--agent] [--facts] [--out]`). Tests: `tests/test_m05_cluster.py`.
+  - Flow: under `vault_write_lock`, read `memory/<agent>/episodes` + `doc_vectors` + `memory/<agent>/projects`; assign/cluster; write changed project files with `mdio`; one `git.commit` `cluster: <mode> +c ~u`; store `project_centroids`; `index_paths` for the touched files.
+  - Tests: offline topic embedder (fixture topics on fixed dimensions); fixtures give >= 2 projects incl. Immich; cluster twice is a no-op; `--rebuild` keeps ids; < `min_cluster_size` gives none; a noise episode stays unassigned; agent project never renamed; rebuild-unmatched project goes dormant with a note; dormancy by `now`; c-TF-IDF hand corpus; naming rules; GraphData endpoints, facts flag, restricted agent; CLI `--json` and `graph export --out`.
+  - Risks: HDBSCAN on tiny inputs returns all noise; a second run assigning the first run's noise would break "cluster twice is a no-op" (both handled in CHG-0016).
+- **Result (➕):** 2026-10-18 · PASS (local) · macOS scratch venv (uv CPython 3.12, `onnxruntime<1.20`): `test_m05_cluster.py` 27 passed; full suite 645 passed, 2 skipped. With the real bge model on the Claude + ChatGPT fixtures: 3 projects (Immich, Tailscale, CSE · CDS), second `pam cluster` and `pam cluster --rebuild` make no commit, `pam graph export --out g.json` validates. Tailscale is `dormant` (last episode 2026-09-06, more than `dormant_after_days` ago). Not yet run: backend container; real 65-episode export (Pranav).
+- **Result (➕):** 2026-10-18 · PASS · B-04 (CHG-0019): on the 3 fixtures with the real bge model (macOS 12, uv CPython 3.12 venv, `onnxruntime<1.20`), `pam cluster` named the university project "Day" before the fix and now gives Immich, CSE · CDS, Tailscale (17 assigned); the offline test embedder gives Immich, Tailscale, CSE · Jobs, Checklist · Day Hike. `test_m05_cluster.py` 32 passed; full suite 707 passed, 2 skipped. Rebased on main (T13).
+- **Result (➕):** 2026-10-18 · PASS · T10 review (Yogesh), WSL2 checkout, locally (`uv run --frozen`) and in the backend container: CHG-0020 (an unreadable project file stops `pam cluster` instead of its episodes moving to another project; `graph export --out` creates folders, no traceback) and CHG-0021 (`assign_threshold` 0.70). With the real bge model on the 3 fixtures: Immich 7, Tailscale 4, CSE · CDS 4, lentils and hike unassigned; second `pam cluster` and `--rebuild` make no commit; `graph export --out` validates. `test_m05_cluster.py` and the full suite pass (counts in PR #35).
 
 #### T11 · Working memory (≈ 0.75 h)
 - **Module:** M9
@@ -1991,6 +1997,27 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 part 1)
 
+### CHG-0016 — M5 implementation choices: scope, settle loop, single-cluster fallback, stable names, graph ids
+- **Type:** design
+- **Module(s):** M5
+- **Proposed by:** agent (task T10)
+- **Date:** 2026-10-18
+- **Motivation:** §8 M5 leaves open which episodes a run covers, how "cluster twice is a no-op" holds when the first run's HDBSCAN noise could be assigned to its new centroids on the second run, what happens when HDBSCAN finds one dense group (sklearn returns all noise), when names and keywords are recomputed, what `episodes_assigned` counts, and the graph's node ids.
+- **Proposal:**
+  1. Scope: `pam cluster --agent A` (default `default`) clusters `memory/A/episodes` into `memory/A/projects`. Episodes without a `doc_vectors` row are skipped with a warning (run `pam index`). The agent must exist; no permission check (system process).
+  2. Settle loop (incremental): assign to centroids (cosine >= `assign_threshold`, running mean, oldest episode first), then HDBSCAN on the rest when >= `min_cluster_size`; repeat while either step changed something. A run therefore leaves nothing a second run would change; episodes that end as noise stay unassigned.
+  3. HDBSCAN: `metric="euclidean"`, `min_cluster_size` from config, sklearn's default `min_samples` (= `min_cluster_size`, capped at n-1). If every point is noise, it runs once more with `allow_single_cluster=True`, so one dense topic still forms a project; outliers stay noise. Turning that on always merged the whole fixture into one cluster.
+  4. Rebuild: episodes held by `agent`/`manual` projects are not re-clustered (those projects keep their members). The rest go through HDBSCAN; clusters are matched to `cluster` projects greedily by highest Jaccard (>= `rebuild_match_jaccard`, each used once), keeping id and name; then the settle loop runs on the noise. A matched project with the same member set keeps its stored order. Unmatched `cluster` projects become `dormant`, `episode_ids: []`, and get a `## Notes` bullet `- <ts> (cluster) Dormant after cluster --rebuild: …`.
+  5. Names are set once, when the clusterer creates a project; later runs never rename (so `agent`/`manual` are never renamed either). Keywords (c-TF-IDF over all projects of the scope) are recomputed for new projects, projects whose members changed, every project on `--rebuild`, and projects with no keywords. `## Summary (auto)` is re-rendered for every project; a file is written (and `updated_at` set) only if its content changes.
+  6. Naming details: a title n-gram must be in >= 30% of member titles **and** in at least 2 (`TITLE_NGRAM_MIN = 2`), else 3-member projects get one-word names from a single title; ties prefer the higher keyword rank, then a bigram. A term keeps its casing from the titles (then member texts) when that has a capital (`Immich`, `UW CS`, `CSE · CDS`), else it is title-cased. The c-TF-IDF word count `A` counts `\w\w+` tokens.
+  7. Dormancy: `last_activity_at` is the later of the stored value (an agent note or episode write moves it) and the newest member `updated_at`; a project the clusterer creates starts from its members' newest `updated_at`; `dormant` when older than `dormant_after_days`, `active` otherwise (an empty `cluster` project stays dormant).
+  8. Report: `episodes_assigned` = episodes placed in a project by this run; `episodes_unassigned` = the scope's episodes in no project afterwards.
+  9. `project_centroids`: recomputed from member `doc_vectors` each run (normalized mean; an index rebuild loses nothing), rows written only when the bytes change, deleted for projects without vectors. Reindexing after the commit logs and keeps the commit on failure (as CHG-0009 item 8).
+  10. Graph: node ids are the document UUIDs; project `cluster_id` is its own id, an episode's is the visible project that holds it; fact `size` = confidence, `label` = `attribute: value`; `derived_from` weight = confidence; `similar` weight = cosine. Visibility uses `can_read` per file. No index means no `similar` links. `pam graph export` without `--out` prints the JSON.
+- **Impact:** M5 only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T10)
+
 ### CHG-0016 — M14 implementation choices: type generation, inline API shapes, mock mode, session list
 - **Type:** design
 - **Module(s):** M14 (expectations on M13/T14 listed in item 6)
@@ -2054,6 +2081,56 @@ Estimates assume one agent plus one human reviewer. The total is about 19 h, lea
 - **Impact:** M12 only. No contract changes. T14 calls `run_turn(vault, req, mcp_url=...)`, returns 400 for `UnknownModel` and maps the other exceptions raised before the first event to 404/400/409.
 - **Status log:**
   - 2026-10-18 · IMPLEMENTED · agent (T13 rest)
+
+### CHG-0019 — M5 naming: generic title n-grams never name a project (B-04)
+- **Type:** fix
+- **Module(s):** M5 (`cluster/naming.py`)
+- **Proposed by:** agent (bug B-04 on T10), rule chosen by Pranav
+- **Date:** 2026-10-18
+- **Motivation:** With the bge model, the 3 fixtures put "What should I pack for a rainy day hike?" into the university project, so `day` was in 2 of its 6 titles and passed both title rules: the project was named "Day". Titles like "Untitled conversation 2026-10-17" could likewise give "2026-10". CHG-0016 and CHG-0017 are taken on the T10, T15 and T16 branches and CHG-0018 on main, so this entry is CHG-0019.
+- **Proposal:**
+  1. `project_name` ignores title n-grams made only of `GENERIC_TITLE_WORDS` (chat, conversation, day, discussion, help, new, notes, project, question, questions, untitled) or numbers, then applies the 30% / 2-title rule to the rest; if none qualifies, the name is the top 2 keywords as §8 M5 says. A partly generic n-gram (`day hike`) still counts.
+  2. One-word names stay allowed (`Immich`, `Tailscale`): requiring 2+ words would rename those to `Immich · Backup` and `Caddy · Home`.
+- **Impact:** M5 naming only. Names are set once at creation (CHG-0016 #5), so existing projects keep theirs; `origin=agent|manual` projects are still never renamed. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (B-04)
+
+### CHG-0020 — M5 review fixes: unreadable project files stop `pam cluster`; `graph export --out` errors
+- **Type:** design
+- **Module(s):** M5 (`cluster/cluster.py`, `cli/graph_cmd.py`)
+- **Proposed by:** agent (T10 review, Yogesh)
+- **Date:** 2026-10-18
+- **Motivation:** Testing PR #35 on the three fixtures found two problems. (1) `pam cluster` skipped a project file it could not read (bad frontmatter) with a warning; that project's episodes then looked unassigned and were moved into another project (all 7 Immich episodes went into Tailscale and were committed), so once the file was fixed they belonged to two projects, against §7.5 "an episode belongs to at most one project". (2) `pam graph export --out` into a folder that does not exist ended in a raw `FileNotFoundError` traceback.
+- **Proposal:**
+  1. `run_cluster` (incremental and `--rebuild`) raises `PamError` (exit 1) naming every unreadable `memory/<agent>/projects/*.md` file before it changes anything; the message says to fix or `git checkout -- <file>` it. Unreadable episode files are still skipped with a warning (they only stay unassigned). `build_graph` keeps skipping unreadable files with a warning, since it writes nothing.
+  2. `pam graph export --out FILE` creates missing parent folders; any other write failure (e.g. `FILE` is a folder) is a `PamError` "cannot write FILE: <reason>" (exit 1) instead of a traceback.
+  3. Tests: `test_unreadable_project_file_stops_cluster`, `test_graph_export_out_creates_missing_folders`, `test_graph_export_unwritable_out_is_a_clean_error` (all three fail on the code before this change).
+- **Impact:** M5 only. No contract changes.
+- **Status log:**
+  - 2026-10-18 · IMPLEMENTED · agent (T10 review)
+
+### CHG-0021 — `ClusterCfg.assign_threshold` default 0.60 → 0.70 for bge-small
+- **Type:** contract
+- **Module(s):** contracts (`config.py` `ClusterCfg`), M5
+- **Proposed by:** agent (T10 review, Yogesh)
+- **Date:** 2026-10-18
+- **Motivation:** With `BAAI/bge-small-en-v1.5` (decision 6 in §11), unrelated episodes are already similar: over the 17 Claude + ChatGPT + Gemini fixture episodes the pairwise cosine is min 0.44, **median 0.60**, max 0.84. The default `assign_threshold` 0.60 therefore lets off-topic episodes join a project: Gemini's "Suggest a simple meal plan with lentils." (0.68) and "What should I pack for a rainy day hike?" (0.72) join the UW CS / CSE project. CHG-0019 (B-04) stops that project being named "Day"; this change keeps the off-topic episodes out of it. Measured with a `pam.toml` override on the fixtures, in one run and incrementally (Claude + ChatGPT, then Gemini):
+  - 0.60 and 0.65: lentils and hike join the CSE project.
+  - **0.70:** Immich 7, Tailscale 4 (incl. "Explain what a reverse proxy does."), CSE · CDS 4; lentils and hike unassigned; identical result and names both ways.
+  - 0.75: real members drop out ("Photo library issue", the reverse-proxy episode) and a weak "Checklist · Day Hike" project forms.
+- **Proposal:** change the default only (vaults with a `pam.toml` keep their value; users can set it per vault). New code for `backend/pam/contracts/config.py`:
+  ```python
+  class ClusterCfg(_C):
+      min_cluster_size: int = 3; assign_threshold: float = 0.70
+      similar_link_threshold: float = 0.75; similar_links_per_node: int = 3
+      rebuild_match_jaccard: float = 0.5; dormant_after_days: int = 30
+  ```
+  The same line in §7.13, then `pam schema export`. `frontend/src/types/generated.ts` carries no defaults, so it is unchanged.
+- **Impact:** contracts + regenerated schemas (`PamConfig.json`, `ClusterCfg.json`); M5 behaviour on new vaults. Existing vaults: no change until their `pam.toml` is edited.
+- **Status log:**
+  - 2026-10-18 · PROPOSED · agent (T10 review)
+  - 2026-10-18 · APPROVED · Yogesh
+  - 2026-10-18 · IMPLEMENTED · agent (T10 review): contract, §7.13 and schemas updated; full suite passes at 0.70
 
 ## 11. Decisions made on the team's behalf (please review before approving CHG-0000) 🔒
 These were not explicitly answered in planning and were decided with "your call" or industry-standard defaults. Flip any of them by editing before approval:
