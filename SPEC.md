@@ -1,7 +1,7 @@
 # PAM — Portable Agent Memory · Technical Spec
 
 > **Status:** v1.0.0 (baseline, see CHG-0000) · **Event:** DubHacks (24 h) · **Team:** 3
-> **Companion docs:** [`SETUP.md`](./SETUP.md) (install + full CLI reference) · [`research/TODO.md`](./research/TODO.md) (what we need to learn)
+> **Companion docs:** [`SETUP.md`](./SETUP.md) (install + full CLI reference)
 
 ## 0. How to use this spec (read first — humans and agents)
 
@@ -158,8 +158,6 @@ The vault is bind-mounted at `./vault:/vault`. The embedding model cache is a na
 pam/
 ├── SPEC.md                      # this file
 ├── SETUP.md                     # install + CLI reference
-├── research/
-│   └── TODO.md                  # learning checklist
 ├── docker-compose.yml
 ├── .env.example                 # ANTHROPIC_API_KEY, OPENROUTER_API_KEY, OLLAMA_BASE_URL, PAM_VAULT
 ├── .gitignore                   # ignores vault/, .env, node_modules, __pycache__
@@ -1383,7 +1381,7 @@ Python 3.12. All modules use `pam.core` for config, paths, locking, and Markdown
 - **Edge cases:** an unreachable service gives `UNREACHABLE` and the model decides whether to retry; two connectors with the same tool name stay distinct through the prefix; an agent name in `agents` that no longer exists is harmless; editing a connector mid-chat takes effect on the next turn (the store is read per turn).
 - **Acceptance:** with `mock/tmobile/connector.yaml` added and ticked for `tmobile-advisor`: `pam connector call tmobile search_devices --arg query=camera` returns `ok` with product cards whose images load in the browser; a chat turn as `tmobile-advisor` on a `supports_tools` model emits a `ToolCallEvent` with cards; the same turn as `default` offers no connector tools; a connector whose path resolves outside `base_url` is refused without a request; the secret of an `api_key` connector appears in no event, log line or commit.
 
-### M17 — T-Mobile challenge mock API (synthetic) · PROPOSED in CHG-0027
+### M17 — T-Mobile challenge mock API (synthetic) · PROPOSED in CHG-0027 · Removed by PAM-02 T1
 > A standalone demo service for the T-Mobile side track ("Reimagining Recommendations in Wireless Commerce"). It is not part of the `pam` package, and PAM reaches it only through M16.
 - **Form:** `mock/tmobile/` at the repo root: `app.py` (FastAPI), `engine/{upgrade,household,addons,cards}.py`, `data/*.json`, `images/**.svg` (generated, committed), `tools/make_images.py`, `tools/make_export.py`, `demo-export/conversations.json` (source of the synthetic chat export), `connector.yaml` (the ready-to-add M16 definition), `demo-setup.sh`, `DEMO.md`, `README.md`, its own `pyproject.toml` + `uv.lock` (fastapi, uvicorn only), `Dockerfile`. Compose service `tmobile-mock`; nginx proxies `/connectors/tmobile/` to it so the browser can load its images.
 - **Function:** stand in for a carrier's commerce layer (catalog, plans, add-ons, trade-in, promotions) and customer layer (households, lines, usage, billing, support contacts) with believable, fully synthetic data, and return deterministic, explained recommendations for three of the brief's directions: **Timekeeper** (should I upgrade, including "wait"), **Household Mix Optimizer**, and **Cart Whisperer** (add-ons, including "nothing else").
@@ -1449,12 +1447,12 @@ Every implementation agent (e.g. a Claude Code session) follows this loop for **
 6. **Need to change a contract, the vault layout, or another module's design?** Append a `PROPOSED` entry in §10 and **stop that part of the work.** Continue only with parts that don't depend on it. Wait for a human to append `APPROVED`.
 7. **Never delete** spec text, change entries, episode bodies, or tests written by earlier tasks.
 
-Global allowed paths for every task: `backend/tests/**`, appending to §9 (own task) and §10, and `research/TODO.md` (checking boxes and appending notes).
+Global allowed paths for every task: `backend/tests/**`, appending to §9 (own task) and §10.
 
 ### 9.2 Phase 0: before the hackathon (humans) 🔒
 | ID | Task | Owner | Output |
 |----|------|-------|--------|
-| P0.1 | Work through `research/TODO.md` (sections R1–R6 first) | all | Checked boxes + notes |
+| P0.1 | Work through `research/TODO.md` (sections R1–R6 first) · Removed by PAM-02 T1 | all | Checked boxes + notes |
 | P0.2 | Request real exports from Claude, ChatGPT, and Gemini **now** (they arrive by email, sometimes with a delay) | each | Raw exports on disk |
 | P0.3 | Build **anonymized fixtures**: about 10 conversations per source, including a planted contradiction, repeated rules ("no bullet points" ×2), and 3 obvious topics | 1 person | `backend/tests/fixtures/**` |
 | P0.4 | Pick the demo conversation history and pre-download that Claude export | 1 person | `demo/claude-export.zip` (gitignored) |
