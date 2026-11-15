@@ -258,15 +258,7 @@ A connector is an outside HTTP API offered to agents as tools (CHG-0027). Each o
 - **Who gets the tools:** only agents listed under `agents:`, and only on models with `supports_tools`. The `default` agent gets none unless it is listed. The model sees each tool as `<connector_id>__<tool>`.
 - **Secrets:** `auth.env_var` holds only the secret's *name*. Put the value in `.env` (or the environment) under that name. A same-named entry in `vault/.pam/secrets.json` also works, but saving a key on the Settings page currently rewrites that file and drops it, so `.env` is the reliable place.
 - **Safety:** requests stay inside `base_url` (no `/`, `\` or dot segments in path values) and redirects are not followed. Limits come from `[connectors]` in `pam.toml`: `timeout_seconds`, `max_response_bytes`, `max_result_tokens`, `max_tools_per_turn`.
-- **Docker:** a `base_url` such as `http://tmobile-mock:8100` resolves only on the compose network, so run calls inside the container.
-```bash
-docker compose cp mock/tmobile/connector.yaml backend:/tmp/connector.yaml
-pamx connector add /tmp/connector.yaml
-pamx connector call tmobile get_household --arg customer_id=cust-chen
-curl -s localhost:8000/api/connectors
-curl -s -X POST localhost:8000/api/connectors/tmobile/tools/search_devices/call \
-  -H 'content-type: application/json' -d '{"query":"camera"}'
-```
+- **Docker:** a `base_url` naming another compose service resolves only on the compose network, so run calls inside the container.
 
 ## 7. Local development without Docker (optional)
 ```bash
@@ -301,15 +293,3 @@ docker compose exec backend pam index --rebuild   # rebuild derived index only (
 # Full reset (destroys the vault; human-only, never done by agents):
 # docker compose down && rm -rf vault && docker compose up -d && pamx init
 ```
-
-## 11. T-Mobile demo
-A synthetic carrier API (SPEC §8 M17) for the T-Mobile side track. It is fictional data only, and PAM reaches it through the `tmobile` connector (M16, T17).
-```bash
-docker compose up -d --build tmobile-mock                 # healthy at http://localhost:8100/health
-curl -s localhost:8100/customers/cust-chen | head -c 300
-# images through the frontend: http://localhost:5173/connectors/tmobile/images/devices/kestrel-5-slate.svg
-PAM_DOCKER=1 mock/tmobile/demo-setup.sh                   # scratch vault in ./demo/tmobile/vault (needs T17)
-cd mock/tmobile && uv run --frozen pytest -q              # the mock's own tests
-```
-- `MOCK_TODAY` (default `2026-10-18`) fixes "now"; `PUBLIC_BASE` (default `/connectors/tmobile`) prefixes image URLs.
-- The tools, the engines and the API conventions are in `mock/tmobile/README.md`; the 3-minute story is in `mock/tmobile/DEMO.md`.
